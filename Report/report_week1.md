@@ -1,0 +1,99 @@
+# AI Agent Đối soát Hóa đơn & Chứng từ Kế toán (Invoice Reconciliation Agent)
+
+## 0. Thông tin nhóm & Quản lý
+
+| Mục                                           | Nội dung                                                        |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| Trưởng nhóm                                   | _Chu Thành Dũng_                                                |
+| Thành viên                                    | _Nguyễn Trung Đức, Nguyễn Văn Quý, Trần Lương Hoàng Anh_        |
+| Mentor                                        | _Cao Quảng Bình_                                                |
+| Link File Quản Trị (kế hoạch, phân công việc) | _(điền link Google Sheet/Notion...)_                            |
+| Link GitHub                                   | *https://github.com/AI20K-Build-Phase-Cohort-3/P-007/tree/main* |
+
+## 1. Thực trạng
+
+Kế toán tại công ty dịch vụ gọi xe (Xe X) hiện đang đối soát hóa đơn với PO và phiếu nhập hàng (3-way matching) theo cách thủ công. Khối lượng công việc dồn lớn vào cuối tháng, dễ dẫn đến sai lệch số liệu và chậm thanh toán cho đối tác/tài xế.
+
+## 2. Vấn đề cần giải quyết
+
+Cần một AI Agent có khả năng:
+
+- Đọc hóa đơn (ảnh/PDF/XML hóa đơn điện tử)
+- Đối chiếu với PO và phiếu giao/nhập hàng
+- Phát hiện chênh lệch (giá, số lượng, thuế)
+- Đề xuất phương án xử lý
+- Kế toán duyệt trước khi ghi sổ/thanh toán
+
+## 3. Ràng buộc
+
+- **HITL (Human-in-the-loop) bắt buộc** trước khi hạch toán/thanh toán — Agent không tự động ghi sổ hay chi tiền
+- **Bảo mật dữ liệu tài chính** — MST, số tiền, thông tin đối tác cần được bảo vệ
+- **Độ chính xác số liệu tuyệt đối** — các phép so khớp số học phải là logic rule-based, không giao cho LLM tính toán
+- **Cảnh báo khi OCR có độ tin cậy thấp** — field trích xuất có confidence thấp phải được gắn cờ để xác nhận thủ công
+- **Tối ưu chi phí xử lý khi khối lượng lớn** — ưu tiên rule-based/parser trực tiếp cho hóa đơn điện tử chuẩn, chỉ dùng OCR/LLM cho hóa đơn không chuẩn
+
+## 4. Nghiên cứu đề tài theo khung 5W1H
+
+### What — Đề tài này là gì?
+
+AI Agent hỗ trợ đối soát hóa đơn với PO và phiếu nhập hàng (3-way matching) cho bộ phận kế toán, thay thế quy trình đối chiếu thủ công hiện tại. Agent xử lý từ khâu đọc hóa đơn đến khâu đề xuất kết quả đối soát; con người vẫn là người duyệt cuối cùng.
+
+### Why — Tại sao cần làm đề tài này?
+
+- Khối lượng hóa đơn lớn dồn vào cuối tháng gây quá tải nhân sự kế toán
+- Đối chiếu thủ công 3 nguồn dữ liệu dễ sai sót, khó phát hiện chênh lệch nhỏ
+- Sai lệch không phát hiện kịp dẫn đến thanh toán sai, chậm thanh toán, ảnh hưởng đối tác/tài xế
+- Giá trị kỳ vọng: giảm thời gian xử lý, giảm tỷ lệ sai sót, giải phóng nhân sự khỏi việc lặp lại để tập trung vào việc cần phán đoán
+
+### Who — Ai liên quan?
+
+- **Người dùng chính**: kế toán viên xử lý đối soát hàng ngày/cuối tháng
+- **Người ra quyết định cuối**: kế toán trưởng (duyệt các case bất thường/giá trị lớn)
+- **Bên liên quan gián tiếp**: tài xế/đối tác (nhận thanh toán), phòng vận hành (cung cấp phiếu nhập hàng/PO)
+
+### Where / When — Áp dụng ở đâu, khi nào?
+
+- **Where**: trong quy trình kế toán nội bộ, giữa khâu nhận hóa đơn và khâu hạch toán/thanh toán, tích hợp với hệ thống ERP/kế toán hiện có
+- **When**: chạy liên tục khi hóa đơn về, đặc biệt giải quyết điểm nghẽn cuối tháng khi khối lượng dồn
+
+### How — Agent giải quyết bài toán như thế nào? (mức ý tưởng)
+
+1. Đọc và trích xuất thông tin từ hóa đơn (dù ở định dạng nào)
+2. Đối chiếu tự động với PO và phiếu nhập hàng
+3. Phát hiện và phân loại mức độ chênh lệch
+4. Đưa ra đề xuất, để con người duyệt trước khi ghi sổ
+
+## 5. Kiến trúc đề xuất (tổng quan)
+
+```
+Hóa đơn (ảnh/PDF/XML)
+   → Ingest & OCR/Parse
+   → Trích xuất có cấu trúc (số HĐ, MST, tiền, thuế, SL, đơn giá)
+   → Đối soát với PO + Phiếu nhập hàng
+   → Phát hiện chênh lệch + tính confidence score
+   → Route: confidence cao → đề xuất tự động | confidence thấp → gắn cờ cảnh báo
+   → HITL: Kế toán duyệt/sửa
+   → Ghi sổ/thanh toán (chỉ sau khi có phê duyệt người)
+```
+
+## 6. Metrics đánh giá thành công
+
+- Precision/Recall của việc match (tránh false positive gây thất thoát)
+- Tỷ lệ tự động hóa (% hóa đơn xử lý không cần người can thiệp)
+- Thời gian xử lý trung bình so với quy trình thủ công
+- Human override rate (bao nhiêu % đề xuất của Agent bị kế toán sửa lại)
+
+## 7. Tiến độ & Kế hoạch
+
+### Đã hoàn thành
+
+- [ ] Lập nhóm, phân chia vai trò (trưởng nhóm, các thành viên phụ trách phần nào)
+- [x] Xác định đề tài, phạm vi (What/Why/Who/How ở trên)
+- [ ] Set up GitHub repo (cấu trúc thư mục, README, quy tắc commit/branch)
+
+### Kế hoạch tuần sau
+
+- [ ] Trình bày kiến trúc và chốt đề xuất giải pháp (solution) luồng xử lý
+- [ ] Dựng khung code: Khởi tạo GitHub, dựng sườn Backend (FastAPI) và Frontend (React)
+- [ ] Code giao diện: Làm màn hình đăng nhập phân quyền cho 2 vai trò (Kế toán viên & Kế toán trưởng)
+- [ ] Chuẩn bị dữ liệu: Thu thập tập hóa đơn mẫu (ảnh/PDF/XML) và làm file PO/Phiếu nhập giả lập để test
