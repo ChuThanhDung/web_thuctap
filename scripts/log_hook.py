@@ -71,9 +71,9 @@ def normalize(data: dict, tool: str) -> dict | None:
         "tool": tool,
         "event": event,
         "session_id": (
-            data.get("session_id") or
-            data.get("conversation_id") or
-            data.get("generation_id") or ""
+                data.get("session_id") or
+                data.get("conversation_id") or
+                data.get("generation_id") or ""
         ),
         "model": data.get("model", ""),
         "repo": repo,
@@ -181,7 +181,8 @@ def main():
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     # Output valid JSON (required by some tools like Gemini)
-    print(json.dumps({"status": "logged"}))
+    if tool != "codex":
+        print(json.dumps({"status": "logged"}))
 
 
 if __name__ == "__main__":

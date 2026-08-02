@@ -21,4 +21,10 @@ if %ERRORLEVEL%==0 (
   exit /b %ERRORLEVEL%
 )
 
+set CODEX_PY=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe
+if exist "%CODEX_PY%" (
+  "%CODEX_PY%" %*
+  exit /b %ERRORLEVEL%
+)
+
 exit /b 0
