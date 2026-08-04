@@ -89,7 +89,7 @@ Hóa đơn (ảnh/PDF/XML)
 
 - [ ] Lập nhóm, phân chia vai trò (trưởng nhóm, các thành viên phụ trách phần nào)
 - [x] Xác định đề tài, phạm vi (What/Why/Who/How ở trên)
-- [ ] Set up GitHub repo (cấu trúc thư mục, README, quy tắc commit/branch)
+- [x] Set up GitHub repo (cấu trúc thư mục, README, quy tắc commit/branch)
 
 ### Kế hoạch tuần sau
 
