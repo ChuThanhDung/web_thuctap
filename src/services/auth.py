@@ -4,13 +4,11 @@ from secrets import token_urlsafe
 
 from passlib.context import CryptContext
 from sqlalchemy import select
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from src.models.audit_log import AuditLog
 from src.models.user import User
 from src.models.user_session import UserSession
-
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

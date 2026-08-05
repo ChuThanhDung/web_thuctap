@@ -5,7 +5,6 @@ from src.database import get_db
 from src.models.schemas import AuthUser, LoginRequest, LoginResponse
 from src.services.auth import authenticate_user, create_user_session, write_audit_log
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 

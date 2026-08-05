@@ -1,8 +1,8 @@
+import uuid
 from datetime import datetime
-from uuid import UUID as PythonUUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -12,11 +12,11 @@ from src.models.role import Role
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    role_id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
+    role_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
     department: Mapped[str | None] = mapped_column(String(100))
     employee_code: Mapped[str | None] = mapped_column(String(50), unique=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
