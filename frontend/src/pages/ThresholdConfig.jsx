@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Settings, Edit2, Check, X, Info } from 'lucide-react';
-import { thresholdConfig, formatVND } from '../mockData';
+import { thresholdConfig, formatVND } from '../mockData.js';
 
 export default function ThresholdConfig() {
   const [configs, setConfigs] = useState(thresholdConfig);

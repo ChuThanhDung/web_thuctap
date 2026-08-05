@@ -9,7 +9,7 @@ import {
   X,
   FileUp,
 } from 'lucide-react';
-import { uploadQueue } from '../mockData';
+import { uploadQueue } from '../mockData.js';
 
 const STATUS_STYLES = {
   completed: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Hoàn tất' },

@@ -11,15 +11,15 @@ import {
   Info,
   MessageSquare,
 } from 'lucide-react';
-import StatusBadge, { RiskBadge } from '../components/StatusBadge';
-import ConfidenceIndicator, { ConfidenceCell } from '../components/ConfidenceIndicator';
+import StatusBadge, { RiskBadge } from '../components/StatusBadge.jsx';
+import ConfidenceIndicator, { ConfidenceCell } from '../components/ConfidenceIndicator.jsx';
 import {
   caseDetails,
   reconciliationCases,
   formatVND,
   formatNumber,
   formatDate,
-} from '../mockData';
+} from '../mockData.js';
 
 export default function CaseDetail() {
   const { id } = useParams();

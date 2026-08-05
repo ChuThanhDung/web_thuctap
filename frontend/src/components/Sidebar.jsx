@@ -1,34 +1,43 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  FileCheck,
-  Upload,
-  ClipboardList,
-  Settings,
+  Bot,
   ChevronLeft,
   ChevronRight,
-  Bot,
+  ClipboardList,
+  FileCheck,
+  LayoutDashboard,
   LogOut,
+  Settings,
+  Upload,
 } from 'lucide-react';
 
 const navItemsAccountant = [
-  { to: '/', icon: FileCheck, label: 'Đối soát' },
+  { to: '/accountant', icon: FileCheck, label: 'Đối soát' },
   { to: '/upload', icon: Upload, label: 'Tải lên' },
   { to: '/audit-trail', icon: ClipboardList, label: 'Nhật ký' },
-  { to: '/settings', icon: Settings, label: 'Cấu hình' },
 ];
 
 const navItemsManager = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
-  { to: '/', icon: FileCheck, label: 'Đối soát' },
+  { to: '/manager', icon: LayoutDashboard, label: 'Tổng quan' },
+  { to: '/accountant', icon: FileCheck, label: 'Phê duyệt đối soát' },
   { to: '/audit-trail', icon: ClipboardList, label: 'Nhật ký' },
   { to: '/settings', icon: Settings, label: 'Cấu hình' },
 ];
 
-export default function Sidebar({ collapsed, onToggle, role, onRoleChange }) {
-  const location = useLocation();
-  const navItems = role === 'manager' ? navItemsManager : navItemsAccountant;
+function getInitials(fullName) {
+  return fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
+  const isManager = user.role === 'chief_accountant';
+  const navItems = isManager ? navItemsManager : navItemsAccountant;
 
   return (
     <aside
@@ -36,7 +45,6 @@ export default function Sidebar({ collapsed, onToggle, role, onRoleChange }) {
         collapsed ? 'w-[68px]' : 'w-[240px]'
       }`}
     >
-      {/* Logo / Brand */}
       <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
           <Bot size={20} />
@@ -49,38 +57,18 @@ export default function Sidebar({ collapsed, onToggle, role, onRoleChange }) {
         )}
       </div>
 
-      {/* Role switcher (demo only) */}
       {!collapsed && (
         <div className="border-b border-slate-200 px-3 py-3">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Vai trò (demo)
-          </p>
-          <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5">
-            <button
-              onClick={() => onRoleChange('accountant')}
-              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all ${
-                role === 'accountant'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Kế toán viên
-            </button>
-            <button
-              onClick={() => onRoleChange('manager')}
-              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all ${
-                role === 'manager'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              KT Trưởng
-            </button>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Vai trò</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-sm font-semibold text-slate-900">{user.role_name}</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {isManager ? 'Không gian kế toán trưởng' : 'Không gian kế toán viên'}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         <ul className="space-y-1">
           {navItems.map((item) => (
@@ -104,23 +92,26 @@ export default function Sidebar({ collapsed, onToggle, role, onRoleChange }) {
         </ul>
       </nav>
 
-      {/* User info */}
       <div className="border-t border-slate-200 p-3">
         {!collapsed && (
           <div className="mb-2 flex items-center gap-3 rounded-lg px-2 py-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
-              {role === 'manager' ? 'TM' : 'NL'}
+              {getInitials(user.full_name)}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-slate-900">
-                {role === 'manager' ? 'Trần Văn Minh' : 'Nguyễn Thị Lan'}
-              </p>
-              <p className="truncate text-xs text-slate-500">
-                {role === 'manager' ? 'Kế toán trưởng' : 'Kế toán viên'}
-              </p>
+              <p className="truncate text-sm font-medium text-slate-900">{user.full_name}</p>
+              <p className="truncate text-xs text-slate-500">{user.email}</p>
             </div>
           </div>
         )}
+        <button
+          onClick={onLogout}
+          className="mb-1 flex w-full items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          title="Đăng xuất"
+        >
+          <LogOut size={18} />
+          {!collapsed && <span className="text-xs">Đăng xuất</span>}
+        </button>
         <button
           onClick={onToggle}
           className="flex w-full items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"

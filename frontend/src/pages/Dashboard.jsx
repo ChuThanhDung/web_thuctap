@@ -21,7 +21,7 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import StatusBadge from '../components/StatusBadge';
+import StatusBadge from '../components/StatusBadge.jsx';
 import {
   dashboardStats,
   escalatedCases,
@@ -29,7 +29,7 @@ import {
   formatVND,
   formatDate,
   formatNumber,
-} from '../mockData';
+} from '../mockData.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();

@@ -1,19 +1,55 @@
-version: "3.8"
-
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: docusyncai_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Admin@123}
+      POSTGRES_DB: ${POSTGRES_DB:-docusyncai}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_auth.sql:/docker-entrypoint-initdb.d/001_init_auth.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    container_name: docusyncai_backend
+    restart: unless-stopped
     env_file:
       - .env
-    volumes:
-      - ./data:/app/data
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+psycopg://admin:Admin%40123@postgres:5432/docusyncai}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    container_name: docusyncai_frontend
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

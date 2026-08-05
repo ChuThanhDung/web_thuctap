@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle, X, Shield } from 'lucide-react';
-import { formatVND } from '../mockData';
+import { formatVND } from '../mockData.js';
 
 export default function BulkApprovalModal({ cases, onConfirm, onCancel }) {
   const [confirmed, setConfirmed] = useState(false);

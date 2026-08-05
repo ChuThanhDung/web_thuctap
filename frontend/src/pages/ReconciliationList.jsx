@@ -9,10 +9,10 @@ import {
   X,
   Filter,
 } from 'lucide-react';
-import StatusBadge, { RiskBadge } from '../components/StatusBadge';
-import FloatingActionBar from '../components/FloatingActionBar';
-import BulkApprovalModal from './BulkApprovalModal';
-import { reconciliationCases, formatVND, formatDate } from '../mockData';
+import StatusBadge, { RiskBadge } from '../components/StatusBadge.jsx';
+import FloatingActionBar from '../components/FloatingActionBar.jsx';
+import BulkApprovalModal from './BulkApprovalModal.jsx';
+import { reconciliationCases, formatVND, formatDate } from '../mockData.js';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },

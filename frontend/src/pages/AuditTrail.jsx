@@ -11,7 +11,7 @@ import {
   Bot,
   X,
 } from 'lucide-react';
-import { auditTrailData } from '../mockData';
+import { auditTrailData } from '../mockData.js';
 
 const ACTION_STYLES = {
   'Duyệt': { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
