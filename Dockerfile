@@ -5,20 +5,22 @@ WORKDIR /app
 ENV PIP_NO_CACHE_DIR=1
 
 COPY requirements.txt .
-RUN pip install --user -r requirements.txt
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install -r requirements.txt
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /opt/venv /opt/venv
 COPY src ./src
 
-RUN useradd -m appuser && chown -R appuser:appuser /app
+RUN useradd -m appuser && chown -R appuser:appuser /app /opt/venv
 USER appuser
 
 EXPOSE 8000
