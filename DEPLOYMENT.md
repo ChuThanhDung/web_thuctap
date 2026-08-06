@@ -7,7 +7,7 @@ Tạo file `.env` từ `.env.example`, sau đó cập nhật các giá trị th�
 ```powershell
 Copy-Item .env.example .env
 ```
-
+        
 Các biến quan trọng:
 
 ```env
