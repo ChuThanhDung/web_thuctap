@@ -38,12 +38,28 @@ Mục tiêu của dự án không chỉ dừng ở việc làm cho nhanh, mà c�
 
 ## 4. User Stories
 
+- *Là một kế toán viên, tôi muốn tải lên nhiều hóa đơn cùng một lúc, để không phải xử lý từng chứng từ một.
 - *Là một kế toán viên, tôi muốn hệ thống tự động đọc hóa đơn và đối chiếu với PO/phiếu nhập hàng, để tôi không phải nhập tay và so sánh thủ công.*
+- *Là một kế toán viên, tôi muốn hệ thống tự tìm đúng PO và phiếu nhập tương ứng với từng hóa đơn, để tôi không mất thời gian tra cứu chéo giữa các file.*
 - *Là một kế toán viên, tôi muốn thấy rõ hóa đơn nào khớp hoàn toàn để duyệt nhanh, và hóa đơn nào có chênh lệch cần xem kỹ.*
 - *Là một kế toán viên, tôi muốn biết lý do vì sao có chênh lệch (giá, số lượng, thuế) thay vì chỉ báo "không khớp".*
-- *Là một kế toán viên, tôi muốn duyệt hàng loạt các hóa đơn khớp hoàn toàn trong một thao tác, để tiết kiệm thời gian vào giai đoạn cao điểm cuối tháng.*
-- *Là một kế toán trưởng, tôi muốn xem được các case giá trị lớn hoặc rủi ro cao trước khi duyệt, thay vì phải rà soát toàn bộ danh sách.*
+- *Là một kế toán viên, tôi muốn xem chênh lệch đến từng dòng hàng, để biết vấn đề nằm ở mặt hàng nào chứ không chỉ ở tổng tiền.*
+- *Là một kế toán viên, tôi muốn những chênh lệch nhỏ do làm tròn được tự động bỏ qua theo ngưỡng cho phép, để không mất công xử lý các sai số vô nghĩa.*
+- *Là một kế toán viên, tôi muốn hệ thống chỉ ra đâu là hóa đơn trùng hoặc hóa đơn không có PO, để tôi phát hiện sớm các trường hợp bất thường.*
+- *Là một kế toán viên, tôi muốn duyệt hàng loạt các hóa đơn đã khớp trong một thao tác, để tiết kiệm thời gian vào giai đoạn cao điểm cuối tháng.*
+- *Là một kế toán viên, tôi muốn với mỗi chênh lệch được hệ thống gợi ý sẵn hướng xử lý kèm lý do, để tôi quyết định nhanh mà vẫn hiểu căn cứ.*
+- *Là một kế toán viên, tôi muốn có thể sửa hoặc từ chối gợi ý của hệ thống, để quyền quyết định cuối cùng vẫn thuộc về tôi.*
+- *Là một kế toán viên, tôi muốn hệ thống không cho hạch toán hay thanh toán khi tôi chưa bấm duyệt, để tránh sai sót ngoài ý muốn.*
 - *Là một kế toán viên, tôi muốn được cảnh báo khi hệ thống không chắc chắn về dữ liệu trích xuất (ví dụ hóa đơn scan mờ), để tôi kiểm tra lại thủ công thay vì quá tin tưởng vào kết quả tự động.*
+- *Là một kế toán viên, tôi muốn xem ảnh hóa đơn gốc ngay cạnh dữ liệu hệ thống đã đọc được, để đối chiếu bằng mắt trong vài giây.*
+- *Là một kế toán viên, tôi muốn những hóa đơn hệ thống không xử lý được đưa vào một danh sách riêng, để tôi xử lý tay mà không làm tắc hàng chờ.*
+- *Là một kế toán viên, tôi muốn xuất kết quả đã duyệt ra file đúng định dạng của phần mềm kế toán, để không phải nhập lại số liệu lần nữa.*
+- *Là một kế toán trưởng, tôi muốn xem được các case có giá trị lớn hoặc rủi ro cao trước khi duyệt, thay vì phải rà soát toàn bộ danh sách.*
+- *Là một kế toán trưởng, tôi muốn xem lại lịch sử duyệt hóa đơn nào và lý do duyệt, để phục vụ kiểm tra và giải trình khi cần.*
+- *Là một kế toán trưởng, tôi muốn theo dõi tỷ lệ hóa đơn được xử lý tự động và thời gian bình quân xử lý , để đánh giá xem hệ thống có thực sự hiệu quả hay không.*
+- *Là một kế toán trưởng, tôi muốn nắm được tiến độ đối soát của cả kỳ (đã xử lý bao nhiêu, còn tồn bao nhiêu), để chủ động điều phối nhân sự trước hạn khóa sổ.*
+- *Là một kế toán trưởng, tôi muốn biết những nhà cung cấp nào thường xuyên phát sinh chênh lệch, để làm việc lại với họ thay vì cứ xử lý sự vụ từng lần.*
+- *Là một kế toán trưởng, tôi muốn theo dõi tỷ lệ gợi ý của hệ thống bị kế toán viên sửa lại, để biết mức độ tin cậy của hệ thống và quyết định có mở rộng phạm vi áp dụng hay không.*
 
 ## 5. Yêu cầu chức năng (Functional Requirements)
 
