@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.jsx';
 import Login from './pages/Login.jsx';
@@ -11,6 +11,7 @@ import ThresholdConfig from './pages/ThresholdConfig.jsx';
 import { repairTextDeep } from './text.js';
 
 const AUTH_STORAGE_KEY = 'docusync_auth';
+const THEME_STORAGE_KEY = 'docusync_theme';
 
 function getInitialAuth() {
   try {
@@ -18,6 +19,14 @@ function getInitialAuth() {
     return storedAuth ? repairTextDeep(JSON.parse(storedAuth)) : null;
   } catch {
     return null;
+  }
+}
+
+function getInitialTheme() {
+  try {
+    return window.localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+  } catch {
+    return 'light';
   }
 }
 
@@ -32,6 +41,20 @@ function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [auth, setAuth] = useState(getInitialAuth);
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  function handleToggleTheme() {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }
 
   function handleLogin(nextAuth) {
     const repairedAuth = repairTextDeep(nextAuth);
@@ -69,7 +92,7 @@ export default function App() {
   const homePath = getHomePath(role);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -77,6 +100,8 @@ export default function App() {
         user={auth.user}
         onLogout={handleLogout}
         onUserUpdate={handleUserUpdate}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       <main

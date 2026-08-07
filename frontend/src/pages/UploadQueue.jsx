@@ -135,33 +135,34 @@ export default function UploadQueue({ token }) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Nạp & Đối soát chứng từ</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Tải lên hóa đơn, đơn đặt hàng PO, hoặc phiếu nhập kho dưới định dạng XML, PDF hoặc hình ảnh để quản lý và đối soát chéo tự động.
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải lên & Xử lý chứng từ</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Tải lên hóa đơn (.xml, .pdf, .png), đơn đặt hàng PO hoặc phiếu nhập kho GRN để AI tự động bóc tách và đối soát.
         </p>
       </div>
 
-      {/* Select Document Type to Upload */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/* Select Document Type with Highlight Bounding Container */}
+      <div className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3">
         {DOC_TYPES.map((type) => {
-          const Icon = type.icon;
           const isSelected = selectedDocType === type.value;
+          const Icon = type.icon;
           return (
             <button
               key={type.value}
               onClick={() => setSelectedDocType(type.value)}
-              className={`flex flex-col items-start text-left p-4 rounded-xl border transition-all ${
+              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all ${
                 isSelected
-                  ? 'border-brand-500 bg-brand-50/50 shadow-[0_2px_8px_rgba(var(--color-brand-600),0.08)]'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  ? 'border-brand-500 bg-white shadow-md dark:bg-slate-800 dark:border-brand-400'
+                  : 'border-slate-200/80 bg-white/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
               }`}
             >
-              <div className={`p-2 rounded-lg ${isSelected ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <div className={`p-2 rounded-lg ${isSelected ? 'bg-brand-600 text-white dark:bg-brand-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                 <Icon size={18} />
               </div>
-              <span className="mt-3 font-semibold text-sm text-slate-900">{type.label}</span>
-              <span className="mt-1 text-xs text-slate-500 leading-relaxed">{type.desc}</span>
+              <span className="mt-3 font-bold text-sm text-slate-900 dark:text-slate-100">{type.label}</span>
+              <span className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{type.desc}</span>
             </button>
           );
         })}
@@ -175,30 +176,30 @@ export default function UploadQueue({ token }) {
         onClick={() => fileInputRef.current?.click()}
         className={`card flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-all ${
           isDragOver
-            ? 'border-brand-500 bg-brand-50'
-            : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50/50'
+            ? 'border-brand-500 bg-brand-50/80 dark:bg-brand-950/40'
+            : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50/50 dark:border-slate-700 dark:hover:border-brand-500 dark:hover:bg-slate-800/40'
         }`}
       >
         <div
           className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
-            isDragOver ? 'bg-brand-100' : 'bg-slate-100'
+            isDragOver ? 'bg-brand-100 dark:bg-brand-900' : 'bg-slate-100 dark:bg-slate-800'
           }`}
         >
           <FileUp
             size={28}
-            className={isDragOver ? 'text-brand-600' : 'text-slate-400'}
+            className={isDragOver ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400 dark:text-slate-500'}
           />
         </div>
-        <p className="text-sm font-semibold text-slate-700">
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           {isDragOver ? 'Thả file tại đây' : 'Kéo thả file vào đây'}
         </p>
-        <p className="mt-1 text-xs text-slate-500 text-center">
-          hoặc <span className="font-medium text-brand-600">bấm để chọn file từ máy tính</span>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 text-center">
+          hoặc <span className="font-semibold text-brand-600 dark:text-brand-400">bấm để chọn file từ máy tính</span>
         </p>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-400">
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">.XML</span>
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">.PDF</span>
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">.PNG / .JPG</span>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.XML</span>
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.PDF</span>
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.PNG / .JPG</span>
           <span>·</span>
           <span>Dung lượng tối đa 25 MB</span>
         </div>
@@ -214,14 +215,14 @@ export default function UploadQueue({ token }) {
 
       {/* Queue */}
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-200 px-5 py-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-700">
+        <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
             Hàng đợi xử lý ({files.length} file)
           </h3>
           {files.length > 0 && (
             <button
               onClick={() => fetchQueue(true)}
-              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+              className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-semibold"
             >
               Làm mới
             </button>
@@ -229,11 +230,11 @@ export default function UploadQueue({ token }) {
         </div>
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <Loader2 className="animate-spin text-brand-600" size={24} />
-            <span className="text-xs text-slate-400 ml-2">Đang tải danh sách...</span>
+            <Loader2 className="animate-spin text-brand-600 dark:text-brand-400" size={24} />
+            <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">Đang tải danh sách...</span>
           </div>
         ) : files.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-xs">
+          <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
             Chưa có tệp nào được tải lên trong phiên làm việc này.
           </div>
         ) : (

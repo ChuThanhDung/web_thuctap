@@ -199,3 +199,78 @@ SET
     avatar_url = EXCLUDED.avatar_url,
     status = EXCLUDED.status,
     updated_at = NOW();
+
+-- Chu Thanh Dũng (Trưởng) - Kế toán trưởng
+INSERT INTO users (
+    email,
+    password_hash,
+    full_name,
+    role_id,
+    department,
+    employee_code,
+    date_of_birth,
+    address,
+    citizen_id,
+    phone,
+    avatar_url,
+    status
+)
+SELECT
+    'chuthanhdungtruong@gmail.com',
+    crypt('123456', gen_salt('bf')),
+    'Chu Thanh Dũng (Kế toán trưởng)',
+    r.id,
+    'Phòng Kế toán - Tài chính',
+    'CHIEF-002',
+    DATE '1990-01-01',
+    'Hà Nội',
+    '001190000003',
+    '0901000003',
+    NULL,
+    'ACTIVE'
+FROM roles r
+WHERE r.code = 'chief_accountant'
+ON CONFLICT (email) DO UPDATE
+SET
+    password_hash = crypt('123456', gen_salt('bf')),
+    full_name = EXCLUDED.full_name,
+    role_id = EXCLUDED.role_id,
+    updated_at = NOW();
+
+-- Chu Thanh Dũng - Kế toán viên
+INSERT INTO users (
+    email,
+    password_hash,
+    full_name,
+    role_id,
+    department,
+    employee_code,
+    date_of_birth,
+    address,
+    citizen_id,
+    phone,
+    avatar_url,
+    status
+)
+SELECT
+    'chuthanhdung@gmail.com',
+    crypt('123456', gen_salt('bf')),
+    'Chu Thanh Dũng (Kế toán viên)',
+    r.id,
+    'Phòng Kế toán - Tài chính',
+    'ACC-002',
+    DATE '1992-02-02',
+    'Hà Nội',
+    '001192000004',
+    '0901000004',
+    NULL,
+    'ACTIVE'
+FROM roles r
+WHERE r.code = 'accountant'
+ON CONFLICT (email) DO UPDATE
+SET
+    password_hash = crypt('123456', gen_salt('bf')),
+    full_name = EXCLUDED.full_name,
+    role_id = EXCLUDED.role_id,
+    updated_at = NOW();
+

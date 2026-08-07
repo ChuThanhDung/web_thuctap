@@ -251,6 +251,22 @@ async def decide_case(
         .where(ReconciliationCase.case_number == case_id)
     )
     case = db.scalars(stmt).first()
+
+    # Thử tìm theo UUID nếu không khớp case_number
+    if case is None:
+        try:
+            import uuid
+            uid = uuid.UUID(case_id)
+            stmt_uuid = (
+                select(ReconciliationCase)
+                .options(selectinload(ReconciliationCase.processed_by))
+                .options(selectinload(ReconciliationCase.line_items))
+                .where(ReconciliationCase.id == uid)
+            )
+            case = db.scalars(stmt_uuid).first()
+        except ValueError:
+            pass
+
     if case is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hồ sơ đối soát.")
 
@@ -267,6 +283,8 @@ async def decide_case(
         db=db,
         action=f"CASE_{payload.decision.upper()}",
         user=current_user,
+        target_type="RECONCILIATION_CASE",
+        target_id=str(case.id),
         details={
             "case_number": case.case_number,
             "decision": payload.decision,

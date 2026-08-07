@@ -13,6 +13,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: #0d253d;
   font-feature-settings: "ss01";
+  @apply bg-slate-50 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100;
 }
 
 /* ── Scrollbar ── */
@@ -30,22 +31,26 @@ body {
   border-radius: 3px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* ── Data Table ── */
+/* ── Data Table & Components ── */
 @layer components {
   .table-row-hover {
-    @apply transition-colors duration-100 hover:bg-slate-50;
+    @apply transition-colors duration-100 hover:bg-slate-50 dark:hover:bg-slate-800/60;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] dark:bg-brand-500 dark:hover:bg-brand-600;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
   }
 
   .btn-danger {
@@ -53,28 +58,45 @@ body {
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-900;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100;
   }
 
   .input-field {
-    @apply block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-150;
+    @apply block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-150 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
   }
 
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)];
+    @apply rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)];
   }
 
   .card-compact {
-    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  /* Distinct Bounding Highlight Boxes for Important Text */
+  .highlight-box-info {
+    @apply rounded-xl border-2 border-brand-400/50 bg-brand-50/70 p-4 shadow-sm transition-all dark:border-brand-500/60 dark:bg-brand-950/50 dark:text-brand-100;
+  }
+
+  .highlight-box-warning {
+    @apply rounded-xl border-2 border-amber-400/60 bg-amber-50/80 p-4 shadow-sm transition-all dark:border-amber-500/60 dark:bg-amber-950/50 dark:text-amber-100;
+  }
+
+  .highlight-box-danger {
+    @apply rounded-xl border-2 border-rose-400/60 bg-rose-50/80 p-4 shadow-sm transition-all dark:border-rose-500/60 dark:bg-rose-950/50 dark:text-rose-100;
+  }
+
+  .highlight-box-success {
+    @apply rounded-xl border-2 border-emerald-400/60 bg-emerald-50/80 p-4 shadow-sm transition-all dark:border-emerald-500/60 dark:bg-emerald-950/50 dark:text-emerald-100;
   }
 
   /* Diff highlight for mismatched cells */
   .diff-highlight {
-    @apply bg-rose-50 border-l-2 border-rose-400;
+    @apply bg-rose-50 border-l-4 border-rose-500 dark:bg-rose-950/40 dark:border-rose-500;
   }
 
   .diff-highlight-warning {
-    @apply bg-amber-50 border-l-2 border-amber-400;
+    @apply bg-amber-50 border-l-4 border-amber-500 dark:bg-amber-950/40 dark:border-amber-500;
   }
 
   /* Confidence-based opacity */

@@ -14,7 +14,7 @@ import {
 import StatusBadge, { RiskBadge } from '../components/StatusBadge.jsx';
 import FloatingActionBar from '../components/FloatingActionBar.jsx';
 import BulkApprovalModal from './BulkApprovalModal.jsx';
-import { getReconciliations } from '../services/reconciliations.js';
+import { getReconciliations, decideCase } from '../services/reconciliations.js';
 import { formatVND, formatDate } from '../text.js';
 
 const STATUS_OPTIONS = [
@@ -27,22 +27,22 @@ const STATUS_OPTIONS = [
 
 function SummaryCard({ icon: Icon, label, value, detail, tone = 'slate', loading = false }) {
   const tones = {
-    brand: 'bg-brand-50 text-brand-700 ring-brand-100',
-    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-    rose: 'bg-rose-50 text-rose-700 ring-rose-100',
-    slate: 'bg-slate-50 text-slate-700 ring-slate-100',
+    brand: 'bg-brand-50 text-brand-700 ring-brand-100 dark:bg-brand-950/60 dark:text-brand-300 dark:ring-brand-900',
+    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-900',
+    amber: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-900',
+    rose: 'bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-950/60 dark:text-rose-300 dark:ring-rose-900',
+    slate: 'bg-slate-50 text-slate-700 ring-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)]">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-400">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">{label}</p>
           {loading ? (
-             <div className="mt-2 h-8 w-16 animate-pulse rounded bg-slate-200" />
+             <div className="mt-2 h-8 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
           ) : (
-            <p className="mt-2 text-2xl font-light tracking-[-0.2px] text-slate-950">{value}</p>
+            <p className="mt-2 text-2xl font-light tracking-[-0.2px] text-slate-950 dark:text-slate-100">{value}</p>
           )}
         </div>
         <div className={`flex h-10 w-10 items-center justify-center rounded-full ring-1 ${tones[tone]}`}>
@@ -50,9 +50,9 @@ function SummaryCard({ icon: Icon, label, value, detail, tone = 'slate', loading
         </div>
       </div>
       {loading ? (
-        <div className="mt-4 h-4 w-2/3 animate-pulse rounded bg-slate-100" />
+        <div className="mt-4 h-4 w-2/3 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
       ) : (
-        <p className="mt-3 text-sm text-slate-500">{detail}</p>
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
       )}
     </div>
   );
@@ -74,23 +74,24 @@ export default function ReconciliationList({ token }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showBulkModal, setShowBulkModal] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError('');
-        // Ở thực tế nếu có API query search thì truyền vào params
-        const response = await getReconciliations(token, {
-          status: statusFilter,
-          page_size: 100, // Demo load nhiều
-        });
-        setData(response);
-      } catch (err) {
-        setError(err.message || 'Lỗi khi tải dữ liệu');
-      } finally {
-        setLoading(false);
-      }
+  async function fetchData() {
+    try {
+      setLoading(true);
+      setError('');
+      // Ở thực tế nếu có API query search thì truyền vào params
+      const response = await getReconciliations(token, {
+        status: statusFilter,
+        page_size: 100, // Demo load nhiều
+      });
+      setData(response);
+    } catch (err) {
+      setError(err.message || 'Lỗi khi tải dữ liệu');
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchData();
   }, [token, statusFilter]);
 
@@ -136,11 +137,19 @@ export default function ReconciliationList({ token }) {
   const selectedCases = filteredCases.filter((c) => selectedIds.has(c.id));
   const totalSelectedValue = selectedCases.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0);
 
-  const handleConfirmBulk = () => {
-    alert(`Đã duyệt ${selectedIds.size} hóa đơn thành công!`);
-    setSelectedIds(new Set());
-    setShowBulkModal(false);
-    // TODO: Tương lai có thể gọi API duyệt hàng loạt
+  const handleConfirmBulk = async () => {
+    try {
+      const ids = Array.from(selectedIds);
+      await Promise.all(
+        ids.map((id) => decideCase(token, id, { decision: 'approved' }))
+      );
+      alert(`Đã duyệt ${ids.length} hóa đơn thành công!`);
+      setSelectedIds(new Set());
+      setShowBulkModal(false);
+      await fetchData();
+    } catch (err) {
+      alert(err.message || 'Lỗi khi duyệt hàng loạt');
+    }
   };
 
   return (

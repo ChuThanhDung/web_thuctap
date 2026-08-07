@@ -35,6 +35,8 @@ services:
       DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+psycopg://admin:Admin%40123@postgres:5432/docusyncai}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./src:/app/src
     depends_on:
       postgres:
         condition: service_healthy

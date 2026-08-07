@@ -103,24 +103,24 @@ export default function CaseDetail({ token, role }) {
         <div className="flex items-start gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="mt-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            className="mt-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-bold text-slate-900">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 {caseData.invoice_number || caseData.case_number}
               </h1>
               <StatusBadge status={caseData.status} />
               <RiskBadge level={caseData.risk_level} />
             </div>
-            <div className="mt-1 flex items-center gap-4 text-sm text-slate-500">
+            <div className="mt-1 flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
               <span>{caseData.partner_name}</span>
               <span>·</span>
               <span>{formatDate(caseData.case_date)}</span>
               <span>·</span>
-              <span className="font-medium text-slate-700">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatVND(caseData.total_amount)}
               </span>
             </div>
@@ -129,10 +129,10 @@ export default function CaseDetail({ token, role }) {
 
         {/* Overall confidence */}
         {caseData.confidence !== null && (
-          <div className="card-compact px-4 py-3 text-center shrink-0">
-            <p className="text-xs text-slate-500 mb-1">Confidence tổng</p>
+          <div className="card-compact px-4 py-3 text-center shrink-0 border-2 border-brand-500/20 bg-white dark:bg-slate-900 dark:border-brand-500/30">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Confidence tổng</p>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-slate-900">
+              <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 {Number(caseData.confidence)}%
               </span>
               <ConfidenceIndicator value={Number(caseData.confidence) / 100} />
@@ -141,13 +141,19 @@ export default function CaseDetail({ token, role }) {
         )}
       </div>
 
-      {/* AI Note */}
+      {/* AI Note - Distinct Bounding Highlight Box */}
       {caseData.ai_note && (
-        <div className="flex gap-3 rounded-xl border border-brand-200 bg-brand-50/50 p-4">
-          <Info size={18} className="shrink-0 text-brand-600 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-brand-700 mb-1">Phân tích AI</p>
-            <p className="text-sm text-brand-900">{caseData.ai_note}</p>
+        <div className="highlight-box-info flex gap-3">
+          <Info size={20} className="shrink-0 text-brand-600 dark:text-brand-400 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">💡 Phân tích & Nhận định AI</p>
+            <p className="text-sm font-medium leading-relaxed text-brand-950 dark:text-brand-100">{caseData.ai_note}</p>
+            {caseData.ai_recommendation && (
+              <div className="mt-2 pt-2 border-t border-brand-200/60 dark:border-brand-800/60">
+                <p className="text-xs font-semibold text-brand-800 dark:text-brand-300">Khuyến nghị hành động:</p>
+                <p className="text-xs text-brand-900 dark:text-brand-200 mt-0.5">{caseData.ai_recommendation}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -157,25 +163,25 @@ export default function CaseDetail({ token, role }) {
         <>
           {/* Column Headers */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="card-compact flex items-center gap-2 px-4 py-3 bg-blue-50/50 border-blue-200">
-              <FileText size={18} className="text-blue-600" />
+            <div className="card-compact flex items-center gap-2 px-4 py-3 bg-blue-50/70 border-2 border-blue-300 dark:bg-blue-950/40 dark:border-blue-800">
+              <FileText size={18} className="text-blue-600 dark:text-blue-400" />
               <div>
-                <p className="text-sm font-semibold text-blue-900">Hóa đơn</p>
-                <p className="text-xs text-blue-600">{caseData.invoice_number}</p>
+                <p className="text-sm font-bold text-blue-950 dark:text-blue-200">Hóa đơn</p>
+                <p className="text-xs font-mono text-blue-700 dark:text-blue-300">{caseData.invoice_number}</p>
               </div>
             </div>
-            <div className="card-compact flex items-center gap-2 px-4 py-3 bg-violet-50/50 border-violet-200">
-              <ShoppingCart size={18} className="text-violet-600" />
+            <div className="card-compact flex items-center gap-2 px-4 py-3 bg-violet-50/70 border-2 border-violet-300 dark:bg-violet-950/40 dark:border-violet-800">
+              <ShoppingCart size={18} className="text-violet-600 dark:text-violet-400" />
               <div>
-                <p className="text-sm font-semibold text-violet-900">Đơn đặt hàng (PO)</p>
-                <p className="text-xs text-violet-600">{caseData.po_number}</p>
+                <p className="text-sm font-bold text-violet-950 dark:text-violet-200">Đơn đặt hàng (PO)</p>
+                <p className="text-xs font-mono text-violet-700 dark:text-violet-300">{caseData.po_number}</p>
               </div>
             </div>
-            <div className="card-compact flex items-center gap-2 px-4 py-3 bg-teal-50/50 border-teal-200">
-              <PackageCheck size={18} className="text-teal-600" />
+            <div className="card-compact flex items-center gap-2 px-4 py-3 bg-teal-50/70 border-2 border-teal-300 dark:bg-teal-950/40 dark:border-teal-800">
+              <PackageCheck size={18} className="text-teal-600 dark:text-teal-400" />
               <div>
-                <p className="text-sm font-semibold text-teal-900">Phiếu nhập kho</p>
-                <p className="text-xs text-teal-600">{caseData.grn_number}</p>
+                <p className="text-sm font-bold text-teal-950 dark:text-teal-200">Phiếu nhập kho</p>
+                <p className="text-xs font-mono text-teal-700 dark:text-teal-300">{caseData.grn_number}</p>
               </div>
             </div>
           </div>
@@ -187,17 +193,17 @@ export default function CaseDetail({ token, role }) {
             const hasDiff = qtyMismatch || priceMismatch || item.diff_type;
 
             return (
-              <div key={item.id} className="space-y-2">
+              <div key={item.id} className="space-y-2 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 shadow-sm">
                 {/* Item header */}
                 <div className="flex items-center gap-2 px-1">
-                  <span className="text-xs font-mono text-slate-400">
+                  <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
                     #{item.row_index}
                   </span>
-                  <span className="text-sm font-medium text-slate-700">
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
                     {item.item_sku} — {item.item_name}
                   </span>
                   {hasDiff && (
-                    <AlertTriangle size={14} className="text-rose-500" />
+                    <AlertTriangle size={16} className="text-rose-500 animate-pulse" />
                   )}
                 </div>
 
@@ -222,25 +228,25 @@ export default function CaseDetail({ token, role }) {
                   {/* GRN */}
                   <ComparisonCard
                     qty={item.grn_qty}
-                    unitPrice={item.inv_unit_price} // Usually GRN doesn't have price, display invoice price for calc
+                    unitPrice={item.inv_unit_price}
                     taxRate={item.vat_rate_pct || 0}
                     qtyHighlight={qtyMismatch}
                     priceHighlight={priceMismatch && item.inv_unit_price !== item.po_unit_price}
                   />
                 </div>
 
-                {/* Diff explanations */}
+                {/* Diff explanations in Highlight Bounding Box */}
                 {item.diff_note && (
                   <div
-                    className={`ml-1 flex gap-2 rounded-lg p-3 text-sm ${
+                    className={`flex gap-2 rounded-xl p-3 text-sm font-medium border-2 ${
                       item.diff_type === 'major'
-                        ? 'bg-rose-50 border border-rose-200 text-rose-800'
+                        ? 'bg-rose-50/90 border-rose-300 text-rose-900 dark:bg-rose-950/60 dark:border-rose-800 dark:text-rose-200'
                         : item.diff_type === 'minor'
-                          ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                          : 'bg-slate-50 border border-slate-200 text-slate-700'
+                          ? 'bg-amber-50/90 border-amber-300 text-amber-900 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-200'
+                          : 'bg-slate-100/90 border-slate-300 text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'
                     }`}
                   >
-                    <MessageSquare size={16} className="shrink-0 mt-0.5" />
+                    <MessageSquare size={18} className="shrink-0 mt-0.5" />
                     <p>{item.diff_note}</p>
                   </div>
                 )}
@@ -248,16 +254,16 @@ export default function CaseDetail({ token, role }) {
             );
           })}
 
-          {/* Totals comparison */}
+          {/* Totals comparison in Warning/Danger Highlight Box */}
           {caseData.diff_amount && Number(caseData.diff_amount) > 0 && (
              <div className="mt-6 space-y-2">
-               <div className="flex gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4">
-                  <AlertTriangle size={18} className="shrink-0 text-rose-600 mt-0.5" />
+               <div className="highlight-box-danger flex gap-3">
+                  <AlertTriangle size={22} className="shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-rose-800">
-                      Chênh lệch tổng: {formatVND(caseData.diff_amount)}
+                    <p className="text-base font-bold text-rose-950 dark:text-rose-100">
+                      ⚠️ Phát hiện sai lệch tổng tiền: {formatVND(caseData.diff_amount)}
                     </p>
-                    <p className="text-xs text-rose-700 mt-1">{caseData.ai_summary || 'Có sai lệch tổng tiền so với thực tế nhập.'}</p>
+                    <p className="text-xs text-rose-800 dark:text-rose-200 mt-1 leading-relaxed">{caseData.ai_summary || 'Có sai lệch tổng tiền so với thực tế nhập kho hoặc đơn đặt hàng.'}</p>
                   </div>
                 </div>
              </div>
@@ -267,30 +273,30 @@ export default function CaseDetail({ token, role }) {
         /* Simple case without detailed comparison */
         <div className="card p-8 text-center">
           <CheckCircle size={48} className="mx-auto text-emerald-500 mb-3" />
-          <p className="text-lg font-semibold text-slate-900">
+          <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             {caseData.status === 'matched'
               ? 'Hóa đơn khớp hoàn toàn'
               : 'Chi tiết đối soát'}
           </p>
-          <p className="text-sm text-slate-500 mt-1">Hóa đơn này không có danh sách chi tiết mặt hàng.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Hóa đơn này không có danh sách chi tiết mặt hàng.</p>
         </div>
       )}
 
       {/* ── Sticky Action Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-sm shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_12px_rgba(0,0,0,0.08)] dark:border-slate-800 dark:bg-slate-900/95">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-slate-500 dark:text-slate-400">
             {approved ? (
-              <span className="flex items-center gap-2 text-emerald-600 font-semibold">
+              <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
                 <CheckCircle size={18} /> Đã duyệt bởi {caseData.processed_by_name}
               </span>
             ) : rejected ? (
-              <span className="flex items-center gap-2 text-rose-600 font-semibold">
+              <span className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold">
                 <XCircle size={18} /> Đã từ chối ({caseData.rejection_note})
               </span>
             ) : (
               <>
-                Hành động cho <span className="font-medium text-slate-700">{caseData.invoice_number}</span>
+                Hành động cho <span className="font-semibold text-slate-900 dark:text-slate-100">{caseData.invoice_number}</span>
               </>
             )}
           </div>
@@ -361,33 +367,33 @@ function ComparisonCard({ qty, unitPrice, taxRate, qtyHighlight, priceHighlight 
   const lineTotal = Number(qty || 0) * Number(unitPrice || 0) * (1 + (Number(taxRate || 0) / 100));
 
   return (
-    <div className="card-compact divide-y divide-slate-100 text-sm overflow-hidden">
+    <div className="card-compact divide-y divide-slate-100 dark:divide-slate-800 text-sm overflow-hidden border border-slate-200 dark:border-slate-800">
       {/* Quantity */}
       <div className={`flex items-center justify-between px-3 py-2.5 ${qtyHighlight ? 'diff-highlight' : ''}`}>
-        <span className="text-slate-500">Số lượng</span>
-        <span className={`font-medium ${qtyHighlight ? 'text-rose-700 font-bold' : 'text-slate-900'}`}>
+        <span className="text-slate-500 dark:text-slate-400">Số lượng</span>
+        <span className={`font-semibold ${qtyHighlight ? 'text-rose-700 dark:text-rose-400 font-bold' : 'text-slate-900 dark:text-slate-100'}`}>
           {formatNumber(qty)}
         </span>
       </div>
 
       {/* Unit Price */}
       <div className={`flex items-center justify-between px-3 py-2.5 ${priceHighlight ? 'diff-highlight' : ''}`}>
-        <span className="text-slate-500">Đơn giá</span>
-        <span className={`font-medium ${priceHighlight ? 'text-rose-700 font-bold' : 'text-slate-900'}`}>
+        <span className="text-slate-500 dark:text-slate-400">Đơn giá</span>
+        <span className={`font-semibold ${priceHighlight ? 'text-rose-700 dark:text-rose-400 font-bold' : 'text-slate-900 dark:text-slate-100'}`}>
           {formatVND(unitPrice)}
         </span>
       </div>
 
       {/* Tax Rate */}
       <div className="flex items-center justify-between px-3 py-2.5">
-        <span className="text-slate-500">Thuế VAT</span>
-        <span className="font-medium text-slate-900">{taxRate}%</span>
+        <span className="text-slate-500 dark:text-slate-400">Thuế VAT</span>
+        <span className="font-semibold text-slate-900 dark:text-slate-100">{taxRate}%</span>
       </div>
 
       {/* Line Total */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50/50">
-        <span className="text-slate-500 font-medium">Thành tiền</span>
-        <span className="font-semibold text-slate-900">
+      <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50/70 dark:bg-slate-800/60">
+        <span className="text-slate-600 dark:text-slate-400 font-medium">Thành tiền</span>
+        <span className="font-bold text-slate-900 dark:text-slate-100">
           {formatVND(lineTotal)}
         </span>
       </div>

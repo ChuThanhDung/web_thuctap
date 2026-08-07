@@ -311,62 +311,10 @@ class LocalOcrParserStrategy(BaseParserStrategy):
                 parsed["grn_number"] = f"GRN-2026-{clean_num.zfill(6)}"
             return parsed
         else:
-            # Mock dữ liệu cơ bản nếu không tìm thấy file mẫu
-            if target_type == "invoice":
-                return {
-                    "type": "invoice",
-                    "invoice_number": f"INV_{clean_num.zfill(7)}",
-                    "supplier_name": "DOANH NGHỆP MOCK TRONG NƯỚC",
-                    "supplier_tax_id": "0109999999",
-                    "buyer_name": "CÔNG TY CỔ PHẦN CÔNG NGHỆ DI CHUYỂN VIETGO",
-                    "total_amount": 550000.0,
-                    "line_items": [
-                        {
-                            "row_index": 1,
-                            "item_name": "Sản phẩm Demo Mock",
-                            "unit": "Cái",
-                            "qty": 10.0,
-                            "price": 50000.0,
-                            "vat_rate_pct": 10.0
-                        }
-                    ]
-                }
-            elif target_type == "po":
-                return {
-                    "type": "po",
-                    "po_number": f"PO-2026-{clean_num.zfill(6)}",
-                    "supplier_name": "DOANH NGHỆP MOCK TRONG NƯỚC",
-                    "supplier_tax_id": "0109999999",
-                    "buyer_name": "CÔNG TY CỔ PHẦN CÔNG NGHỆ DI CHUYỂN VIETGO",
-                    "total_amount": 500000.0,
-                    "line_items": [
-                        {
-                            "row_index": 1,
-                            "item_name": "Sản phẩm Demo Mock",
-                            "sku": "MOCK-SKU",
-                            "unit": "Cái",
-                            "qty": 10.0,
-                            "price": 50000.0
-                        }
-                    ]
-                }
-            else:
-                return {
-                    "type": "grn",
-                    "grn_number": f"GRN-2026-{clean_num.zfill(6)}",
-                    "po_number": f"PO-2026-{clean_num.zfill(6)}",
-                    "supplier_name": "DOANH NGHỆP MOCK TRONG NƯỚC",
-                    "supplier_tax_id": "0109999999",
-                    "line_items": [
-                        {
-                            "row_index": 1,
-                            "item_name": "Sản phẩm Demo Mock",
-                            "sku": "MOCK-SKU",
-                            "unit": "Cái",
-                            "qty": 10.0
-                        }
-                    ]
-                }
+            raise ValueError(
+                f"Không thể đọc tệp PDF/Ảnh '{filename}'. "
+                "Bắt buộc phải cấu hình GEMINI_API_KEY hoặc OPENAI_API_KEY trong file .env để bóc tách chứng từ dạng PDF hoặc Hình ảnh."
+            )
 
 class ParserContext:
     """Bộ chọn Strategy phù hợp dựa trên định dạng và cấu hình môi trường."""

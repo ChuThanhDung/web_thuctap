@@ -1,5 +1,7 @@
+import os
 import xml.etree.ElementTree as ET
 from typing import Any, Dict
+
 
 def remove_namespaces(xml_content: bytes) -> str:
     """Loại bỏ namespace để dễ dàng query bằng ElementTree không cần namespace dictionary."""
@@ -201,8 +203,19 @@ def parse_grn(root: ET.Element) -> Dict[str, Any]:
         "line_items": line_items
     }
 
-def detect_and_parse_document(file_content: bytes) -> Dict[str, Any]:
-    """Tự động nhận diện loại XML và parse nội dung tương ứng."""
+from src.services.vision_parser import parse_vision_document
+
+def detect_and_parse_document(
+    file_content: bytes,
+    filename: str = "document.xml",
+    doc_type_hint: str = "invoice"
+) -> Dict[str, Any]:
+    """Tự động nhận diện định dạng tệp (.xml, .pdf, .png, .jpg) và parse nội dung tương ứng."""
+    ext = os.path.splitext(filename)[1].lower() if filename else ".xml"
+    
+    if ext in [".pdf", ".png", ".jpg", ".jpeg"]:
+        return parse_vision_document(file_content, filename, doc_type_hint)
+    
     try:
         root = parse_xml_to_dict(file_content)
         doc_type = detect_document_type(root)
@@ -212,5 +225,10 @@ def detect_and_parse_document(file_content: bytes) -> Dict[str, Any]:
             return parse_po(root)
         elif doc_type == "grn":
             return parse_grn(root)
+        return parse_invoice(root)
     except Exception as e:
-        raise ValueError(f"Không thể parse XML: {str(e)}")
+        # Nếu XML parse lỗi nhưng là PDF hoặc ảnh, thử gọi vision parser
+        if ext in [".pdf", ".png", ".jpg", ".jpeg"]:
+            return parse_vision_document(file_content, filename, doc_type_hint)
+        raise ValueError(f"Không thể parse tệp {filename}: {str(e)}")
+

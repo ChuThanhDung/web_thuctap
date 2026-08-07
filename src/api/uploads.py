@@ -2,6 +2,7 @@ import os
 import re
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
@@ -123,11 +124,37 @@ async def upload_document(
         db_upload.progress = 30
         db.commit()
 
-        # 3. Phân tích nội dung file vừa upload bằng Strategy Pattern
+        # 3. Phân tích nội dung file vừa upload bằng Strategy Pattern / Vision Parser
         parsed_doc = parser_context.parse_document(content, filename, doc_type)
-        detected_type = parsed_doc.get("type")
+        detected_type = parsed_doc.get("type", doc_type or "invoice")
         
-        # Lấy số hiệu của tài liệu để làm khóa tìm kiếm
+        # 4. Kiểm tra Trùng lặp (Deduplication Check)
+        if detected_type == "po":
+            po_num = parsed_doc.get("po_number")
+            if po_num:
+                existing_po = db.scalars(select(PurchaseOrder).where(PurchaseOrder.po_number == po_num)).first()
+                if existing_po:
+                    raise ValueError(f"Dữ liệu trùng lặp: Đơn đặt hàng PO '{po_num}' đã tồn tại trong hệ thống.")
+        elif detected_type == "grn":
+            grn_num = parsed_doc.get("grn_number")
+            if grn_num:
+                existing_grn = db.scalars(select(GoodsReceiptNote).where(GoodsReceiptNote.grn_number == grn_num)).first()
+                if existing_grn:
+                    raise ValueError(f"Dữ liệu trùng lặp: Phiếu nhập kho GRN '{grn_num}' đã tồn tại trong hệ thống.")
+        elif detected_type == "invoice":
+            inv_num = parsed_doc.get("invoice_number")
+            tax_id = parsed_doc.get("supplier_tax_id")
+            if inv_num and tax_id:
+                existing_case = db.scalars(
+                    select(ReconciliationCase).where(
+                        ReconciliationCase.invoice_number == inv_num,
+                        ReconciliationCase.partner_tax_id == tax_id
+                    )
+                ).first()
+                if existing_case:
+                    raise ValueError(f"Dữ liệu trùng lặp: Hóa đơn '{inv_num}' của nhà cung cấp MST '{tax_id}' đã tồn tại trong hệ thống.")
+
+        # Lấy số hiệu của tài liệu để làm khóa tìm kiếm PO tương ứng
         if detected_type == "invoice":
             doc_number = extract_number(parsed_doc.get("invoice_number", "")) or extract_number(filename)
         elif detected_type == "po":
@@ -136,73 +163,64 @@ async def upload_document(
             doc_number = extract_number(parsed_doc.get("grn_number", "")) or extract_number(filename)
             
         if not doc_number:
-            raise ValueError("Không thể tìm thấy số hiệu chứng từ (invoice_number, po_number, grn_number) trong tệp tải lên.")
+            # Nếu tên tệp không chứa số (vd: images.jpg, mona.jpg), tự động sinh mã định danh số từ hash thời gian
+            hash_val = abs(hash(filename + str(datetime.now().timestamp()))) % 900000 + 100000
+            doc_number = str(hash_val)
 
         clean_num = str(int(doc_number))
-        po_number_target = f"PO-2026-{clean_num.zfill(6)}"
+        po_number_target = parsed_doc.get("po_number") or f"PO-2026-{clean_num.zfill(6)}"
 
-        # Nếu user upload PO hoặc GRN trực tiếp, ta lưu thông tin đó vào DB
+        # 5. Lưu chứng từ PO hoặc GRN vào DB nếu chưa có
         if detected_type == "po":
-            existing_po = db.scalars(select(PurchaseOrder).where(PurchaseOrder.po_number == parsed_doc.get("po_number"))).first()
-            if not existing_po:
-                new_po = PurchaseOrder(
+            new_po = PurchaseOrder(
+                id=uuid.uuid4(),
+                po_number=parsed_doc.get("po_number") or po_number_target,
+                supplier_name=parsed_doc.get("supplier_name"),
+                supplier_tax_id=parsed_doc.get("supplier_tax_id"),
+                buyer_name=parsed_doc.get("buyer_name"),
+                total_amount=parsed_doc.get("total_amount")
+            )
+            db.add(new_po)
+            for item in parsed_doc.get("line_items", []):
+                po_item = PurchaseOrderItem(
                     id=uuid.uuid4(),
-                    po_number=parsed_doc.get("po_number"),
-                    supplier_name=parsed_doc.get("supplier_name"),
-                    supplier_tax_id=parsed_doc.get("supplier_tax_id"),
-                    buyer_name=parsed_doc.get("buyer_name"),
-                    total_amount=parsed_doc.get("total_amount")
+                    po_id=new_po.id,
+                    item_sku=item.get("sku"),
+                    item_name=item.get("item_name"),
+                    unit=item.get("unit"),
+                    qty=item.get("qty"),
+                    unit_price=item.get("price")
                 )
-                db.add(new_po)
-                for item in parsed_doc.get("line_items", []):
-                    po_item = PurchaseOrderItem(
-                        id=uuid.uuid4(),
-                        po_id=new_po.id,
-                        item_sku=item.get("sku"),
-                        item_name=item.get("item_name"),
-                        unit=item.get("unit"),
-                        qty=item.get("qty"),
-                        unit_price=item.get("price")
-                    )
-                    db.add(po_item)
-                db.commit()
-            db_upload.status = "completed"
-            db_upload.progress = 100
+                db.add(po_item)
             db.commit()
-            return db_upload
 
         elif detected_type == "grn":
-            existing_grn = db.scalars(select(GoodsReceiptNote).where(GoodsReceiptNote.grn_number == parsed_doc.get("grn_number"))).first()
-            if not existing_grn:
-                new_grn = GoodsReceiptNote(
+            new_grn = GoodsReceiptNote(
+                id=uuid.uuid4(),
+                grn_number=parsed_doc.get("grn_number") or f"GRN-2026-{clean_num.zfill(6)}",
+                po_number=parsed_doc.get("po_number") or po_number_target,
+                supplier_name=parsed_doc.get("supplier_name"),
+                supplier_tax_id=parsed_doc.get("supplier_tax_id")
+            )
+            db.add(new_grn)
+            for item in parsed_doc.get("line_items", []):
+                grn_item = GoodsReceiptNoteItem(
                     id=uuid.uuid4(),
-                    grn_number=parsed_doc.get("grn_number"),
-                    po_number=parsed_doc.get("po_number"),
-                    supplier_name=parsed_doc.get("supplier_name"),
-                    supplier_tax_id=parsed_doc.get("supplier_tax_id")
+                    grn_id=new_grn.id,
+                    item_sku=item.get("sku"),
+                    item_name=item.get("item_name"),
+                    unit=item.get("unit"),
+                    qty=item.get("qty")
                 )
-                db.add(new_grn)
-                for item in parsed_doc.get("line_items", []):
-                    grn_item = GoodsReceiptNoteItem(
-                        id=uuid.uuid4(),
-                        grn_id=new_grn.id,
-                        item_sku=item.get("sku"),
-                        item_name=item.get("item_name"),
-                        unit=item.get("unit"),
-                        qty=item.get("qty")
-                    )
-                    db.add(grn_item)
-                db.commit()
-            db_upload.status = "completed"
-            db_upload.progress = 100
+                db.add(grn_item)
             db.commit()
-            return db_upload
 
-        # 4. Trường hợp là Hóa đơn (Invoice): Tìm kiếm PO & GRN đối ứng trong Database (hoặc fallback)
-        # Tìm kiếm PO
+        # 6. Kiểm tra sự sẵn sàng của Bộ 3 chứng từ (Invoice + PO + GRN) trong DB
         po_db = db.scalars(select(PurchaseOrder).where(PurchaseOrder.po_number == po_number_target)).first()
+        grn_db = db.scalars(select(GoodsReceiptNote).where(GoodsReceiptNote.po_number == po_number_target)).first()
+
+        # Nếu thiếu PO hoặc GRN trong DB, thử fallback đọc từ raw_data nếu có sẵn file mẫu
         if not po_db:
-            # Fallback: Tự động nạp từ file XML có sẵn trong raw_data
             _, po_path_fb, _ = find_associated_files(detected_type, doc_number)
             if po_path_fb and os.path.exists(po_path_fb):
                 with open(po_path_fb, "rb") as f:
@@ -229,10 +247,7 @@ async def upload_document(
                     db.add(po_item)
                 db.flush()
 
-        # Tìm kiếm GRN
-        grn_db = db.scalars(select(GoodsReceiptNote).where(GoodsReceiptNote.po_number == po_number_target)).first()
         if not grn_db:
-            # Fallback: Tự động nạp từ file XML có sẵn trong raw_data
             _, _, grn_path_fb = find_associated_files(detected_type, doc_number)
             if grn_path_fb and os.path.exists(grn_path_fb):
                 with open(grn_path_fb, "rb") as f:
@@ -257,51 +272,174 @@ async def upload_document(
                     db.add(grn_item)
                 db.flush()
 
+        # Kiểm tra nếu chứng từ upload là PO hoặc GRN (chưa phải Hóa đơn)
+        if detected_type in ("po", "grn"):
+            # Kiểm tra xem có Hóa đơn nào đang chờ PO/GRN này không
+            existing_case = db.scalars(select(ReconciliationCase).where(ReconciliationCase.po_number == po_number_target)).first()
+            if not existing_case or not po_db or not grn_db:
+                db_upload.status = "completed"
+                db_upload.progress = 100
+                db.commit()
+                
+                write_audit_log(
+                    db=db,
+                    action="DOCUMENT_UPLOADED",
+                    user=current_user,
+                    target_type="UPLOAD",
+                    target_id=str(db_upload.id),
+                    details={
+                        "uploaded_filename": filename,
+                        "detected_type": detected_type,
+                        "doc_number": doc_number,
+                        "note": "Đã lưu chứng từ vào DB. Đang chờ bổ sung đủ 3 loại tệp để tự động đối soát."
+                    },
+                    ip_address=None,
+                    user_agent=None
+                )
+                return UploadedFileOut(
+                    id=str(db_upload.id),
+                    filename=db_upload.filename,
+                    size=db_upload.size,
+                    status=db_upload.status,
+                    progress=db_upload.progress,
+                    error_message=db_upload.error_message,
+                    case_id=None,
+                    created_at=db_upload.created_at
+                )
+
+        # Trường hợp là Hóa đơn (Invoice): Nếu thiếu PO hoặc GRN thì LUÔN lưu Hóa đơn vào DB dưới dạng ReconciliationCase ở trạng thái chờ
         if not po_db or not grn_db:
-            missing = []
-            if not po_db: missing.append("Đơn đặt hàng (PO)")
-            if not grn_db: missing.append("Phiếu nhập kho (GRN)")
-            raise ValueError(f"Không tìm thấy tài liệu đối chiếu tương ứng trong DB: {', '.join(missing)}")
+            cases_count = db.query(func.count(ReconciliationCase.id)).scalar() or 0
+            new_case_number = f"DOC-{cases_count + 1:04d}"
+            
+            missing_list = []
+            if not po_db: missing_list.append("Đơn đặt hàng (PO)")
+            if not grn_db: missing_list.append("Phiếu nhập kho (GRN)")
+
+            new_case = ReconciliationCase(
+                id=uuid.uuid4(),
+                case_number=new_case_number,
+                invoice_number=parsed_doc.get("invoice_number"),
+                po_number=po_number_target,
+                partner_name=parsed_doc.get("supplier_name"),
+                partner_tax_id=parsed_doc.get("supplier_tax_id"),
+                case_date=datetime.now().date(),
+                total_amount=parsed_doc.get("total_amount"),
+                status="major_diff",
+                risk_level="medium",
+                confidence=Decimal("0.70"),
+                ai_note=f"Đã lưu Hóa đơn {parsed_doc.get('invoice_number')} vào DB. Đang chờ bổ sung {', '.join(missing_list)} để hoàn tất đối soát 3 bên.",
+                ai_summary="Chưa đủ bộ 3 chứng từ trong DB để thực hiện đối soát.",
+                ai_recommendation=f"Cần nạp bổ sung {', '.join(missing_list)}."
+            )
+            db.add(new_case)
+            
+            for idx, r_item in enumerate(parsed_doc.get("line_items", []), 1):
+                line_item = LineItem(
+                    id=uuid.uuid4(),
+                    case_id=new_case.id,
+                    row_index=r_item.get("row_index", idx),
+                    item_sku=r_item.get("sku"),
+                    item_name=r_item.get("item_name"),
+                    unit=r_item.get("unit"),
+                    inv_qty=r_item.get("qty"),
+                    inv_unit_price=r_item.get("price"),
+                    vat_rate_pct=r_item.get("vat_rate_pct", 10),
+                    diff_type="QTY_DIFF",
+                    diff_note="Chưa có dữ liệu PO/GRN đối ứng"
+                )
+                db.add(line_item)
+
+            db_upload.status = "completed"
+            db_upload.progress = 100
+            db_upload.case_id = new_case.id
+            db.commit()
+
+            write_audit_log(
+                db=db,
+                action="INVOICE_UPLOADED_WAITING_DOCS",
+                user=current_user,
+                target_type="RECONCILIATION_CASE",
+                target_id=str(new_case.id),
+                details={
+                    "uploaded_filename": filename,
+                    "case_number": new_case_number,
+                    "invoice_number": parsed_doc.get("invoice_number"),
+                    "note": "Đã lưu Hóa đơn vào DB. Đang chờ bổ sung PO/GRN."
+                },
+                ip_address=None,
+                user_agent=None
+            )
+
+            return UploadedFileOut(
+                id=str(db_upload.id),
+                filename=db_upload.filename,
+                size=db_upload.size,
+                status=db_upload.status,
+                progress=db_upload.progress,
+                error_message=db_upload.error_message,
+                case_id=str(new_case.id),
+                created_at=db_upload.created_at
+            )
 
         db_upload.progress = 60
         db.commit()
 
-        # 5. Chuyển đổi dữ liệu DB thành cấu trúc đối soát và thực thi
+        # 7. Đã đủ bộ 3 chứng từ -> Chạy Agent đối soát 3 bên tự động
         invoice_data = parsed_doc
         po_data = convert_po_db_to_dict(po_db)
         grn_data = convert_grn_db_to_dict(grn_db)
 
-        # 6. Chạy đối soát 3 bên
         reconciled_result = reconcile_documents(invoice_data, po_data, grn_data, db)
         
         db_upload.progress = 80
         db.commit()
 
-        # 7. Sinh case_number tự động không trùng lặp
-        cases_count = db.query(func.count(ReconciliationCase.id)).scalar() or 0
-        new_case_number = f"DOC-{cases_count + 1:04d}"
+        # 8. Kiểm tra xem đã có Case đang chờ PO/GRN hay chưa, nếu có thì cập nhật, nếu chưa thì tạo mới
+        existing_case = db.scalars(select(ReconciliationCase).where(ReconciliationCase.po_number == po_number_target)).first()
+        if existing_case:
+            new_case = existing_case
+            new_case.invoice_number = reconciled_result.get("invoice_number")
+            new_case.grn_number = reconciled_result.get("grn_number")
+            new_case.partner_name = reconciled_result.get("partner_name")
+            new_case.partner_tax_id = reconciled_result.get("partner_tax_id")
+            new_case.total_amount = reconciled_result.get("total_amount")
+            new_case.status = reconciled_result.get("status")
+            new_case.risk_level = reconciled_result.get("risk_level")
+            new_case.confidence = reconciled_result.get("confidence")
+            new_case.diff_amount = reconciled_result.get("diff_amount")
+            new_case.diff_type = reconciled_result.get("diff_type")
+            new_case.ai_note = reconciled_result.get("ai_note")
+            new_case.ai_summary = reconciled_result.get("ai_summary")
+            new_case.ai_recommendation = reconciled_result.get("ai_recommendation")
+            
+            # Xóa cũ và thêm mới line items
+            db.query(LineItem).filter(LineItem.case_id == new_case.id).delete()
+            new_case_number = new_case.case_number
+        else:
+            cases_count = db.query(func.count(ReconciliationCase.id)).scalar() or 0
+            new_case_number = f"DOC-{cases_count + 1:04d}"
 
-        # 8. Lưu kết quả đối soát vào cơ sở dữ liệu
-        new_case = ReconciliationCase(
-            id=uuid.uuid4(),
-            case_number=new_case_number,
-            invoice_number=reconciled_result.get("invoice_number"),
-            po_number=reconciled_result.get("po_number"),
-            grn_number=reconciled_result.get("grn_number"),
-            partner_name=reconciled_result.get("partner_name"),
-            partner_tax_id=reconciled_result.get("partner_tax_id"),
-            case_date=datetime.now().date(),
-            total_amount=reconciled_result.get("total_amount"),
-            status=reconciled_result.get("status"),
-            risk_level=reconciled_result.get("risk_level"),
-            confidence=reconciled_result.get("confidence"),
-            diff_amount=reconciled_result.get("diff_amount"),
-            diff_type=reconciled_result.get("diff_type"),
-            ai_note=reconciled_result.get("ai_note"),
-            ai_summary=reconciled_result.get("ai_summary"),
-            ai_recommendation=reconciled_result.get("ai_recommendation"),
-        )
-        db.add(new_case)
+            new_case = ReconciliationCase(
+                id=uuid.uuid4(),
+                case_number=new_case_number,
+                invoice_number=reconciled_result.get("invoice_number"),
+                po_number=reconciled_result.get("po_number"),
+                grn_number=reconciled_result.get("grn_number"),
+                partner_name=reconciled_result.get("partner_name"),
+                partner_tax_id=reconciled_result.get("partner_tax_id"),
+                case_date=datetime.now().date(),
+                total_amount=reconciled_result.get("total_amount"),
+                status=reconciled_result.get("status"),
+                risk_level=reconciled_result.get("risk_level"),
+                confidence=reconciled_result.get("confidence"),
+                diff_amount=reconciled_result.get("diff_amount"),
+                diff_type=reconciled_result.get("diff_type"),
+                ai_note=reconciled_result.get("ai_note"),
+                ai_summary=reconciled_result.get("ai_summary"),
+                ai_recommendation=reconciled_result.get("ai_recommendation"),
+            )
+            db.add(new_case)
         
         # Lưu các line items
         for r_item in reconciled_result.get("line_items", []):
@@ -325,18 +463,20 @@ async def upload_document(
 
         db.flush()
 
-        # 9. Hoàn thành upload
+        # 10. Hoàn thành upload và gắn case_id
         db_upload.status = "completed"
         db_upload.progress = 100
         db_upload.case_id = new_case.id
         
         db.commit()
 
-        # 10. Ghi log hoạt động hệ thống
+        # 11. Ghi log hoạt động hệ thống
         write_audit_log(
             db=db,
             action="DOCUMENT_UPLOAD_AND_RECONCILE",
             user=current_user,
+            target_type="RECONCILIATION_CASE",
+            target_id=str(new_case.id),
             details={
                 "uploaded_filename": filename,
                 "detected_type": detected_type,

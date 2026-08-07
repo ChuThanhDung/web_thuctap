@@ -142,16 +142,20 @@ def write_audit_log(
     details: dict | None,
     ip_address: str | None,
     user_agent: str | None,
+    target_type: str = "USER",
+    target_id: str | None = None,
 ) -> None:
+    resolved_target_id = target_id if target_id else (str(user.id) if user else None)
     db.add(
         AuditLog(
             user_id=user.id if user else None,
             action=action,
-            target_type="USER",
-            target_id=str(user.id) if user else None,
+            target_type=target_type,
+            target_id=resolved_target_id,
             details=details,
             ip_address=ip_address,
             user_agent=user_agent,
         )
     )
     db.commit()
+

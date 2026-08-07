@@ -67,10 +67,4 @@ app.include_router(uploads_router, prefix="/api/v1")
 async def health():
     return {"status": "ok", "env": settings.app_env}
 
-from sqlalchemy.orm import Session
-from src.database import get_db
-from src.models.reconciliation import ReconciliationCase
 
-@app.get("/db-count")
-async def db_count(db: Session = Depends(get_db)):
-    return {"count": db.query(ReconciliationCase).count()}
