@@ -2,7 +2,7 @@ import { repairTextDeep } from './text.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
-async function parseResponse(response) {
+export async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -12,7 +12,7 @@ async function parseResponse(response) {
   return repairTextDeep(data);
 }
 
-async function authFetch(path, token, options = {}) {
+export async function authFetch(path, token, options = {}) {
   return fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -73,3 +73,27 @@ export async function changePassword(token, resetToken, newPassword, confirmPass
 
   return parseResponse(response);
 }
+
+export async function uploadDocument(token, file, docType = null) {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (docType) {
+    formData.append('doc_type', docType);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/uploads`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return parseResponse(response);
+}
+
+export async function getUploadQueue(token) {
+  const response = await authFetch('/uploads', token);
+  return parseResponse(response);
+}
+

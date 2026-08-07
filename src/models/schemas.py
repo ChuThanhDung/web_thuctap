@@ -1,7 +1,16 @@
-from datetime import date
+"""
+src/models/schemas.py — Pydantic schemas cho toàn bộ dự án
+"""
+
+from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH SCHEMAS (giữ nguyên)
+# ══════════════════════════════════════════════════════════════════════════════
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="Tin nhắn từ user")
@@ -66,3 +75,177 @@ class PasswordChangeRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RECONCILIATION SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class LineItemOut(BaseModel):
+    id: str
+    row_index: int
+    item_sku: str | None
+    item_name: str | None
+    unit: str | None
+    inv_qty: Decimal | None
+    po_qty: Decimal | None
+    grn_qty: Decimal | None
+    inv_unit_price: Decimal | None
+    po_unit_price: Decimal | None
+    vat_rate_pct: int | None
+    diff_type: str | None
+    diff_note: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class ReconciliationListItem(BaseModel):
+    """Schema gọn cho danh sách."""
+    id: str
+    case_number: str
+    invoice_number: str | None
+    po_number: str | None
+    grn_number: str | None
+    partner_name: str | None
+    case_date: date | None
+    total_amount: Decimal | None
+    status: str
+    risk_level: str
+    confidence: Decimal | None
+    diff_amount: Decimal | None
+    diff_type: str | None
+    ai_note: str | None
+    decision: str | None
+    processed_by_name: str | None = None
+    processed_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class CaseDetailOut(BaseModel):
+    """Schema đầy đủ cho trang chi tiết."""
+    id: str
+    case_number: str
+    invoice_number: str | None
+    po_number: str | None
+    grn_number: str | None
+    partner_name: str | None
+    partner_tax_id: str | None
+    case_date: date | None
+    total_amount: Decimal | None
+    status: str
+    risk_level: str
+    confidence: Decimal | None
+    diff_amount: Decimal | None
+    diff_type: str | None
+    ai_note: str | None
+    ai_summary: str | None
+    ai_recommendation: str | None
+    decision: str | None
+    rejection_note: str | None
+    processed_by_name: str | None = None
+    processed_at: datetime | None
+    line_items: list[LineItemOut] = []
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ReconciliationListResponse(BaseModel):
+    items: list[ReconciliationListItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class CaseDecisionRequest(BaseModel):
+    decision: str = Field(..., pattern="^(approved|rejected|escalated)$")
+    note: str | None = Field(default=None, max_length=1000)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DashboardStatsOut(BaseModel):
+    total_cases: int
+    total_matched: int
+    total_pending: int
+    total_escalated: int
+    total_value: Decimal
+    pending_value: Decimal
+    match_rate: float  # %
+    cases_by_status: dict[str, int]
+    cases_by_risk: dict[str, int]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDIT LOG SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AuditLogOut(BaseModel):
+    id: int
+    user_id: str | None
+    user_name: str | None = None
+    action: str
+    target_type: str | None
+    target_id: str | None
+    details: dict | None
+    ip_address: str | None
+    created_at: datetime
+    timestamp: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AuditLogListResponse(BaseModel):
+    items: list[AuditLogOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# THRESHOLD SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ThresholdOut(BaseModel):
+    id: str
+    category: str
+    percent_threshold: Decimal
+    absolute_threshold: Decimal
+    updated_at: datetime
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ThresholdUpdateRequest(BaseModel):
+    percent_threshold: Decimal = Field(..., ge=0, le=100)
+    absolute_threshold: Decimal = Field(..., ge=0)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UPLOAD SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class UploadedFileOut(BaseModel):
+    id: str
+    filename: str
+    size: str
+    status: str
+    progress: int
+    error_message: str | None
+    case_id: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UploadedFileListResponse(BaseModel):
+    items: list[UploadedFileOut]
+    total: int
+
