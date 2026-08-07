@@ -59,13 +59,4 @@ Hiện tại, kế toán thực hiện đối soát hóa đơn hoàn toàn thủ
 - Thời gian xử lý trung bình, so sánh trước/sau khi có Agent
 - Human override rate: % đề xuất của Agent bị kế toán sửa lại
 
-## 8. Giả định & Rủi ro (Assumptions & Risks)
-
-| Loại | Nội dung | Ghi chú |
-|---|---|---|
-| Giả định | *(điền: ví dụ — có sẵn dữ liệu mẫu hóa đơn/PO để test)* | |
-| Giả định | *(điền: ví dụ — công ty đã có hóa đơn điện tử chuẩn XML)* | |
-| Rủi ro | *(điền: ví dụ — chất lượng OCR thấp với hóa đơn scan mờ)* | Cần phương án dự phòng (gắn cờ thủ công) |
-| Rủi ro | *(điền: ví dụ — thiếu dữ liệu PO/phiếu nhập thực tế để huấn luyện/test)* | |
-
 
