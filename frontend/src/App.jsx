@@ -88,30 +88,30 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path="/login" element={<Navigate to={homePath} replace />} />
-            <Route path="/accountant" element={<ReconciliationList />} />
+            <Route path="/accountant" element={<ReconciliationList token={auth.access_token} />} />
             <Route
               path="/manager"
               element={
                 <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
-                  <Dashboard />
+                  <Dashboard token={auth.access_token} />
                 </RoleRoute>
               }
             />
-            <Route path="/case/:id" element={<CaseDetail />} />
+            <Route path="/case/:id" element={<CaseDetail token={auth.access_token} role={role} />} />
             <Route
               path="/upload"
               element={
                 <RoleRoute allowedRole="accountant" currentRole={role} redirectTo={homePath}>
-                  <UploadQueue />
+                  <UploadQueue token={auth.access_token} />
                 </RoleRoute>
               }
             />
-            <Route path="/audit-trail" element={<AuditTrail />} />
+            <Route path="/audit-trail" element={<AuditTrail token={auth.access_token} role={role} />} />
             <Route
               path="/settings"
               element={
                 <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
-                  <ThresholdConfig />
+                  <ThresholdConfig token={auth.access_token} />
                 </RoleRoute>
               }
             />

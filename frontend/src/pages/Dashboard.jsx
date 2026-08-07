@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -22,17 +22,60 @@ import {
   Legend,
 } from 'recharts';
 import StatusBadge from '../components/StatusBadge.jsx';
-import {
-  dashboardStats,
-  escalatedCases,
-  automationTrend,
-  formatVND,
-  formatDate,
-  formatNumber,
-} from '../mockData.js';
+import { getDashboardStats, getReconciliations } from '../services/reconciliations.js';
+import { formatVND, formatDate, formatNumber } from '../text.js';
 
-export default function Dashboard() {
+// Demo trend data since API does not provide time-series
+const automationTrend = [
+  { month: 'T10', autoRate: 45, overrideRate: 55 },
+  { month: 'T11', autoRate: 58, overrideRate: 42 },
+  { month: 'T12', autoRate: 65, overrideRate: 35 },
+  { month: 'T1', autoRate: 72, overrideRate: 28 },
+  { month: 'T2', autoRate: 81, overrideRate: 19 },
+  { month: 'T3', autoRate: 86, overrideRate: 14 },
+];
+
+export default function Dashboard({ token }) {
   const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [escalatedCases, setEscalatedCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        setLoading(true);
+        const [statsData, escalatedData] = await Promise.all([
+          getDashboardStats(token),
+          getReconciliations(token, { status: 'major_diff', page_size: 5 })
+        ]);
+        setStats(statsData);
+        setEscalatedCases(escalatedData.items || []);
+      } catch (err) {
+        setError(err.message || 'Lỗi khi tải dữ liệu Dashboard');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDashboard();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600"></div>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="p-6 text-center text-rose-600 bg-rose-50 rounded-md border border-rose-200">
+        {error || 'Không thể tải dữ liệu'}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -40,7 +83,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-xl font-bold text-slate-900">Tổng quan đối soát</h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          Dashboard dành cho Kế toán trưởng · Tháng 3/2024
+          Dashboard dành cho Kế toán trưởng · Tháng hiện tại
         </p>
       </div>
 
@@ -50,25 +93,25 @@ export default function Dashboard() {
           icon={CheckCircle2}
           iconColor="text-emerald-600"
           iconBg="bg-emerald-100"
-          label="Đã xử lý"
-          value={formatNumber(dashboardStats.totalProcessed)}
-          subtext={formatVND(dashboardStats.totalValueProcessed)}
+          label="Khớp hoàn toàn"
+          value={formatNumber(stats.total_matched)}
+          subtext="Tự động xử lý"
         />
         <KPICard
           icon={Clock}
           iconColor="text-amber-600"
           iconBg="bg-amber-100"
           label="Tồn đọng"
-          value={formatNumber(dashboardStats.totalPending)}
-          subtext={formatVND(dashboardStats.totalValuePending)}
+          value={formatNumber(stats.total_pending)}
+          subtext={formatVND(stats.pending_value)}
           highlight
         />
         <KPICard
           icon={AlertTriangle}
           iconColor="text-rose-600"
           iconBg="bg-rose-100"
-          label="Chờ duyệt cấp cao"
-          value={dashboardStats.awaitingEscalation.toString()}
+          label="Cần chú ý (Lệch/Escalate)"
+          value={stats.total_escalated.toString()}
           subtext="Case rủi ro / giá trị lớn"
           highlight
         />
@@ -76,9 +119,9 @@ export default function Dashboard() {
           icon={Bot}
           iconColor="text-brand-600"
           iconBg="bg-brand-100"
-          label="Tỷ lệ tự động hóa"
-          value={`${dashboardStats.automationRate}%`}
-          subtext={`Human override: ${dashboardStats.humanOverrideRate}%`}
+          label="Tỷ lệ khớp"
+          value={`${stats.match_rate}%`}
+          subtext={`Tổng hồ sơ: ${stats.total_cases}`}
         />
       </div>
 
@@ -131,7 +174,7 @@ export default function Dashboard() {
         {/* Override Rate */}
         <div className="card p-5">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">
-            Human Override Rate
+            Sự can thiệp của con người
           </h3>
           <div className="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -160,7 +203,7 @@ export default function Dashboard() {
                 />
                 <Bar
                   dataKey="overrideRate"
-                  name="Override Rate"
+                  name="Cần can thiệp"
                   fill="#f43f5e"
                   radius={[4, 4, 0, 0]}
                   barSize={32}
@@ -176,10 +219,10 @@ export default function Dashboard() {
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">
-              Case được escalate
+              Case rủi ro cao / Lệch lớn
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Giá trị lớn, rủi ro cao, hoặc confidence thấp — cần duyệt cấp trên
+              Những hồ sơ có độ lệch cao (Major Diff) cần duyệt
             </p>
           </div>
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">
@@ -192,30 +235,30 @@ export default function Dashboard() {
             <div
               key={c.id}
               className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
-              onClick={() => navigate(`/case/${c.id}`)}
+              onClick={() => navigate(`/case/${c.case_number}`)}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-slate-900">
-                    {c.invoiceNumber}
+                    {c.invoice_number || c.case_number}
                   </span>
                   <StatusBadge status={c.status} size="small" />
                   <span className="text-xs text-slate-400">
-                    {c.partner}
+                    {c.partner_name}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-600 flex items-center gap-1.5">
                   <AlertTriangle size={12} className="text-amber-500 shrink-0" />
-                  {c.reason}
+                  {c.ai_note || 'Cần kiểm tra kỹ chênh lệch'}
                 </p>
                 <p className="mt-0.5 text-[11px] text-slate-400">
-                  Đẩy lên bởi {c.escalatedBy} · {formatDate(c.escalatedAt)}
+                  Phân tích lúc {formatDate(c.case_date)}
                 </p>
               </div>
 
               <div className="text-right shrink-0">
                 <p className="text-sm font-semibold text-slate-900">
-                  {formatVND(c.totalAmount)}
+                  {formatVND(c.total_amount)}
                 </p>
                 <button className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">
                   Xem chi tiết <ArrowRight size={12} />
@@ -223,6 +266,11 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
+          {escalatedCases.length === 0 && (
+             <div className="px-5 py-8 text-center text-sm text-slate-500">
+               Không có hồ sơ nào cần duyệt.
+             </div>
+          )}
         </div>
       </div>
     </div>

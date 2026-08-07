@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -14,7 +14,8 @@ import {
 import StatusBadge, { RiskBadge } from '../components/StatusBadge.jsx';
 import FloatingActionBar from '../components/FloatingActionBar.jsx';
 import BulkApprovalModal from './BulkApprovalModal.jsx';
-import { reconciliationCases, formatVND, formatDate } from '../mockData.js';
+import { getReconciliations } from '../services/reconciliations.js';
+import { formatVND, formatDate } from '../text.js';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -24,10 +25,7 @@ const STATUS_OPTIONS = [
   { value: 'low_confidence', label: 'Confidence thấp' },
 ];
 
-const RISK_ORDER = { high: 0, medium: 1, low: 2 };
-const STATUS_ORDER = { major_diff: 0, low_confidence: 1, minor_diff: 2, matched: 3 };
-
-function SummaryCard({ icon: Icon, label, value, detail, tone = 'slate' }) {
+function SummaryCard({ icon: Icon, label, value, detail, tone = 'slate', loading = false }) {
   const tones = {
     brand: 'bg-brand-50 text-brand-700 ring-brand-100',
     emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
@@ -41,55 +39,82 @@ function SummaryCard({ icon: Icon, label, value, detail, tone = 'slate' }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-400">{label}</p>
-          <p className="mt-2 text-2xl font-light tracking-[-0.2px] text-slate-950">{value}</p>
+          {loading ? (
+             <div className="mt-2 h-8 w-16 animate-pulse rounded bg-slate-200" />
+          ) : (
+            <p className="mt-2 text-2xl font-light tracking-[-0.2px] text-slate-950">{value}</p>
+          )}
         </div>
         <div className={`flex h-10 w-10 items-center justify-center rounded-full ring-1 ${tones[tone]}`}>
           <Icon size={18} />
         </div>
       </div>
-      <p className="mt-3 text-sm text-slate-500">{detail}</p>
+      {loading ? (
+        <div className="mt-4 h-4 w-2/3 animate-pulse rounded bg-slate-100" />
+      ) : (
+        <p className="mt-3 text-sm text-slate-500">{detail}</p>
+      )}
     </div>
   );
 }
 
-export default function ReconciliationList() {
+export default function ReconciliationList({ token }) {
   const navigate = useNavigate();
+  
+  // States
+  const [data, setData] = useState({ items: [], total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  
+  // Selection
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showBulkModal, setShowBulkModal] = useState(false);
 
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError('');
+        // Ở thực tế nếu có API query search thì truyền vào params
+        const response = await getReconciliations(token, {
+          status: statusFilter,
+          page_size: 100, // Demo load nhiều
+        });
+        setData(response);
+      } catch (err) {
+        setError(err.message || 'Lỗi khi tải dữ liệu');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [token, statusFilter]);
+
   const filteredCases = useMemo(() => {
-    let cases = [...reconciliationCases];
+    let cases = [...data.items];
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       cases = cases.filter(
         (c) =>
-          c.invoiceNumber.toLowerCase().includes(q) ||
-          c.partner.toLowerCase().includes(q) ||
-          c.id.toLowerCase().includes(q)
+          c.invoice_number?.toLowerCase().includes(q) ||
+          c.partner_name?.toLowerCase().includes(q) ||
+          c.case_number?.toLowerCase().includes(q)
       );
     }
-
-    if (statusFilter) {
-      cases = cases.filter((c) => c.status === statusFilter);
-    }
-
-    cases.sort((a, b) => {
-      const riskDiff = (RISK_ORDER[a.riskLevel] ?? 3) - (RISK_ORDER[b.riskLevel] ?? 3);
-      if (riskDiff !== 0) return riskDiff;
-      return (STATUS_ORDER[a.status] ?? 4) - (STATUS_ORDER[b.status] ?? 4);
-    });
-
     return cases;
-  }, [searchQuery, statusFilter]);
+  }, [data.items, searchQuery]);
 
-  const pendingCases = filteredCases.filter((c) => !c.processedBy);
-  const matchedCount = reconciliationCases.filter((c) => c.status === 'matched').length;
-  const reviewCount = reconciliationCases.filter((c) => c.status === 'major_diff').length;
-  const highRiskCount = reconciliationCases.filter((c) => c.riskLevel === 'high').length;
-  const pendingValue = pendingCases.reduce((sum, c) => sum + c.totalAmount, 0);
+  // Derived stats
+  const pendingCases = filteredCases.filter((c) => !c.processed_by_name && !c.decision);
+  const matchedCount = data.items.filter((c) => c.status === 'matched').length;
+  const reviewCount = data.items.filter((c) => c.status === 'major_diff').length;
+  const highRiskCount = data.items.filter((c) => c.risk_level === 'high').length;
+  const pendingValue = pendingCases.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -109,12 +134,13 @@ export default function ReconciliationList() {
   };
 
   const selectedCases = filteredCases.filter((c) => selectedIds.has(c.id));
-  const totalSelectedValue = selectedCases.reduce((sum, c) => sum + c.totalAmount, 0);
+  const totalSelectedValue = selectedCases.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0);
 
   const handleConfirmBulk = () => {
     alert(`Đã duyệt ${selectedIds.size} hóa đơn thành công!`);
     setSelectedIds(new Set());
     setShowBulkModal(false);
+    // TODO: Tương lai có thể gọi API duyệt hàng loạt
   };
 
   return (
@@ -132,17 +158,24 @@ export default function ReconciliationList() {
           </p>
         </div>
         <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-[0_1px_3px_rgba(0,55,112,0.08)]">
-          {filteredCases.length} hóa đơn · {pendingCases.length} chờ xử lý
+          {data.total} hóa đơn · {pendingCases.length} chờ xử lý
         </div>
       </header>
+      
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 border border-red-200 text-red-700">
+          {error}
+        </div>
+      )}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           icon={FileCheck2}
           label="Tổng hồ sơ"
-          value={reconciliationCases.length}
+          value={data.total}
           detail={`${pendingCases.length} hồ sơ còn mở`}
           tone="brand"
+          loading={loading}
         />
         <SummaryCard
           icon={CheckCircle2}
@@ -150,6 +183,7 @@ export default function ReconciliationList() {
           value={matchedCount}
           detail="Có thể duyệt nhanh"
           tone="emerald"
+          loading={loading}
         />
         <SummaryCard
           icon={AlertTriangle}
@@ -157,6 +191,7 @@ export default function ReconciliationList() {
           value={reviewCount}
           detail="Ưu tiên kiểm tra trước"
           tone="rose"
+          loading={loading}
         />
         <SummaryCard
           icon={ShieldAlert}
@@ -164,6 +199,7 @@ export default function ReconciliationList() {
           value={highRiskCount}
           detail={`Giá trị chờ: ${formatVND(pendingValue)}`}
           tone="amber"
+          loading={loading}
         />
       </section>
 
@@ -220,7 +256,7 @@ export default function ReconciliationList() {
               }`}
             >
               <CheckCircle2 size={16} />
-              Khớp ({matchedCount})
+              Khớp
             </button>
             <button
               onClick={() => setStatusFilter('major_diff')}
@@ -231,7 +267,7 @@ export default function ReconciliationList() {
               }`}
             >
               <Clock3 size={16} />
-              Cần xem ({reviewCount})
+              Cần xem
             </button>
             {statusFilter && (
               <button
@@ -281,72 +317,87 @@ export default function ReconciliationList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {filteredCases.map((c) => {
-                const isSelected = selectedIds.has(c.id);
-                const isPending = !c.processedBy;
-
-                return (
-                  <tr
-                    key={c.id}
-                    className={`cursor-pointer transition-colors hover:bg-slate-50 ${
-                      isSelected ? 'bg-brand-50/60' : ''
-                    } ${!isPending ? 'opacity-60' : ''}`}
-                    onClick={() => navigate(`/case/${c.id}`)}
-                  >
-                    <td
-                      className="px-5 py-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isPending) toggleSelect(c.id);
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {}}
-                        disabled={!isPending}
-                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:opacity-30"
-                      />
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="font-semibold text-slate-950">{c.invoiceNumber}</div>
-                      <div className="mt-1 text-xs font-medium text-slate-400">{c.id}</div>
-                    </td>
-                    <td className="max-w-[260px] px-5 py-4">
-                      <div className="truncate text-slate-700">{c.partner}</div>
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-slate-600">
-                      {formatDate(c.date)}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-950 tabular-nums">
-                      {formatVND(c.totalAmount)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={c.status} size="small" />
-                    </td>
-                    <td className="px-5 py-4">
-                      <RiskBadge level={c.riskLevel} />
-                    </td>
-                    <td className="px-5 py-4">
-                      <button
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                        title="Xem chi tiết"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
+              {loading && data.items.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-5 py-4"><div className="h-4 w-4 rounded bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="h-4 w-24 rounded bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="h-4 w-48 rounded bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="h-4 w-20 rounded bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="ml-auto h-4 w-24 rounded bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="h-6 w-20 rounded-full bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="h-6 w-16 rounded-full bg-slate-200" /></td>
+                    <td className="px-5 py-4"><div className="h-6 w-6 rounded-full bg-slate-200" /></td>
                   </tr>
-                );
-              })}
+                ))
+              ) : filteredCases.length > 0 ? (
+                filteredCases.map((c) => {
+                  const isSelected = selectedIds.has(c.id);
+                  const isPending = !c.processed_by_name && !c.decision;
+
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`cursor-pointer transition-colors hover:bg-slate-50 ${
+                        isSelected ? 'bg-brand-50/60' : ''
+                      } ${!isPending ? 'opacity-60' : ''}`}
+                      onClick={() => navigate(`/case/${c.case_number}`)}
+                    >
+                      <td
+                        className="px-5 py-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isPending) toggleSelect(c.id);
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          disabled={!isPending}
+                          className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:opacity-30"
+                        />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-950">{c.invoice_number}</div>
+                        <div className="mt-1 text-xs font-medium text-slate-400">{c.case_number}</div>
+                      </td>
+                      <td className="max-w-[260px] px-5 py-4">
+                        <div className="truncate text-slate-700">{c.partner_name}</div>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 text-slate-600">
+                        {formatDate(c.case_date)}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-950 tabular-nums">
+                        {formatVND(c.total_amount)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={c.status} size="small" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <RiskBadge level={c.risk_level} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <button
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="8" className="py-16 text-center text-slate-500">
+                    Không tìm thấy hóa đơn nào.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-
-        {filteredCases.length === 0 && (
-          <div className="py-16 text-center">
-            <p className="text-slate-500">Không tìm thấy hóa đơn nào.</p>
-          </div>
-        )}
       </section>
 
       <FloatingActionBar

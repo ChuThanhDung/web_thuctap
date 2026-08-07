@@ -1,12 +1,16 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 import src.models  # noqa: F401
+from src.api.audit_logs import router as audit_logs_router
 from src.api.auth import router as auth_router
+from src.api.reconciliations import router as reconciliations_router
 from src.api.routes import router
+from src.api.thresholds import router as thresholds_router
+from src.api.uploads import router as uploads_router
 from src.config import get_settings
 from src.database import Base, engine
 
@@ -53,8 +57,20 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(reconciliations_router, prefix="/api/v1")
+app.include_router(audit_logs_router, prefix="/api/v1")
+app.include_router(thresholds_router, prefix="/api/v1")
+app.include_router(uploads_router, prefix="/api/v1")
 
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "env": settings.app_env}
+
+from sqlalchemy.orm import Session
+from src.database import get_db
+from src.models.reconciliation import ReconciliationCase
+
+@app.get("/db-count")
+async def db_count(db: Session = Depends(get_db)):
+    return {"count": db.query(ReconciliationCase).count()}
