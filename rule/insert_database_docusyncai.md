@@ -38,6 +38,11 @@ CREATE TABLE IF NOT EXISTS users (
     role_id UUID NOT NULL REFERENCES roles(id),
     department VARCHAR(100),
     employee_code VARCHAR(50) UNIQUE,
+    date_of_birth DATE,
+    address VARCHAR(255),
+    citizen_id VARCHAR(20) UNIQUE,
+    phone VARCHAR(20),
+    avatar_url VARCHAR(500),
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -119,6 +124,11 @@ INSERT INTO users (
     role_id,
     department,
     employee_code,
+    date_of_birth,
+    address,
+    citizen_id,
+    phone,
+    avatar_url,
     status
 )
 SELECT
@@ -128,6 +138,11 @@ SELECT
     r.id,
     'Phòng Kế toán - Tài chính',
     'ACC-001',
+    DATE '1995-04-12',
+    'Quận Cầu Giấy, Hà Nội',
+    '001195000001',
+    '0901000001',
+    NULL,
     'ACTIVE'
 FROM roles r
 WHERE r.code = 'accountant'
@@ -138,6 +153,11 @@ SET
     role_id = EXCLUDED.role_id,
     department = EXCLUDED.department,
     employee_code = EXCLUDED.employee_code,
+    date_of_birth = EXCLUDED.date_of_birth,
+    address = EXCLUDED.address,
+    citizen_id = EXCLUDED.citizen_id,
+    phone = EXCLUDED.phone,
+    avatar_url = EXCLUDED.avatar_url,
     status = EXCLUDED.status,
     updated_at = NOW();
 
@@ -148,6 +168,11 @@ INSERT INTO users (
     role_id,
     department,
     employee_code,
+    date_of_birth,
+    address,
+    citizen_id,
+    phone,
+    avatar_url,
     status
 )
 SELECT
@@ -157,6 +182,11 @@ SELECT
     r.id,
     'Phòng Kế toán - Tài chính',
     'CHIEF-001',
+    DATE '1989-09-20',
+    'Quận Nam Từ Liêm, Hà Nội',
+    '001189000002',
+    '0901000002',
+    NULL,
     'ACTIVE'
 FROM roles r
 WHERE r.code = 'chief_accountant'
@@ -167,6 +197,11 @@ SET
     role_id = EXCLUDED.role_id,
     department = EXCLUDED.department,
     employee_code = EXCLUDED.employee_code,
+    date_of_birth = EXCLUDED.date_of_birth,
+    address = EXCLUDED.address,
+    citizen_id = EXCLUDED.citizen_id,
+    phone = EXCLUDED.phone,
+    avatar_url = EXCLUDED.avatar_url,
     status = EXCLUDED.status,
     updated_at = NOW();
 ```

@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, String, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,6 +19,11 @@ class User(Base):
     role_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
     department: Mapped[str | None] = mapped_column(String(100))
     employee_code: Mapped[str | None] = mapped_column(String(50), unique=True)
+    date_of_birth: Mapped[date | None] = mapped_column(Date)
+    address: Mapped[str | None] = mapped_column(String(255))
+    citizen_id: Mapped[str | None] = mapped_column(String(20), unique=True)
+    phone: Mapped[str | None] = mapped_column(String(20))
+    avatar_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
