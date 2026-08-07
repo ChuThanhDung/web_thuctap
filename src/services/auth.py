@@ -1,12 +1,13 @@
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from secrets import token_urlsafe
+from secrets import randbelow, token_urlsafe
 
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from src.models.audit_log import AuditLog
+from src.models.password_reset_otp import PasswordResetOtp
 from src.models.user import User
 from src.models.user_session import UserSession
 
@@ -15,6 +16,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
     return pwd_context.verify(plain_password, password_hash)
+
+
+def hash_password(plain_password: str) -> str:
+    return pwd_context.hash(plain_password)
 
 
 def hash_token(token: str) -> str:
@@ -56,6 +61,78 @@ def create_user_session(
     db.refresh(user)
 
     return access_token
+
+
+def get_user_by_session_token(db: Session, access_token: str) -> User | None:
+    stmt = (
+        select(User)
+        .join(UserSession, UserSession.user_id == User.id)
+        .options(selectinload(User.role))
+        .where(
+            UserSession.session_token_hash == hash_token(access_token),
+            UserSession.revoked_at.is_(None),
+            UserSession.expires_at > datetime.now(UTC),
+            User.status == "ACTIVE",
+        )
+    )
+    return db.scalars(stmt).first()
+
+
+def create_password_reset_otp(db: Session, user: User) -> str:
+    otp = f"{randbelow(1_000_000):06d}"
+    db.add(
+        PasswordResetOtp(
+            user_id=user.id,
+            otp_hash=hash_token(otp),
+            expires_at=datetime.now(UTC) + timedelta(minutes=10),
+        )
+    )
+    db.commit()
+    return otp
+
+
+def verify_password_reset_otp(db: Session, user: User, otp: str) -> str | None:
+    stmt = (
+        select(PasswordResetOtp)
+        .where(
+            PasswordResetOtp.user_id == user.id,
+            PasswordResetOtp.otp_hash == hash_token(otp),
+            PasswordResetOtp.used_at.is_(None),
+            PasswordResetOtp.expires_at > datetime.now(UTC),
+        )
+        .order_by(PasswordResetOtp.created_at.desc())
+    )
+    otp_record = db.scalars(stmt).first()
+    if otp_record is None:
+        return None
+
+    reset_token = token_urlsafe(32)
+    otp_record.reset_token_hash = hash_token(reset_token)
+    otp_record.verified_at = datetime.now(UTC)
+    db.commit()
+    return reset_token
+
+
+def change_password_with_reset_token(db: Session, user: User, reset_token: str, new_password: str) -> bool:
+    stmt = (
+        select(PasswordResetOtp)
+        .where(
+            PasswordResetOtp.user_id == user.id,
+            PasswordResetOtp.reset_token_hash == hash_token(reset_token),
+            PasswordResetOtp.verified_at.is_not(None),
+            PasswordResetOtp.used_at.is_(None),
+            PasswordResetOtp.expires_at > datetime.now(UTC),
+        )
+        .order_by(PasswordResetOtp.created_at.desc())
+    )
+    otp_record = db.scalars(stmt).first()
+    if otp_record is None:
+        return False
+
+    user.password_hash = hash_password(new_password)
+    otp_record.used_at = datetime.now(UTC)
+    db.commit()
+    return True
 
 
 def write_audit_log(

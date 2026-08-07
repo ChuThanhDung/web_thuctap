@@ -51,6 +51,11 @@ Lưu thông tin tài khoản đăng nhập.
 | `role_id` | `UUID` | Foreign key `roles.id`, not null | Vai trò chính của người dùng. |
 | `department` | `VARCHAR(100)` | Nullable | Phòng ban hoặc bộ phận làm việc. |
 | `employee_code` | `VARCHAR(50)` | Unique, nullable | Mã nhân viên nội bộ. |
+| `date_of_birth` | `DATE` | Nullable | Ngày sinh của người dùng. |
+| `address` | `VARCHAR(255)` | Nullable | Nơi ở hoặc địa chỉ liên hệ của người dùng. |
+| `citizen_id` | `VARCHAR(20)` | Unique, nullable | Số căn cước công dân. |
+| `phone` | `VARCHAR(20)` | Nullable | Số điện thoại liên hệ. |
+| `avatar_url` | `VARCHAR(500)` | Nullable | Đường dẫn ảnh đại diện của người dùng. |
 | `status` | `VARCHAR(20)` | Default `ACTIVE` | Trạng thái tài khoản: `ACTIVE`, `INACTIVE`, `LOCKED`. |
 | `last_login_at` | `TIMESTAMPTZ` | Nullable | Thời điểm đăng nhập gần nhất. |
 | `created_at` | `TIMESTAMPTZ` | Default `NOW()` | Thời điểm tạo tài khoản. |

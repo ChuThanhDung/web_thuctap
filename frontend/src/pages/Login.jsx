@@ -3,8 +3,8 @@ import { Bot, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
 import { loginWithEmail } from '../api.js';
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('accountant@docusync.ai');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ export default function Login({ onLogin }) {
               <Bot size={22} />
             </div>
             <div>
-              <p className="text-lg font-semibold text-slate-950">AI Đối soát</p>
+              <p className="text-lg font-semibold text-slate-950">Docusyncai - AI Đối soát</p>
               <p className="text-sm text-slate-500">Hóa đơn & Chứng từ</p>
             </div>
           </div>
@@ -73,6 +73,7 @@ export default function Login({ onLogin }) {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                placeholder="Nhập vào email"
                 autoComplete="email"
                 required
               />
@@ -88,6 +89,7 @@ export default function Login({ onLogin }) {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                placeholder="********"
                 autoComplete="current-password"
                 required
               />

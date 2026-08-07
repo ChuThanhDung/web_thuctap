@@ -8,13 +8,14 @@ import Dashboard from './pages/Dashboard.jsx';
 import UploadQueue from './pages/UploadQueue.jsx';
 import AuditTrail from './pages/AuditTrail.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
+import { repairTextDeep } from './text.js';
 
 const AUTH_STORAGE_KEY = 'docusync_auth';
 
 function getInitialAuth() {
   try {
     const storedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY);
-    return storedAuth ? JSON.parse(storedAuth) : null;
+    return storedAuth ? repairTextDeep(JSON.parse(storedAuth)) : null;
   } catch {
     return null;
   }
@@ -33,13 +34,26 @@ export default function App() {
   const [auth, setAuth] = useState(getInitialAuth);
 
   function handleLogin(nextAuth) {
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
-    setAuth(nextAuth);
+    const repairedAuth = repairTextDeep(nextAuth);
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(repairedAuth));
+    setAuth(repairedAuth);
   }
 
   function handleLogout() {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     setAuth(null);
+  }
+
+  function handleUserUpdate(nextUser) {
+    setAuth((currentAuth) => {
+      if (!currentAuth) {
+        return currentAuth;
+      }
+
+      const nextAuth = repairTextDeep({ ...currentAuth, user: nextUser });
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
+      return nextAuth;
+    });
   }
 
   if (!auth) {
@@ -59,16 +73,18 @@ export default function App() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        token={auth.access_token}
         user={auth.user}
         onLogout={handleLogout}
+        onUserUpdate={handleUserUpdate}
       />
 
       <main
         className={`flex-1 transition-all duration-200 ${
-          sidebarCollapsed ? 'ml-[68px]' : 'ml-[240px]'
+          sidebarCollapsed ? 'ml-[68px]' : 'ml-[260px]'
         }`}
       >
-        <div className="mx-auto max-w-6xl px-6 py-6">
+        <div className="mx-auto max-w-7xl px-6 py-6">
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path="/login" element={<Navigate to={homePath} replace />} />
