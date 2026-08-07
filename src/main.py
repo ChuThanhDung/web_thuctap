@@ -4,11 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+import src.models  # noqa: F401
 from src.api.auth import router as auth_router
 from src.api.routes import router
 from src.config import get_settings
 from src.database import Base, engine
-import src.models  # noqa: F401
 
 
 def ensure_user_profile_columns() -> None:
