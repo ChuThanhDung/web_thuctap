@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice>
+    <InvoiceNumber>INV_0000001</InvoiceNumber>
+    <Date>2026-08-08</Date>
+    <TotalAmount>1000000</TotalAmount>
+    <Currency>VND</Currency>
+    <Vendor>
+        <Name>Công ty TNHH Demo</Name>
+        <TaxCode>0101234567</TaxCode>
+    </Vendor>
+    <Items>
+        <Item>
+            <Description>Dịch vụ tư vấn AI</Description>
+            <Quantity>1</Quantity>
+            <UnitPrice>1000000</UnitPrice>
+            <Amount>1000000</Amount>
+        </Item>
+    </Items>
+</Invoice>
