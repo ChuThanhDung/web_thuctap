@@ -32,52 +32,77 @@ def parse_xml_to_dict(xml_content: bytes) -> dict[str, Any]:
 
 def detect_document_type(root: ET.Element) -> str:
     """Nhận diện loại tài liệu dựa trên tag root."""
-    tag = root.tag
-    if "HDon" in tag:
+    tag_lower = root.tag.lower()
+    if "hdon" in tag_lower or "invoice" in tag_lower:
         return "invoice"
-    elif "Order" in tag:
+    elif "order" in tag_lower or "po" in tag_lower:
         return "po"
-    elif "ReceiptAdvice" in tag:
+    elif "receiptadvice" in tag_lower or "grn" in tag_lower or "receipt" in tag_lower:
         return "grn"
-    raise ValueError(f"Không nhận diện được loại tài liệu XML với root tag: {tag}")
+    raise ValueError(f"Không nhận diện được loại tài liệu XML với root tag: {root.tag}")
 
 
 def parse_invoice(root: ET.Element) -> dict[str, Any]:
-    """Phân tích hóa đơn điện tử GDT Việt Nam."""
-    shdon = root.find(".//SHDon")
-    invoice_number = shdon.text.strip() if shdon is not None else ""
+    """Phân tích hóa đơn điện tử (GDT Việt Nam & UBL Standard)."""
+    shdon = root.find(".//SHDon") or root.find(".//ID") or root.find("ID")
+    invoice_number = shdon.text.strip() if shdon is not None and shdon.text else ""
 
-    nlap = root.find(".//NLap")
-    invoice_date = nlap.text.strip() if nlap is not None else ""
+    nlap = root.find(".//NLap") or root.find(".//IssueDate") or root.find("IssueDate")
+    invoice_date = nlap.text.strip() if nlap is not None and nlap.text else ""
 
-    supplier_name_el = root.find(".//NBan/Ten")
-    supplier_name = supplier_name_el.text.strip() if supplier_name_el is not None else ""
+    supplier_name_el = (
+        root.find(".//NBan/Ten")
+        or root.find(".//AccountingSupplierParty//PartyName/Name")
+        or root.find(".//SellerSupplierParty//PartyName/Name")
+    )
+    supplier_name = supplier_name_el.text.strip() if supplier_name_el is not None and supplier_name_el.text else ""
 
-    supplier_tax_id_el = root.find(".//NBan/MST")
-    supplier_tax_id = supplier_tax_id_el.text.strip() if supplier_tax_id_el is not None else ""
+    supplier_tax_id_el = (
+        root.find(".//NBan/MST")
+        or root.find(".//AccountingSupplierParty//PartyIdentification/ID")
+        or root.find(".//SellerSupplierParty//PartyIdentification/ID")
+    )
+    supplier_tax_id = (
+        supplier_tax_id_el.text.strip() if supplier_tax_id_el is not None and supplier_tax_id_el.text else ""
+    )
 
-    buyer_name_el = root.find(".//NMua/Ten")
-    buyer_name = buyer_name_el.text.strip() if buyer_name_el is not None else ""
+    buyer_name_el = (
+        root.find(".//NMua/Ten")
+        or root.find(".//AccountingCustomerParty//PartyName/Name")
+        or root.find(".//BuyerCustomerParty//PartyName/Name")
+    )
+    buyer_name = buyer_name_el.text.strip() if buyer_name_el is not None and buyer_name_el.text else ""
 
-    thtien_el = root.find(".//TToan/THTien")
+    thtien_el = (
+        root.find(".//TToan/THTien")
+        or root.find(".//LegalMonetaryTotal/TaxExclusiveAmount")
+        or root.find(".//MonetaryTotal/PayableAmount")
+    )
     total_amount_ex_vat = float(thtien_el.text) if thtien_el is not None and thtien_el.text else 0.0
 
-    tgtttb_el = root.find(".//TToan/TgTTTBSo")
+    tgtttb_el = (
+        root.find(".//TToan/TgTTTBSo")
+        or root.find(".//LegalMonetaryTotal/PayableAmount")
+        or root.find(".//MonetaryTotal/PayableAmount")
+    )
     total_amount = float(tgtttb_el.text) if tgtttb_el is not None and tgtttb_el.text else total_amount_ex_vat
 
     # Parse line items
     line_items = []
-    for idx, item_node in enumerate(root.findall(".//DSHHDVu/HHDVu"), 1):
-        name_el = item_node.find("Ten")
-        item_name = name_el.text.strip() if name_el is not None else ""
+    nodes = root.findall(".//DSHHDVu/HHDVu") or root.findall(".//InvoiceLine")
+    for idx, item_node in enumerate(nodes, 1):
+        name_el = item_node.find("Ten") or item_node.find(".//Item/Name")
+        item_name = name_el.text.strip() if name_el is not None and name_el.text else ""
 
-        unit_el = item_node.find("DVT")
-        unit = unit_el.text.strip() if unit_el is not None else ""
+        unit_el = item_node.find("DVT") or item_node.find(".//InvoicedQuantity") or item_node.find(".//Quantity")
+        unit = unit_el.text.strip() if unit_el is not None and unit_el.text else "PCE"
+        if unit_el is not None and unit_el.get("unitCode"):
+            unit = unit_el.get("unitCode")
 
-        qty_el = item_node.find("SLuong")
+        qty_el = item_node.find("SLuong") or item_node.find(".//InvoicedQuantity") or item_node.find(".//Quantity")
         qty = float(qty_el.text) if qty_el is not None and qty_el.text else 0.0
 
-        price_el = item_node.find("DGia")
+        price_el = item_node.find("DGia") or item_node.find(".//Price/PriceAmount")
         price = float(price_el.text) if price_el is not None and price_el.text else 0.0
 
         vat_el = item_node.find("TSuat")
