@@ -25,6 +25,11 @@ jobs:
       - name: Lint with ruff
         run: ruff check src/ tests/
 
+      - name: Start Postgres DB Container
+        run: |
+          docker compose up -d postgres
+          python -c "import time, socket; [time.sleep(1) for _ in range(15) if socket.socket().connect_ex(('127.0.0.1', 5432)) != 0]"
+
       - name: Run tests
         run: pytest tests/ -v --tb=short
         env:
