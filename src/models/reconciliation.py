@@ -128,22 +128,13 @@ class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    size: Mapped[str] = mapped_column(String(50), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
-    # queued | processing | completed | error
-    progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    error_message: Mapped[str | None] = mapped_column(Text)
-    case_id: Mapped[uuid.UUID | None] = mapped_column(
-        postgresql.UUID(as_uuid=True), ForeignKey("reconciliation_cases.id", ondelete="SET NULL"), nullable=True
+    uploaded_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
 
-    # Relationship
-    case: Mapped["ReconciliationCase | None"] = relationship()
+    uploaded_by: Mapped[User | None] = relationship()
 
 
 class PurchaseOrder(Base):
