@@ -1,26 +1,27 @@
 import os
+import re
 import xml.etree.ElementTree as ET
-from typing import Any, Dict
+from typing import Any
 
 
 def remove_namespaces(xml_content: bytes) -> str:
     """Loại bỏ namespace để dễ dàng query bằng ElementTree không cần namespace dictionary."""
-    xml_str = xml_content.decode('utf-8', errors='ignore')
-    import re
+    xml_str = xml_content.decode("utf-8", errors="ignore")
     # Remove default namespace
-    xml_str = re.sub(r'\sxmlns="[^"]+"', '', xml_str)
+    xml_str = re.sub(r'\sxmlns="[^"]+"', "", xml_str)
     # Remove prefix namespaces
-    xml_str = re.sub(r'\sxmlns:\w+="[^"]+"', '', xml_str)
+    xml_str = re.sub(r'\sxmlns:\w+="[^"]+"', "", xml_str)
     # Remove schema locations
-    xml_str = re.sub(r'\sxsi:schemaLocation="[^"]+"', '', xml_str)
-    xml_str = re.sub(r'\sxsi:type="[^"]+"', '', xml_str)
-    xml_str = re.sub(r'\sxmlns:xsi="[^"]+"', '', xml_str)
-    
+    xml_str = re.sub(r'\sxsi:schemaLocation="[^"]+"', "", xml_str)
+    xml_str = re.sub(r'\sxsi:type="[^"]+"', "", xml_str)
+    xml_str = re.sub(r'\sxmlns:xsi="[^"]+"', "", xml_str)
+
     # Remove prefix from tags (e.g. <cac:OrderLine> to <OrderLine>)
-    xml_str = re.sub(r'<(/?)[a-zA-Z0-9_-]+:([a-zA-Z0-9_-]+)', r'<\1\2', xml_str)
+    xml_str = re.sub(r"<(/?)[a-zA-Z0-9_-]+:([a-zA-Z0-9_-]+)", r"<\1\2", xml_str)
     return xml_str
 
-def parse_xml_to_dict(xml_content: bytes) -> Dict[str, Any]:
+
+def parse_xml_to_dict(xml_content: bytes) -> ET.Element:
     """Parse XML và chuyển sang dict hoặc ElementTree đã được xóa namespace."""
     cleaned_xml = remove_namespaces(xml_content)
     return ET.fromstring(cleaned_xml)

@@ -1,25 +1,29 @@
+import base64
+import json
 import os
 import re
-import json
-import base64
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
+
 import google.generativeai as genai
 from openai import OpenAI
 
 from src.services.document_parser import detect_and_parse_document
 
+
 class BaseParserStrategy(ABC):
     @abstractmethod
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         """
         Phân tích tài liệu và trả về dict dữ liệu chuẩn.
         """
         pass
 
+
 class XmlParserStrategy(BaseParserStrategy):
     """Chiến lược parse file XML bằng parser có sẵn."""
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         parsed = detect_and_parse_document(content)
         # Chỉ dùng doc_type làm fallback nếu parser XML chưa nhận diện được type
         if not parsed.get("type"):

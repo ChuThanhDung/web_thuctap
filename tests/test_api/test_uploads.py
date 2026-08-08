@@ -1,17 +1,21 @@
 import os
 import uuid
+
 import pytest
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from src.main import app
+
 from src.api.auth import get_current_user
 from src.database import get_db
+from src.main import app
 from src.models.user import User
+
 
 def override_get_current_user(db: Session = Depends(get_db)):
     # Lấy tài khoản kế toán viên đã được seed sẵn trong DB để tránh lỗi khóa ngoại (ForeignKeyViolation)
     user = db.query(User).filter(User.email == "accountant@docusync.ai").first()
     return user
+
 
 @pytest.fixture(autouse=True)
 def auth_override():
