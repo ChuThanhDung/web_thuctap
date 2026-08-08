@@ -1,4 +1,5 @@
 import os
+import re
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -8,8 +9,6 @@ from src.services.vision_parser import parse_vision_document
 def remove_namespaces(xml_content: bytes) -> str:
     """Loại bỏ namespace để dễ dàng query bằng ElementTree không cần namespace dictionary."""
     xml_str = xml_content.decode("utf-8", errors="ignore")
-    import re
-
     # Remove default namespace
     xml_str = re.sub(r'\sxmlns="[^"]+"', "", xml_str)
     # Remove prefix namespaces
@@ -24,7 +23,7 @@ def remove_namespaces(xml_content: bytes) -> str:
     return xml_str
 
 
-def parse_xml_to_dict(xml_content: bytes) -> dict[str, Any]:
+def parse_xml_to_dict(xml_content: bytes) -> ET.Element:
     """Parse XML và chuyển sang dict hoặc ElementTree đã được xóa namespace."""
     cleaned_xml = remove_namespaces(xml_content)
     return ET.fromstring(cleaned_xml)
@@ -43,22 +42,30 @@ def detect_document_type(root: ET.Element) -> str:
 
 
 def parse_invoice(root: ET.Element) -> dict[str, Any]:
-    """Phân tích hóa đơn điện tử (GDT Việt Nam & UBL Standard)."""
-    shdon = root.find(".//SHDon") or root.find(".//ID") or root.find("ID")
+    """Phân tích hóa đơn điện tử (GDT Việt Nam & UBL Standard & Mock XML)."""
+    shdon = (
+        root.find(".//InvoiceNumber")
+        or root.find(".//SHDon")
+        or root.find(".//ID")
+        or root.find("ID")
+        or root.find("InvoiceNumber")
+    )
     invoice_number = shdon.text.strip() if shdon is not None and shdon.text else ""
 
-    nlap = root.find(".//NLap") or root.find(".//IssueDate") or root.find("IssueDate")
+    nlap = root.find(".//NLap") or root.find(".//IssueDate") or root.find("IssueDate") or root.find(".//Date")
     invoice_date = nlap.text.strip() if nlap is not None and nlap.text else ""
 
     supplier_name_el = (
-        root.find(".//NBan/Ten")
+        root.find(".//Vendor/Name")
+        or root.find(".//NBan/Ten")
         or root.find(".//AccountingSupplierParty//PartyName/Name")
         or root.find(".//SellerSupplierParty//PartyName/Name")
     )
     supplier_name = supplier_name_el.text.strip() if supplier_name_el is not None and supplier_name_el.text else ""
 
     supplier_tax_id_el = (
-        root.find(".//NBan/MST")
+        root.find(".//Vendor/TaxCode")
+        or root.find(".//NBan/MST")
         or root.find(".//AccountingSupplierParty//PartyIdentification/ID")
         or root.find(".//SellerSupplierParty//PartyIdentification/ID")
     )
@@ -67,14 +74,16 @@ def parse_invoice(root: ET.Element) -> dict[str, Any]:
     )
 
     buyer_name_el = (
-        root.find(".//NMua/Ten")
+        root.find(".//Customer/Name")
+        or root.find(".//NMua/Ten")
         or root.find(".//AccountingCustomerParty//PartyName/Name")
         or root.find(".//BuyerCustomerParty//PartyName/Name")
     )
     buyer_name = buyer_name_el.text.strip() if buyer_name_el is not None and buyer_name_el.text else ""
 
     thtien_el = (
-        root.find(".//TToan/THTien")
+        root.find(".//TotalAmount")
+        or root.find(".//TToan/THTien")
         or root.find(".//LegalMonetaryTotal/TaxExclusiveAmount")
         or root.find(".//MonetaryTotal/PayableAmount")
     )
