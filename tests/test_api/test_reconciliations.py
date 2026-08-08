@@ -24,9 +24,21 @@ def auth_override():
 
 @pytest.mark.asyncio
 async def test_decide_case_by_case_number_and_uuid(client, db_session):
-    # Fetch a case from database
+    # Fetch a case from database or create one if empty
     case = db_session.query(ReconciliationCase).first()
-    assert case is not None, "A seed ReconciliationCase must exist in test database"
+    if not case:
+        import uuid
+
+        case = ReconciliationCase(
+            id=uuid.uuid4(),
+            case_number="DOC-0001",
+            status="pending",
+            risk_level="LOW",
+            partner_name="CÔNG TY TEST",
+            total_amount=100000.0,
+        )
+        db_session.add(case)
+        db_session.commit()
 
     case_number = case.case_number
     case_uuid = str(case.id)

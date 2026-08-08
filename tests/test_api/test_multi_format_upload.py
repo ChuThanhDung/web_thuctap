@@ -21,6 +21,29 @@ def auth_override():
     app.dependency_overrides.pop(get_current_user, None)
 
 
+@pytest.fixture(autouse=True)
+def clean_db_fixture(db_session):
+    """Xóa sạch dữ liệu chứng từ trước mỗi test case để tránh trùng lặp giữa các lượt chạy."""
+    from src.models.reconciliation import (
+        GoodsReceiptNote,
+        GoodsReceiptNoteItem,
+        LineItem,
+        PurchaseOrder,
+        PurchaseOrderItem,
+        ReconciliationCase,
+        UploadedFile,
+    )
+
+    db_session.query(LineItem).delete()
+    db_session.query(ReconciliationCase).delete()
+    db_session.query(PurchaseOrderItem).delete()
+    db_session.query(PurchaseOrder).delete()
+    db_session.query(GoodsReceiptNoteItem).delete()
+    db_session.query(GoodsReceiptNote).delete()
+    db_session.query(UploadedFile).delete()
+    db_session.commit()
+
+
 @pytest.mark.asyncio
 async def test_upload_png_po_and_deduplication(client, db_session):
     # 1. Test uploading a PO in PNG format
