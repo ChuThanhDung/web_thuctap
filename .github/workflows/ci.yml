@@ -25,10 +25,25 @@ jobs:
       - name: Lint with ruff
         run: ruff check src/ tests/
 
-      - name: Start Postgres DB Container
+      - name: Ensure Postgres DB is available
         run: |
-          docker compose up -d postgres
-          python -c "import time, socket; [time.sleep(1) for _ in range(15) if socket.socket().connect_ex(('127.0.0.1', 5432)) != 0]"
+          python -c "
+          import socket, subprocess, time
+          sock = socket.socket()
+          if sock.connect_ex(('127.0.0.1', 5432)) != 0:
+              print('Port 5432 is closed. Starting Postgres container...')
+              subprocess.run(['docker', 'compose', 'up', '-d', 'postgres'], check=True)
+              for _ in range(15):
+                  time.sleep(1)
+                  s = socket.socket()
+                  if s.connect_ex(('127.0.0.1', 5432)) == 0:
+                      s.close()
+                      break
+                  s.close()
+          else:
+              print('Port 5432 is already open! Using existing PostgreSQL instance.')
+          sock.close()
+          "
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
