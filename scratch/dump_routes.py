@@ -1,5 +1,5 @@
-import sys
 import json
+
 from src.main import app
 
 routes = []

@@ -1,45 +1,51 @@
+import base64
+import json
 import os
 import re
-import json
-import base64
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
+
 import google.generativeai as genai
 from openai import OpenAI
 
 from src.services.document_parser import detect_and_parse_document
 
+
 class BaseParserStrategy(ABC):
     @abstractmethod
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         """
         Phân tích tài liệu và trả về dict dữ liệu chuẩn.
         """
         pass
 
+
 class XmlParserStrategy(BaseParserStrategy):
     """Chiến lược parse file XML bằng parser có sẵn."""
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         parsed = detect_and_parse_document(content)
         if doc_type and parsed.get("type") != doc_type:
             parsed["type"] = doc_type
         return parsed
 
+
 class GeminiParserStrategy(BaseParserStrategy):
     """Chiến lược parse PDF/Ảnh sử dụng Google Gemini API."""
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY chưa được cấu hình.")
-            
+
         genai.configure(api_key=api_key)
-        
+
         # Xác định MIME type
         ext = os.path.splitext(filename.lower())[1]
         mime_type = "application/pdf" if ext == ".pdf" else "image/png"
         if ext in [".jpg", ".jpeg"]:
             mime_type = "image/jpeg"
-            
+
         # Xác định Prompt trích xuất dựa trên doc_type
         target_type = doc_type or "invoice"
         if "po" in filename.lower() or doc_type == "po":
@@ -50,12 +56,12 @@ class GeminiParserStrategy(BaseParserStrategy):
         prompt = f"""
         Bạn là một chuyên gia kế toán và trợ lý AI phân tích tài liệu xuất sắc.
         Nhiệm vụ của bạn là đọc tài liệu đính kèm và trích xuất thông tin chính xác thành định dạng JSON.
-        
+
         Tài liệu này là loại: {target_type.upper()}
-        
+
         Yêu cầu trích xuất cấu trúc JSON chính xác như sau:
         """
-        
+
         if target_type == "invoice":
             prompt += """
             {
@@ -98,7 +104,7 @@ class GeminiParserStrategy(BaseParserStrategy):
               ]
             }
             """
-        else: # grn
+        else:  # grn
             prompt += """
             {
               "type": "grn",
@@ -121,30 +127,26 @@ class GeminiParserStrategy(BaseParserStrategy):
         prompt += "\nTrả về DUY NHẤT chuỗi JSON hợp lệ, không bọc trong ```json hay bất kỳ văn bản giải thích nào khác."
 
         model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content([
-            {
-                "mime_type": mime_type,
-                "data": content
-            },
-            prompt
-        ])
-        
+        response = model.generate_content([{"mime_type": mime_type, "data": content}, prompt])
+
         # Làm sạch kết quả trả về
         text = response.text.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
+        text = re.sub(r"^```json\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+
         return json.loads(text)
+
 
 class OpenAiParserStrategy(BaseParserStrategy):
     """Chiến lược parse PDF/Ảnh sử dụng OpenAI GPT-4o API."""
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY chưa được cấu hình.")
-            
+
         client = OpenAI(api_key=api_key)
-        
+
         # Xác định loại tài liệu
         target_type = doc_type or "invoice"
         if "po" in filename.lower() or doc_type == "po":
@@ -153,11 +155,11 @@ class OpenAiParserStrategy(BaseParserStrategy):
             target_type = "grn"
 
         ext = os.path.splitext(filename.lower())[1]
-        
+
         # OpenAI Chat Completions hỗ trợ gửi ảnh (base64). Nếu là PDF, ta trích xuất văn bản thô gửi đi
         image_content = None
         text_content = ""
-        
+
         if ext in [".png", ".jpg", ".jpeg"]:
             base64_image = base64.b64encode(content).decode("utf-8")
             mime_type = "image/png" if ext == ".png" else "image/jpeg"
@@ -165,9 +167,9 @@ class OpenAiParserStrategy(BaseParserStrategy):
         else:
             # Đối với PDF, trích xuất text thô nếu được
             try:
-                text_content = content.decode('utf-8', errors='ignore')
+                text_content = content.decode("utf-8", errors="ignore")
                 text_content = "".join(c for c in text_content if c.isprintable() or c in "\n\r\t")
-                text_content = text_content[:4000] # Giới hạn độ dài
+                text_content = text_content[:4000]  # Giới hạn độ dài
             except Exception:
                 text_content = "Không thể trích xuất văn bản từ PDF. Vui lòng phân tích dựa trên tên file: " + filename
 
@@ -223,7 +225,7 @@ class OpenAiParserStrategy(BaseParserStrategy):
               ]
             }
             """
-        else: # grn
+        else:  # grn
             prompt += """
             {
               "type": "grn",
@@ -247,27 +249,25 @@ class OpenAiParserStrategy(BaseParserStrategy):
 
         messages = []
         if image_content:
-            messages.append({
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": image_content}}
-                ]
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": image_content}},
+                    ],
+                }
+            )
         else:
-            messages.append({
-                "role": "user",
-                "content": prompt
-            })
+            messages.append({"role": "user", "content": prompt})
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            response_format={"type": "json_object"}
+            model="gpt-4o-mini", messages=messages, response_format={"type": "json_object"}
         )
-        
+
         text = response.choices[0].message.content.strip()
         return json.loads(text)
+
 
 class LocalOcrParserStrategy(BaseParserStrategy):
     """
@@ -276,12 +276,13 @@ class LocalOcrParserStrategy(BaseParserStrategy):
     nếu khớp với 100 cases demo thì tự động đọc dữ liệu XML mẫu tương ứng trong hệ thống.
     Đảm bảo 100% demo hoạt động trơn tru không bị crash khi không có API key.
     """
-    def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+
+    def parse(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         # Trích xuất số hiệu từ tên file
-        match = re.search(r'\d+', filename)
+        match = re.search(r"\d+", filename)
         if not match:
             raise ValueError(f"Không thể tự động nhận diện số hiệu từ tên tệp: {filename}")
-            
+
         clean_num = str(int(match.group(0)))
         target_type = doc_type or "invoice"
         if "po" in filename.lower() or doc_type == "po":
@@ -291,7 +292,7 @@ class LocalOcrParserStrategy(BaseParserStrategy):
 
         # Đường dẫn file XML mẫu tương ứng trong raw_data
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
-        
+
         if target_type == "invoice":
             xml_file = os.path.join(base_dir, "invoice", f"INV_{clean_num.zfill(7)}.xml")
         elif target_type == "po":
@@ -316,34 +317,36 @@ class LocalOcrParserStrategy(BaseParserStrategy):
                 "Bắt buộc phải cấu hình GEMINI_API_KEY hoặc OPENAI_API_KEY trong file .env để bóc tách chứng từ dạng PDF hoặc Hình ảnh."
             )
 
+
 class ParserContext:
     """Bộ chọn Strategy phù hợp dựa trên định dạng và cấu hình môi trường."""
+
     def __init__(self):
-        self.strategies: Dict[str, BaseParserStrategy] = {
+        self.strategies: dict[str, BaseParserStrategy] = {
             "xml": XmlParserStrategy(),
             "gemini": GeminiParserStrategy(),
             "openai": OpenAiParserStrategy(),
-            "local": LocalOcrParserStrategy()
+            "local": LocalOcrParserStrategy(),
         }
 
     def get_strategy(self, filename: str) -> BaseParserStrategy:
         ext = os.path.splitext(filename.lower())[1]
-        
+
         # Nếu là file XML, bắt buộc dùng XML Parser
         if ext == ".xml":
             return self.strategies["xml"]
-            
+
         # Nếu không phải XML, chọn theo cấu hình DOCUMENT_PARSER_ENGINE
         engine_cfg = os.getenv("DOCUMENT_PARSER_ENGINE", "local").lower().strip()
-        
+
         # Kiểm tra tính khả dụng của API Key
         if engine_cfg == "gemini" and not os.getenv("GEMINI_API_KEY"):
             engine_cfg = "local"
         elif engine_cfg == "openai" and not os.getenv("OPENAI_API_KEY"):
             engine_cfg = "local"
-            
+
         return self.strategies.get(engine_cfg, self.strategies["local"])
 
-    def parse_document(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
+    def parse_document(self, content: bytes, filename: str, doc_type: str | None = None) -> dict[str, Any]:
         strategy = self.get_strategy(filename)
         return strategy.parse(content, filename, doc_type)

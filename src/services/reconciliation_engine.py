@@ -1,10 +1,13 @@
 from decimal import Decimal
-from typing import Any, Dict, Tuple
-from sqlalchemy.orm import Session
+from typing import Any
+
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from src.models.reconciliation import Threshold
 
-def get_threshold_for_item(db: Session, item_name: str) -> Tuple[Decimal, Decimal]:
+
+def get_threshold_for_item(db: Session, item_name: str) -> tuple[Decimal, Decimal]:
     """Tìm ngưỡng sai số từ DB cho mặt hàng dựa trên tên hàng (category)."""
     try:
         thresholds = db.scalars(select(Threshold)).all()
@@ -12,18 +15,19 @@ def get_threshold_for_item(db: Session, item_name: str) -> Tuple[Decimal, Decima
         for t in thresholds:
             if t.category.lower() in item_name.lower():
                 return Decimal(str(t.percent_threshold)), Decimal(str(t.absolute_threshold))
-                
+
         # Tìm category mặc định/khác
         for t in thresholds:
             if "mặc định" in t.category.lower() or "khác" in t.category.lower():
                 return Decimal(str(t.percent_threshold)), Decimal(str(t.absolute_threshold))
     except Exception:
         pass
-        
+
     # Giá trị mặc định nếu DB trống hoặc lỗi
     return Decimal("3.0"), Decimal("100000.0")  # 3% hoặc 100,000 VND
 
-def convert_po_db_to_dict(po_db) -> Dict[str, Any]:
+
+def convert_po_db_to_dict(po_db) -> dict[str, Any]:
     """Chuyển đổi đối tượng DB PurchaseOrder thành dạng dict tương ứng để đối soát."""
     return {
         "type": "po",
@@ -34,7 +38,7 @@ def convert_po_db_to_dict(po_db) -> Dict[str, Any]:
         "total_amount": float(po_db.total_amount) if po_db.total_amount else 0.0,
         "line_items": [
             {
-                "row_index": getattr(item, 'row_index', idx),
+                "row_index": getattr(item, "row_index", idx),
                 "item_name": item.item_name,
                 "sku": item.item_sku,
                 "unit": item.unit,
@@ -42,10 +46,11 @@ def convert_po_db_to_dict(po_db) -> Dict[str, Any]:
                 "price": float(item.unit_price) if item.unit_price else 0.0,
             }
             for idx, item in enumerate(po_db.items, 1)
-        ]
+        ],
     }
 
-def convert_grn_db_to_dict(grn_db) -> Dict[str, Any]:
+
+def convert_grn_db_to_dict(grn_db) -> dict[str, Any]:
     """Chuyển đổi đối tượng DB GoodsReceiptNote thành dạng dict tương ứng để đối soát."""
     return {
         "type": "grn",
@@ -55,22 +60,20 @@ def convert_grn_db_to_dict(grn_db) -> Dict[str, Any]:
         "supplier_tax_id": grn_db.supplier_tax_id,
         "line_items": [
             {
-                "row_index": getattr(item, 'row_index', idx),
+                "row_index": getattr(item, "row_index", idx),
                 "item_name": item.item_name,
                 "sku": item.item_sku,
                 "unit": item.unit,
                 "qty": float(item.qty) if item.qty else 0.0,
             }
             for idx, item in enumerate(grn_db.items, 1)
-        ]
+        ],
     }
 
+
 def reconcile_documents(
-    invoice_data: Dict[str, Any],
-    po_data: Dict[str, Any],
-    grn_data: Dict[str, Any],
-    db: Session
-) -> Dict[str, Any]:
+    invoice_data: dict[str, Any], po_data: dict[str, Any], grn_data: dict[str, Any], db: Session
+) -> dict[str, Any]:
     """
     Thực hiện đối soát 3 bên giữa Invoice, PO và GRN.
     Trả về cấu trúc dữ liệu để lưu vào ReconciliationCase và LineItems.
@@ -95,14 +98,20 @@ def reconcile_documents(
         # Tìm dòng hàng tương ứng trong PO (khớp theo tên sản phẩm)
         po_item = None
         for p_item in po_items:
-            if p_item.get("item_name", "").lower() in inv_name.lower() or inv_name.lower() in p_item.get("item_name", "").lower():
+            if (
+                p_item.get("item_name", "").lower() in inv_name.lower()
+                or inv_name.lower() in p_item.get("item_name", "").lower()
+            ):
                 po_item = p_item
                 break
 
         # Tìm dòng hàng tương ứng trong GRN
         grn_item = None
         for g_item in grn_items:
-            if g_item.get("item_name", "").lower() in inv_name.lower() or inv_name.lower() in g_item.get("item_name", "").lower():
+            if (
+                g_item.get("item_name", "").lower() in inv_name.lower()
+                or inv_name.lower() in g_item.get("item_name", "").lower()
+            ):
                 grn_item = g_item
                 break
 
@@ -114,7 +123,7 @@ def reconcile_documents(
         # Kiểm tra chênh lệch dòng hàng
         qty_diff = (inv_qty != po_qty) or (inv_qty != grn_qty) or (po_qty != grn_qty)
         price_diff = inv_price != po_price
-        
+
         diff_type = "MATCH"
         diff_notes = []
 
@@ -135,20 +144,22 @@ def reconcile_documents(
         if diff_notes:
             discrepancy_details.append(diff_note)
 
-        reconciled_lines.append({
-            "row_index": inv_item.get("row_index", 1),
-            "item_sku": sku,
-            "item_name": inv_name,
-            "unit": unit,
-            "inv_qty": inv_qty,
-            "po_qty": po_qty,
-            "grn_qty": grn_qty,
-            "inv_unit_price": inv_price,
-            "po_unit_price": po_price,
-            "vat_rate_pct": vat_rate,
-            "diff_type": diff_type,
-            "diff_note": diff_note
-        })
+        reconciled_lines.append(
+            {
+                "row_index": inv_item.get("row_index", 1),
+                "item_sku": sku,
+                "item_name": inv_name,
+                "unit": unit,
+                "inv_qty": inv_qty,
+                "po_qty": po_qty,
+                "grn_qty": grn_qty,
+                "inv_unit_price": inv_price,
+                "po_unit_price": po_price,
+                "vat_rate_pct": vat_rate,
+                "diff_type": diff_type,
+                "diff_note": diff_note,
+            }
+        )
 
     # Tính tổng tiền và chênh lệch
     invoice_total = Decimal(str(invoice_data.get("total_amount", 0)))
@@ -167,7 +178,7 @@ def reconcile_documents(
         # Lấy ngưỡng sai số của sản phẩm đầu tiên bị lệch (hoặc mặc định)
         sample_item_name = invoice_items[0].get("item_name", "") if invoice_items else ""
         pct_limit, abs_limit = get_threshold_for_item(db, sample_item_name)
-        
+
         # Tính tỷ lệ lệch %
         pct_diff = Decimal("0.0")
         if po_total > 0:
@@ -175,7 +186,7 @@ def reconcile_documents(
 
         # Kiểm tra vượt ngưỡng
         is_exceeded = (pct_diff > pct_limit) or (diff_amount > abs_limit)
-        
+
         if is_exceeded:
             status = "major_diff"
             risk_level = "high"
@@ -204,5 +215,5 @@ def reconcile_documents(
         "ai_note": ai_note,
         "ai_summary": ai_summary,
         "ai_recommendation": ai_recommendation,
-        "line_items": reconciled_lines
+        "line_items": reconciled_lines,
     }

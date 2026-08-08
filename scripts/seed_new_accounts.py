@@ -8,6 +8,7 @@ from src.database import SessionLocal
 from src.models.user import Role, User
 from src.services.auth import hash_password
 
+
 def create_accounts():
     db = SessionLocal()
     try:
@@ -30,7 +31,7 @@ def create_accounts():
                 role_id=chief_role.id,
                 department="Phòng Kế toán - Tài chính",
                 employee_code="CHIEF-002",
-                status="ACTIVE"
+                status="ACTIVE",
             )
             db.add(user1)
             print("Đã tạo mới tài khoản Kế toán trưởng: chuthanhdungtruong@gmail.com")
@@ -50,7 +51,7 @@ def create_accounts():
                 role_id=acc_role.id,
                 department="Phòng Kế toán - Tài chính",
                 employee_code="ACC-002",
-                status="ACTIVE"
+                status="ACTIVE",
             )
             db.add(user2)
             print("Đã tạo mới tài khoản Kế toán viên: chuthanhdung@gmail.com")
@@ -67,6 +68,7 @@ def create_accounts():
         print(f"Lỗi khi tạo tài khoản: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     create_accounts()

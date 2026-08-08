@@ -3,7 +3,7 @@ src/api/audit_logs.py — Endpoints xem nhật ký thao tác
 """
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
@@ -25,10 +25,7 @@ async def list_audit_logs(
 ) -> AuditLogListResponse:
     """Lấy danh sách nhật ký thao tác — tất cả vai trò đều xem được."""
 
-    stmt = (
-        select(AuditLog)
-        .order_by(AuditLog.created_at.desc())
-    )
+    stmt = select(AuditLog).order_by(AuditLog.created_at.desc())
 
     if action:
         stmt = stmt.where(AuditLog.action.ilike(f"%{action}%"))

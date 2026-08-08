@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
 from src.database import get_db
@@ -13,12 +14,15 @@ from src.models.schemas import (
     OtpVerifyResponse,
     PasswordChangeRequest,
     ProfileUpdateRequest,
+    UserCreateRequest,
+    UserListResponse,
 )
 from src.models.user import User
 from src.services.auth import (
     authenticate_user,
     change_password_with_reset_token,
     create_password_reset_otp,
+    create_user_by_admin,
     create_user_session,
     get_user_by_session_token,
     verify_password_reset_otp,
@@ -29,12 +33,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def to_auth_user(user: User) -> AuthUser:
+    role_code = user.role.code if user.role else "accountant"
+    role_name = user.role.name if user.role else "Kế toán viên"
     return AuthUser(
         id=str(user.id),
         email=user.email,
         full_name=user.full_name,
-        role=user.role.code,
-        role_name=user.role.name,
+        role=role_code,
+        role_name=role_name,
         department=user.department,
         employee_code=user.employee_code,
         date_of_birth=user.date_of_birth,
@@ -194,3 +200,57 @@ async def change_password(
     )
 
     return MessageResponse(message="Đổi mật khẩu thành công.")
+
+
+@router.post("/users", response_model=AuthUser, status_code=status.HTTP_201_CREATED)
+async def create_user_account(
+    payload: UserCreateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthUser:
+    """Tạo mới tài khoản người dùng — chỉ Kế toán trưởng (`chief_accountant`)."""
+    if current_user.role.code != "chief_accountant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ Kế toán trưởng mới có quyền tạo tài khoản người dùng mới.",
+        )
+
+    try:
+        new_user = create_user_by_admin(db, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    write_audit_log(
+        db=db,
+        action="USER_CREATED",
+        user=current_user,
+        target_type="USER",
+        target_id=str(new_user.id),
+        details={"created_user_email": new_user.email, "role": new_user.role.code},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    return to_auth_user(new_user)
+
+
+@router.get("/users", response_model=UserListResponse)
+async def list_users(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserListResponse:
+    """Xem danh sách tài khoản người dùng — chỉ Kế toán trưởng (`chief_accountant`)."""
+    if current_user.role.code != "chief_accountant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ Kế toán trưởng mới có quyền xem danh sách người dùng.",
+        )
+
+    stmt = select(User).options(selectinload(User.role)).order_by(User.created_at.desc())
+    users = db.scalars(stmt).all()
+    return UserListResponse(
+        items=[to_auth_user(u) for u in users],
+        total=len(users),
+    )
+

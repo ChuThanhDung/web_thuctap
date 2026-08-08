@@ -3,65 +3,65 @@ import re
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy import select, func
+
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
 from src.database import get_db
 from src.models.reconciliation import (
-    ReconciliationCase,
+    GoodsReceiptNote,
+    GoodsReceiptNoteItem,
     LineItem,
-    UploadedFile,
     PurchaseOrder,
     PurchaseOrderItem,
-    GoodsReceiptNote,
-    GoodsReceiptNoteItem
+    ReconciliationCase,
+    UploadedFile,
 )
-from src.models.schemas import UploadedFileOut, UploadedFileListResponse
+from src.models.schemas import UploadedFileListResponse, UploadedFileOut
 from src.models.user import User
-from src.services.parser_strategies import ParserContext
-from src.services.reconciliation_engine import (
-    reconcile_documents,
-    convert_po_db_to_dict,
-    convert_grn_db_to_dict
-)
 from src.services.auth import write_audit_log
+from src.services.parser_strategies import ParserContext
+from src.services.reconciliation_engine import convert_grn_db_to_dict, convert_po_db_to_dict, reconcile_documents
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 parser_context = ParserContext()
 
+
 def extract_number(filename: str) -> str:
     """Trích xuất chuỗi số từ tên file để làm mã đối chiếu."""
-    match = re.search(r'\d+', filename)
+    match = re.search(r"\d+", filename)
     if match:
         return match.group(0)
     return ""
+
 
 def find_associated_files(doc_type: str, doc_number: str) -> tuple[str | None, str | None, str | None]:
     """
     Tìm các file đối chiếu tương ứng trong thư mục raw_data (dùng làm phương án fallback).
     """
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
-    
+
     try:
         clean_num = str(int(doc_number))
     except ValueError:
         return None, None, None
-        
+
     inv_name = f"INV_{clean_num.zfill(7)}.xml"
     po_name = f"PO-2026-{clean_num.zfill(6)}.xml"
     grn_name = f"GRN-2026-{clean_num.zfill(6)}.xml"
-    
+
     inv_path = os.path.join(base_dir, "invoice", inv_name)
     po_path = os.path.join(base_dir, "po", po_name)
     grn_path = os.path.join(base_dir, "receipt", grn_name)
-    
+
     return (
         inv_path if os.path.exists(inv_path) else None,
         po_path if os.path.exists(po_path) else None,
-        grn_path if os.path.exists(grn_path) else None
+        grn_path if os.path.exists(grn_path) else None,
     )
+
 
 @router.get("", response_model=UploadedFileListResponse)
 async def list_uploads(
@@ -71,7 +71,7 @@ async def list_uploads(
     """Lấy danh sách tệp đã tải lên trong hàng đợi (sắp xếp theo thời gian mới nhất)."""
     stmt = select(UploadedFile).order_by(UploadedFile.created_at.desc())
     uploads = db.scalars(stmt).all()
-    
+
     items = [
         UploadedFileOut(
             id=str(up.id),
@@ -81,24 +81,25 @@ async def list_uploads(
             progress=up.progress,
             error_message=up.error_message,
             case_id=str(up.case_id) if up.case_id else None,
-            created_at=up.created_at
+            created_at=up.created_at,
         )
         for up in uploads
     ]
     return UploadedFileListResponse(items=items, total=len(items))
+
 
 @router.post("", response_model=UploadedFileOut)
 async def upload_document(
     file: UploadFile = File(...),
     doc_type: str | None = Form(default=None),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> UploadedFileOut:
     """
     Tải lên hóa đơn/chứng từ đa định dạng (XML, PDF, PNG), tự động nhận diện và đối soát 3 bên dựa trên dữ liệu trong DB.
     """
     filename = file.filename or "unknown_file.xml"
-    
+
     # Tính kích thước file thân thiện
     content = await file.read()
     file_size_bytes = len(content)
@@ -106,14 +107,8 @@ async def upload_document(
         size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
     else:
         size_str = f"{file_size_bytes / 1024:.1f} KB"
-        
-    db_upload = UploadedFile(
-        id=uuid.uuid4(),
-        filename=filename,
-        size=size_str,
-        status="queued",
-        progress=0
-    )
+
+    db_upload = UploadedFile(id=uuid.uuid4(), filename=filename, size=size_str, status="queued", progress=0)
     db.add(db_upload)
     db.commit()
     db.refresh(db_upload)
@@ -127,7 +122,7 @@ async def upload_document(
         # 3. Phân tích nội dung file vừa upload bằng Strategy Pattern / Vision Parser
         parsed_doc = parser_context.parse_document(content, filename, doc_type)
         detected_type = parsed_doc.get("type", doc_type or "invoice")
-        
+
         # 4. Kiểm tra Trùng lặp (Deduplication Check)
         if detected_type == "po":
             po_num = parsed_doc.get("po_number")
@@ -138,7 +133,9 @@ async def upload_document(
         elif detected_type == "grn":
             grn_num = parsed_doc.get("grn_number")
             if grn_num:
-                existing_grn = db.scalars(select(GoodsReceiptNote).where(GoodsReceiptNote.grn_number == grn_num)).first()
+                existing_grn = db.scalars(
+                    select(GoodsReceiptNote).where(GoodsReceiptNote.grn_number == grn_num)
+                ).first()
                 if existing_grn:
                     raise ValueError(f"Dữ liệu trùng lặp: Phiếu nhập kho GRN '{grn_num}' đã tồn tại trong hệ thống.")
         elif detected_type == "invoice":
@@ -147,21 +144,22 @@ async def upload_document(
             if inv_num and tax_id:
                 existing_case = db.scalars(
                     select(ReconciliationCase).where(
-                        ReconciliationCase.invoice_number == inv_num,
-                        ReconciliationCase.partner_tax_id == tax_id
+                        ReconciliationCase.invoice_number == inv_num, ReconciliationCase.partner_tax_id == tax_id
                     )
                 ).first()
                 if existing_case:
-                    raise ValueError(f"Dữ liệu trùng lặp: Hóa đơn '{inv_num}' của nhà cung cấp MST '{tax_id}' đã tồn tại trong hệ thống.")
+                    raise ValueError(
+                        f"Dữ liệu trùng lặp: Hóa đơn '{inv_num}' của nhà cung cấp MST '{tax_id}' đã tồn tại trong hệ thống."
+                    )
 
         # Lấy số hiệu của tài liệu để làm khóa tìm kiếm PO tương ứng
         if detected_type == "invoice":
             doc_number = extract_number(parsed_doc.get("invoice_number", "")) or extract_number(filename)
         elif detected_type == "po":
             doc_number = extract_number(parsed_doc.get("po_number", "")) or extract_number(filename)
-        else: # grn
+        else:  # grn
             doc_number = extract_number(parsed_doc.get("grn_number", "")) or extract_number(filename)
-            
+
         if not doc_number:
             # Nếu tên tệp không chứa số (vd: images.jpg, mona.jpg), tự động sinh mã định danh số từ hash thời gian
             hash_val = abs(hash(filename + str(datetime.now().timestamp()))) % 900000 + 100000
@@ -178,7 +176,7 @@ async def upload_document(
                 supplier_name=parsed_doc.get("supplier_name"),
                 supplier_tax_id=parsed_doc.get("supplier_tax_id"),
                 buyer_name=parsed_doc.get("buyer_name"),
-                total_amount=parsed_doc.get("total_amount")
+                total_amount=parsed_doc.get("total_amount"),
             )
             db.add(new_po)
             for item in parsed_doc.get("line_items", []):
@@ -189,7 +187,7 @@ async def upload_document(
                     item_name=item.get("item_name"),
                     unit=item.get("unit"),
                     qty=item.get("qty"),
-                    unit_price=item.get("price")
+                    unit_price=item.get("price"),
                 )
                 db.add(po_item)
             db.commit()
@@ -200,7 +198,7 @@ async def upload_document(
                 grn_number=parsed_doc.get("grn_number") or f"GRN-2026-{clean_num.zfill(6)}",
                 po_number=parsed_doc.get("po_number") or po_number_target,
                 supplier_name=parsed_doc.get("supplier_name"),
-                supplier_tax_id=parsed_doc.get("supplier_tax_id")
+                supplier_tax_id=parsed_doc.get("supplier_tax_id"),
             )
             db.add(new_grn)
             for item in parsed_doc.get("line_items", []):
@@ -210,7 +208,7 @@ async def upload_document(
                     item_sku=item.get("sku"),
                     item_name=item.get("item_name"),
                     unit=item.get("unit"),
-                    qty=item.get("qty")
+                    qty=item.get("qty"),
                 )
                 db.add(grn_item)
             db.commit()
@@ -231,7 +229,7 @@ async def upload_document(
                     supplier_name=po_parsed.get("supplier_name"),
                     supplier_tax_id=po_parsed.get("supplier_tax_id"),
                     buyer_name=po_parsed.get("buyer_name"),
-                    total_amount=po_parsed.get("total_amount")
+                    total_amount=po_parsed.get("total_amount"),
                 )
                 db.add(po_db)
                 for item in po_parsed.get("line_items", []):
@@ -242,7 +240,7 @@ async def upload_document(
                         item_name=item.get("item_name"),
                         unit=item.get("unit"),
                         qty=item.get("qty"),
-                        unit_price=item.get("price")
+                        unit_price=item.get("price"),
                     )
                     db.add(po_item)
                 db.flush()
@@ -257,7 +255,7 @@ async def upload_document(
                     grn_number=grn_parsed.get("grn_number"),
                     po_number=grn_parsed.get("po_number"),
                     supplier_name=grn_parsed.get("supplier_name"),
-                    supplier_tax_id=grn_parsed.get("supplier_tax_id")
+                    supplier_tax_id=grn_parsed.get("supplier_tax_id"),
                 )
                 db.add(grn_db)
                 for item in grn_parsed.get("line_items", []):
@@ -267,7 +265,7 @@ async def upload_document(
                         item_sku=item.get("sku"),
                         item_name=item.get("item_name"),
                         unit=item.get("unit"),
-                        qty=item.get("qty")
+                        qty=item.get("qty"),
                     )
                     db.add(grn_item)
                 db.flush()
@@ -275,12 +273,14 @@ async def upload_document(
         # Kiểm tra nếu chứng từ upload là PO hoặc GRN (chưa phải Hóa đơn)
         if detected_type in ("po", "grn"):
             # Kiểm tra xem có Hóa đơn nào đang chờ PO/GRN này không
-            existing_case = db.scalars(select(ReconciliationCase).where(ReconciliationCase.po_number == po_number_target)).first()
+            existing_case = db.scalars(
+                select(ReconciliationCase).where(ReconciliationCase.po_number == po_number_target)
+            ).first()
             if not existing_case or not po_db or not grn_db:
                 db_upload.status = "completed"
                 db_upload.progress = 100
                 db.commit()
-                
+
                 write_audit_log(
                     db=db,
                     action="DOCUMENT_UPLOADED",
@@ -291,10 +291,10 @@ async def upload_document(
                         "uploaded_filename": filename,
                         "detected_type": detected_type,
                         "doc_number": doc_number,
-                        "note": "Đã lưu chứng từ vào DB. Đang chờ bổ sung đủ 3 loại tệp để tự động đối soát."
+                        "note": "Đã lưu chứng từ vào DB. Đang chờ bổ sung đủ 3 loại tệp để tự động đối soát.",
                     },
                     ip_address=None,
-                    user_agent=None
+                    user_agent=None,
                 )
                 return UploadedFileOut(
                     id=str(db_upload.id),
@@ -304,17 +304,19 @@ async def upload_document(
                     progress=db_upload.progress,
                     error_message=db_upload.error_message,
                     case_id=None,
-                    created_at=db_upload.created_at
+                    created_at=db_upload.created_at,
                 )
 
         # Trường hợp là Hóa đơn (Invoice): Nếu thiếu PO hoặc GRN thì LUÔN lưu Hóa đơn vào DB dưới dạng ReconciliationCase ở trạng thái chờ
         if not po_db or not grn_db:
             cases_count = db.query(func.count(ReconciliationCase.id)).scalar() or 0
             new_case_number = f"DOC-{cases_count + 1:04d}"
-            
+
             missing_list = []
-            if not po_db: missing_list.append("Đơn đặt hàng (PO)")
-            if not grn_db: missing_list.append("Phiếu nhập kho (GRN)")
+            if not po_db:
+                missing_list.append("Đơn đặt hàng (PO)")
+            if not grn_db:
+                missing_list.append("Phiếu nhập kho (GRN)")
 
             new_case = ReconciliationCase(
                 id=uuid.uuid4(),
@@ -330,10 +332,10 @@ async def upload_document(
                 confidence=Decimal("0.70"),
                 ai_note=f"Đã lưu Hóa đơn {parsed_doc.get('invoice_number')} vào DB. Đang chờ bổ sung {', '.join(missing_list)} để hoàn tất đối soát 3 bên.",
                 ai_summary="Chưa đủ bộ 3 chứng từ trong DB để thực hiện đối soát.",
-                ai_recommendation=f"Cần nạp bổ sung {', '.join(missing_list)}."
+                ai_recommendation=f"Cần nạp bổ sung {', '.join(missing_list)}.",
             )
             db.add(new_case)
-            
+
             for idx, r_item in enumerate(parsed_doc.get("line_items", []), 1):
                 line_item = LineItem(
                     id=uuid.uuid4(),
@@ -346,7 +348,7 @@ async def upload_document(
                     inv_unit_price=r_item.get("price"),
                     vat_rate_pct=r_item.get("vat_rate_pct", 10),
                     diff_type="QTY_DIFF",
-                    diff_note="Chưa có dữ liệu PO/GRN đối ứng"
+                    diff_note="Chưa có dữ liệu PO/GRN đối ứng",
                 )
                 db.add(line_item)
 
@@ -365,10 +367,10 @@ async def upload_document(
                     "uploaded_filename": filename,
                     "case_number": new_case_number,
                     "invoice_number": parsed_doc.get("invoice_number"),
-                    "note": "Đã lưu Hóa đơn vào DB. Đang chờ bổ sung PO/GRN."
+                    "note": "Đã lưu Hóa đơn vào DB. Đang chờ bổ sung PO/GRN.",
                 },
                 ip_address=None,
-                user_agent=None
+                user_agent=None,
             )
 
             return UploadedFileOut(
@@ -379,7 +381,7 @@ async def upload_document(
                 progress=db_upload.progress,
                 error_message=db_upload.error_message,
                 case_id=str(new_case.id),
-                created_at=db_upload.created_at
+                created_at=db_upload.created_at,
             )
 
         db_upload.progress = 60
@@ -391,12 +393,14 @@ async def upload_document(
         grn_data = convert_grn_db_to_dict(grn_db)
 
         reconciled_result = reconcile_documents(invoice_data, po_data, grn_data, db)
-        
+
         db_upload.progress = 80
         db.commit()
 
         # 8. Kiểm tra xem đã có Case đang chờ PO/GRN hay chưa, nếu có thì cập nhật, nếu chưa thì tạo mới
-        existing_case = db.scalars(select(ReconciliationCase).where(ReconciliationCase.po_number == po_number_target)).first()
+        existing_case = db.scalars(
+            select(ReconciliationCase).where(ReconciliationCase.po_number == po_number_target)
+        ).first()
         if existing_case:
             new_case = existing_case
             new_case.invoice_number = reconciled_result.get("invoice_number")
@@ -412,7 +416,7 @@ async def upload_document(
             new_case.ai_note = reconciled_result.get("ai_note")
             new_case.ai_summary = reconciled_result.get("ai_summary")
             new_case.ai_recommendation = reconciled_result.get("ai_recommendation")
-            
+
             # Xóa cũ và thêm mới line items
             db.query(LineItem).filter(LineItem.case_id == new_case.id).delete()
             new_case_number = new_case.case_number
@@ -440,7 +444,7 @@ async def upload_document(
                 ai_recommendation=reconciled_result.get("ai_recommendation"),
             )
             db.add(new_case)
-        
+
         # Lưu các line items
         for r_item in reconciled_result.get("line_items", []):
             line_item = LineItem(
@@ -467,7 +471,7 @@ async def upload_document(
         db_upload.status = "completed"
         db_upload.progress = 100
         db_upload.case_id = new_case.id
-        
+
         db.commit()
 
         # 11. Ghi log hoạt động hệ thống
@@ -482,10 +486,10 @@ async def upload_document(
                 "detected_type": detected_type,
                 "case_number": new_case_number,
                 "status": reconciled_result.get("status"),
-                "diff_amount": str(reconciled_result.get("diff_amount"))
+                "diff_amount": str(reconciled_result.get("diff_amount")),
             },
             ip_address=None,
-            user_agent=None
+            user_agent=None,
         )
 
     except Exception as e:
@@ -505,5 +509,5 @@ async def upload_document(
         progress=db_upload.progress,
         error_message=db_upload.error_message,
         case_id=str(db_upload.case_id) if db_upload.case_id else None,
-        created_at=db_upload.created_at
+        created_at=db_upload.created_at,
     )

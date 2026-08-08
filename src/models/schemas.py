@@ -5,12 +5,12 @@ src/models/schemas.py — Pydantic schemas cho toàn bộ dự án
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, EmailStr, Field
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH SCHEMAS (giữ nguyên)
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="Tin nhắn từ user")
@@ -73,6 +73,21 @@ class PasswordChangeRequest(BaseModel):
     confirm_password: str = Field(..., min_length=6, max_length=128)
 
 
+class UserCreateRequest(BaseModel):
+    email: EmailStr = Field(..., description="Email phải đúng định dạng hợp lệ")
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: str = Field(..., min_length=2, max_length=100)
+    role_code: str = Field(..., description="'chief_accountant' hoặc 'accountant'")
+    department: str | None = Field(default=None, max_length=100)
+    employee_code: str | None = Field(default=None, max_length=50)
+    phone: str | None = Field(default=None, max_length=20)
+
+
+class UserListResponse(BaseModel):
+    items: list[AuthUser]
+    total: int
+
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -80,6 +95,7 @@ class MessageResponse(BaseModel):
 # ══════════════════════════════════════════════════════════════════════════════
 # RECONCILIATION SCHEMAS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class LineItemOut(BaseModel):
     id: str
@@ -101,6 +117,7 @@ class LineItemOut(BaseModel):
 
 class ReconciliationListItem(BaseModel):
     """Schema gọn cho danh sách."""
+
     id: str
     case_number: str
     invoice_number: str | None
@@ -124,6 +141,7 @@ class ReconciliationListItem(BaseModel):
 
 class CaseDetailOut(BaseModel):
     """Schema đầy đủ cho trang chi tiết."""
+
     id: str
     case_number: str
     invoice_number: str | None
@@ -169,6 +187,7 @@ class CaseDecisionRequest(BaseModel):
 # DASHBOARD SCHEMAS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class DashboardStatsOut(BaseModel):
     total_cases: int
     total_matched: int
@@ -184,6 +203,7 @@ class DashboardStatsOut(BaseModel):
 # ══════════════════════════════════════════════════════════════════════════════
 # AUDIT LOG SCHEMAS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class AuditLogOut(BaseModel):
     id: int
@@ -212,6 +232,7 @@ class AuditLogListResponse(BaseModel):
 # THRESHOLD SCHEMAS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ThresholdOut(BaseModel):
     id: str
     category: str
@@ -232,6 +253,7 @@ class ThresholdUpdateRequest(BaseModel):
 # UPLOAD SCHEMAS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class UploadedFileOut(BaseModel):
     id: str
     filename: str
@@ -248,4 +270,3 @@ class UploadedFileOut(BaseModel):
 class UploadedFileListResponse(BaseModel):
     items: list[UploadedFileOut]
     total: int
-

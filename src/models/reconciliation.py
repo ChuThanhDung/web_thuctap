@@ -7,14 +7,13 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+from src.models.user import User
 
 
 class ReconciliationCase(Base):
     __tablename__ = "reconciliation_cases"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     case_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
 
     # Số hiệu 3 chứng từ
@@ -56,9 +55,7 @@ class ReconciliationCase(Base):
     # approved | rejected | escalated
     rejection_note: Mapped[str | None] = mapped_column(Text)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -67,7 +64,7 @@ class ReconciliationCase(Base):
     line_items: Mapped[list["LineItem"]] = relationship(
         back_populates="case", cascade="all, delete-orphan", order_by="LineItem.row_index"
     )
-    processed_by: Mapped["src.models.user.User | None"] = relationship(  # type: ignore[name-defined]
+    processed_by: Mapped[User | None] = relationship(
         foreign_keys=[processed_by_id]
     )
 
@@ -75,9 +72,7 @@ class ReconciliationCase(Base):
 class LineItem(Base):
     __tablename__ = "line_items"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     case_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("reconciliation_cases.id", ondelete="CASCADE"),
@@ -115,9 +110,7 @@ class LineItem(Base):
 class Threshold(Base):
     __tablename__ = "thresholds"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     category: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     percent_threshold: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     absolute_threshold: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
@@ -128,17 +121,13 @@ class Threshold(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     size: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
@@ -148,9 +137,7 @@ class UploadedFile(Base):
     case_id: Mapped[uuid.UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True), ForeignKey("reconciliation_cases.id", ondelete="SET NULL"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -162,32 +149,24 @@ class UploadedFile(Base):
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     po_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     supplier_name: Mapped[str | None] = mapped_column(String(255))
     supplier_tax_id: Mapped[str | None] = mapped_column(String(20))
     buyer_name: Mapped[str | None] = mapped_column(String(255))
     total_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    items: Mapped[list["PurchaseOrderItem"]] = relationship(
-        back_populates="po", cascade="all, delete-orphan"
-    )
+    items: Mapped[list["PurchaseOrderItem"]] = relationship(back_populates="po", cascade="all, delete-orphan")
 
 
 class PurchaseOrderItem(Base):
     __tablename__ = "purchase_order_items"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     po_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True), ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -203,33 +182,28 @@ class PurchaseOrderItem(Base):
 class GoodsReceiptNote(Base):
     __tablename__ = "goods_receipt_notes"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     grn_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     po_number: Mapped[str | None] = mapped_column(String(50), index=True)
     supplier_name: Mapped[str | None] = mapped_column(String(255))
     supplier_tax_id: Mapped[str | None] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    items: Mapped[list["GoodsReceiptNoteItem"]] = relationship(
-        back_populates="grn", cascade="all, delete-orphan"
-    )
+    items: Mapped[list["GoodsReceiptNoteItem"]] = relationship(back_populates="grn", cascade="all, delete-orphan")
 
 
 class GoodsReceiptNoteItem(Base):
     __tablename__ = "goods_receipt_note_items"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     grn_id: Mapped[uuid.UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), ForeignKey("goods_receipt_notes.id", ondelete="CASCADE"), nullable=False, index=True
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("goods_receipt_notes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     item_sku: Mapped[str | None] = mapped_column(String(50))
     item_name: Mapped[str | None] = mapped_column(String(255))
@@ -237,5 +211,3 @@ class GoodsReceiptNoteItem(Base):
     qty: Mapped[Decimal | None] = mapped_column(Numeric(15, 4))
 
     grn: Mapped["GoodsReceiptNote"] = relationship(back_populates="items")
-
-

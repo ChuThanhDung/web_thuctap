@@ -30,9 +30,7 @@ async def list_thresholds(
     db: Session = Depends(get_db),
 ) -> list[ThresholdOut]:
     """Lấy tất cả ngưỡng sai số — tất cả vai trò đều xem được."""
-    thresholds = db.scalars(
-        select(Threshold).order_by(Threshold.category)
-    ).all()
+    thresholds = db.scalars(select(Threshold).order_by(Threshold.category)).all()
     return [
         ThresholdOut(
             id=str(t.id),
@@ -58,6 +56,7 @@ async def update_threshold(
 
     try:
         import uuid
+
         uid = uuid.UUID(threshold_id)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="threshold_id không hợp lệ.")

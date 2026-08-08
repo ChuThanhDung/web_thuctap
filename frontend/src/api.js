@@ -6,7 +6,16 @@ export async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(repairTextDeep(data.detail) || 'Không thể xử lý yêu cầu. Vui lòng thử lại.');
+    let detailMsg = '';
+    if (typeof data.detail === 'string') {
+      detailMsg = data.detail;
+    } else if (Array.isArray(data.detail)) {
+      detailMsg = data.detail.map((d) => d.msg || JSON.stringify(d)).join(', ');
+    } else if (data.detail && typeof data.detail === 'object') {
+      detailMsg = JSON.stringify(data.detail);
+    }
+    const finalMsg = repairTextDeep(detailMsg);
+    throw new Error(typeof finalMsg === 'string' && finalMsg ? finalMsg : 'Không thể xử lý yêu cầu. Vui lòng thử lại.');
   }
 
   return repairTextDeep(data);
@@ -96,4 +105,19 @@ export async function getUploadQueue(token) {
   const response = await authFetch('/uploads', token);
   return parseResponse(response);
 }
+
+export async function createUserAccount(token, userData) {
+  const response = await authFetch('/auth/users', token, {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+
+  return parseResponse(response);
+}
+
+export async function getUserAccounts(token) {
+  const response = await authFetch('/auth/users', token);
+  return parseResponse(response);
+}
+
 

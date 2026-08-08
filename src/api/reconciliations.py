@@ -167,7 +167,9 @@ async def get_dashboard_stats(
     total_cases = len(all_cases)
     total_matched = sum(1 for c in all_cases if c.status == "matched")
     total_pending = sum(1 for c in all_cases if c.decision is None and c.status != "matched")
-    total_escalated = sum(1 for c in all_cases if c.decision == "escalated" or c.status in ("major_diff", "low_confidence"))
+    total_escalated = sum(
+        1 for c in all_cases if c.decision == "escalated" or c.status in ("major_diff", "low_confidence")
+    )
     total_value = sum(c.total_amount or 0 for c in all_cases)
     pending_value = sum(c.total_amount or 0 for c in all_cases if c.decision is None)
 
@@ -214,6 +216,7 @@ async def get_reconciliation_detail(
     if case is None:
         try:
             import uuid
+
             uid = uuid.UUID(case_id)
             stmt2 = (
                 select(ReconciliationCase)
@@ -256,6 +259,7 @@ async def decide_case(
     if case is None:
         try:
             import uuid
+
             uid = uuid.UUID(case_id)
             stmt_uuid = (
                 select(ReconciliationCase)

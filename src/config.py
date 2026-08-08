@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
 
+    # SMTP Email
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = "chuthanhdungtruong@gmail.com"
+    smtp_password: str = ""
+    smtp_from: str = "chuthanhdungtruong@gmail.com"
+    smtp_tls: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:
