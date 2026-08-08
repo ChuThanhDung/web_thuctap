@@ -95,3 +95,10 @@ Phần upload PDF/PNG và liên kết dữ liệu giữa database, backend, fron
 - Luồng đọc PDF/PNG chưa ổn định với mọi mẫu hóa đơn; kết quả còn phụ thuộc chất lượng file.
 - Dữ liệu liên kết hóa đơn - PO - GRN cần thêm bộ mẫu chuẩn để kiểm tra các trường hợp thiếu chứng từ, sai số lượng, sai đơn giá và trùng hóa đơn.
 
+# Demo
+
+https://docusyncai-frontend.vercel.app/login
+
+- Tài khoản Kế toán trưởng: chief.accountant@docusync.ai
+- Tài khoản Kế toán viên: accountant@docusync.ai
+- Mật khẩu chung: 123456  
