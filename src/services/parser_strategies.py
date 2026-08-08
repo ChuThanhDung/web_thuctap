@@ -17,7 +17,6 @@ class BaseParserStrategy(ABC):
         """
         Phân tích tài liệu và trả về dict dữ liệu chuẩn.
         """
-        pass
 
 
 class XmlParserStrategy(BaseParserStrategy):
@@ -340,9 +339,7 @@ class ParserContext:
         engine_cfg = os.getenv("DOCUMENT_PARSER_ENGINE", "local").lower().strip()
 
         # Kiểm tra tính khả dụng của API Key
-        if engine_cfg == "gemini" and not os.getenv("GEMINI_API_KEY"):
-            engine_cfg = "local"
-        elif engine_cfg == "openai" and not os.getenv("OPENAI_API_KEY"):
+        if engine_cfg == "gemini" and not os.getenv("GEMINI_API_KEY") or engine_cfg == "openai" and not os.getenv("OPENAI_API_KEY"):
             engine_cfg = "local"
 
         return self.strategies.get(engine_cfg, self.strategies["local"])

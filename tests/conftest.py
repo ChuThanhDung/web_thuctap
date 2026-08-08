@@ -7,6 +7,16 @@ from httpx import ASGITransport, AsyncClient
 from src.main import app
 
 
+@pytest.fixture(scope="session", autouse=True)
+def init_db():
+    from src.database import Base, engine
+    from src.main import ensure_user_profile_columns, seed_initial_data_if_needed
+    Base.metadata.create_all(bind=engine)
+    ensure_user_profile_columns()
+    seed_initial_data_if_needed()
+    yield
+    # Optionally drop all here: Base.metadata.drop_all(bind=engine)
+
 @pytest_asyncio.fixture
 async def client():
     """Async HTTP client for testing API endpoints."""

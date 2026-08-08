@@ -115,9 +115,9 @@ def reconcile_documents(
                 grn_item = g_item
                 break
 
-        po_qty = Decimal(str(po_item.get("qty", 0))) if po_item else Decimal("0")
-        po_price = Decimal(str(po_item.get("price", 0))) if po_item else Decimal("0")
-        grn_qty = Decimal(str(grn_item.get("qty", 0))) if grn_item else Decimal("0")
+        po_qty = Decimal(str(po_item.get("qty", 0))) if po_item else Decimal(0)
+        po_price = Decimal(str(po_item.get("price", 0))) if po_item else Decimal(0)
+        grn_qty = Decimal(str(grn_item.get("qty", 0))) if grn_item else Decimal(0)
         sku = po_item.get("sku") if po_item else (grn_item.get("sku") if grn_item else None)
 
         # Kiểm tra chênh lệch dòng hàng

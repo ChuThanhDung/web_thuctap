@@ -241,4 +241,4 @@ def detect_and_parse_document(
         # Nếu XML parse lỗi nhưng là PDF hoặc ảnh, thử gọi vision parser
         if ext in [".pdf", ".png", ".jpg", ".jpeg"]:
             return parse_vision_document(file_content, filename, doc_type_hint)
-        raise ValueError(f"Không thể parse tệp {filename}: {str(e)}")
+        raise ValueError(f"Không thể parse tệp {filename}: {e!s}")
