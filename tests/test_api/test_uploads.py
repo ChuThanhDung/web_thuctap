@@ -67,6 +67,7 @@ async def test_upload_valid_invoice(client):
     assert_stored_filename(data, "invoice", "xml")
     assert data["storage_provider"] == "local"
     assert data["storage_key"].startswith("storage/upload/invoice/")
+    assert data["file_url"] == f"/api/v1/uploads/{data['id']}/file"
     assert Path(PROJECT_ROOT / data["storage_key"]).exists()
 
 
@@ -107,6 +108,26 @@ async def test_upload_pdf_invoice_only_stores_file(client):
     assert_stored_filename(data, "invoice", "pdf")
     assert data["storage_key"].startswith("storage/upload/invoice/")
     assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+
+
+@pytest.mark.asyncio
+async def test_uploaded_file_can_be_opened_from_file_url(client):
+    pdf_content = b"%PDF-1.4 mock content"
+    upload_response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "invoice"},
+        files={"file": ("INV_0000003.pdf", pdf_content, "application/pdf")},
+    )
+
+    assert upload_response.status_code == 200
+    data = upload_response.json()
+
+    file_response = await client.get(data["file_url"])
+
+    assert file_response.status_code == 200
+    assert file_response.content == pdf_content
+    assert file_response.headers["content-type"].startswith("application/pdf")
+    assert "inline" in file_response.headers["content-disposition"]
 
 
 @pytest.mark.asyncio

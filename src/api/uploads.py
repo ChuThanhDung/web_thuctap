@@ -1,9 +1,11 @@
+import mimetypes
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -69,6 +71,14 @@ def format_file_size(storage_key: str) -> str:
     return f"{file_size_bytes / 1024:.1f} KB"
 
 
+def resolve_uploaded_file_path(storage_key: str) -> Path:
+    file_path = (PROJECT_ROOT / storage_key).resolve()
+    storage_root = UPLOAD_STORAGE_ROOT.resolve()
+    if not file_path.is_file() or not file_path.is_relative_to(storage_root):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
+    return file_path
+
+
 def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
     storage_path = Path(upload.storage_key)
     stored_filename = storage_path.name
@@ -82,7 +92,7 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         stored_filename=stored_filename,
         storage_provider="local",
         storage_key=upload.storage_key,
-        file_url=None,
+        file_url=f"/api/v1/uploads/{upload.id}/file",
         content_type=None,
         file_ext=file_ext,
         size=format_file_size(upload.storage_key),
@@ -104,6 +114,26 @@ async def list_uploads(
 
     items = [to_uploaded_file_out(up) for up in uploads]
     return UploadedFileListResponse(items=items, total=len(items))
+
+
+@router.get("/{upload_id}/file")
+async def view_uploaded_file(
+    upload_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    upload = db.get(UploadedFile, upload_id)
+    if upload is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
+
+    file_path = resolve_uploaded_file_path(upload.storage_key)
+    media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return FileResponse(
+        path=file_path,
+        filename=file_path.name,
+        media_type=media_type,
+        headers={"Content-Disposition": f'inline; filename="{file_path.name}"'},
+    )
 
 
 @router.post("", response_model=UploadedFileOut)
