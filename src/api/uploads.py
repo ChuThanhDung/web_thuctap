@@ -3,65 +3,72 @@ import re
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from sqlalchemy import select, func
+
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
 from src.database import get_db
 from src.models.reconciliation import (
-    ReconciliationCase,
+    GoodsReceiptNote,
+    GoodsReceiptNoteItem,
     LineItem,
-    UploadedFile,
     PurchaseOrder,
     PurchaseOrderItem,
-    GoodsReceiptNote,
-    GoodsReceiptNoteItem
+    ReconciliationCase,
+    UploadedFile,
 )
-from src.models.schemas import UploadedFileOut, UploadedFileListResponse
+from src.models.schemas import UploadedFileListResponse, UploadedFileOut
 from src.models.user import User
+from src.services.auth import write_audit_log
 from src.services.parser_strategies import ParserContext
 from src.services.reconciliation_engine import (
-    reconcile_documents,
+    convert_grn_db_to_dict,
     convert_po_db_to_dict,
-    convert_grn_db_to_dict
+    reconcile_documents,
 )
-from src.services.auth import write_audit_log
 
-router = APIRouter(prefix="/uploads", tags=["uploads"])
+router = APIRouter(prefix="/uploads", tags=["Uploads & Ingestion"])
 parser_context = ParserContext()
 
-def extract_number(filename: str) -> str:
-    """Trích xuất chuỗi số từ tên file để làm mã đối chiếu."""
-    match = re.search(r'\d+', filename)
-    if match:
-        return match.group(0)
-    return ""
+
+def extract_number(text: str) -> str:
+    """Trích xuất chuỗi số từ chuỗi nhập vào."""
+    match = re.search(r"\d+", text)
+    return match.group(0) if match else ""
+
 
 def find_associated_files(doc_type: str, doc_number: str) -> tuple[str | None, str | None, str | None]:
-    """
-    Tìm các file đối chiếu tương ứng trong thư mục raw_data (dùng làm phương án fallback).
-    """
+    """Tìm các file chứng từ liên quan dựa trên số hiệu tài liệu trong thư mục raw_data."""
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
-    
-    try:
-        clean_num = str(int(doc_number))
-    except ValueError:
-        return None, None, None
-        
-    inv_name = f"INV_{clean_num.zfill(7)}.xml"
-    po_name = f"PO-2026-{clean_num.zfill(6)}.xml"
-    grn_name = f"GRN-2026-{clean_num.zfill(6)}.xml"
-    
-    inv_path = os.path.join(base_dir, "invoice", inv_name)
-    po_path = os.path.join(base_dir, "po", po_name)
-    grn_path = os.path.join(base_dir, "receipt", grn_name)
-    
-    return (
-        inv_path if os.path.exists(inv_path) else None,
-        po_path if os.path.exists(po_path) else None,
-        grn_path if os.path.exists(grn_path) else None
-    )
+    clean_num = str(int(doc_number)) if doc_number.isdigit() else doc_number
+
+    inv_path, po_path, grn_path = None, None, None
+
+    inv_dir = os.path.join(base_dir, "invoice")
+    if os.path.exists(inv_dir):
+        for f in os.listdir(inv_dir):
+            if clean_num in f and f.endswith(".xml"):
+                inv_path = os.path.join(inv_dir, f)
+                break
+
+    po_dir = os.path.join(base_dir, "po")
+    if os.path.exists(po_dir):
+        for f in os.listdir(po_dir):
+            if clean_num in f and f.endswith(".xml"):
+                po_path = os.path.join(po_dir, f)
+                break
+
+    grn_dir = os.path.join(base_dir, "grn")
+    if os.path.exists(grn_dir):
+        for f in os.listdir(grn_dir):
+            if clean_num in f and f.endswith(".xml"):
+                grn_path = os.path.join(grn_dir, f)
+                break
+
+    return inv_path, po_path, grn_path
+
 
 @router.get("", response_model=UploadedFileListResponse)
 async def list_uploads(
@@ -71,7 +78,7 @@ async def list_uploads(
     """Lấy danh sách tệp đã tải lên trong hàng đợi (sắp xếp theo thời gian mới nhất)."""
     stmt = select(UploadedFile).order_by(UploadedFile.created_at.desc())
     uploads = db.scalars(stmt).all()
-    
+
     items = [
         UploadedFileOut(
             id=str(up.id),
@@ -81,24 +88,25 @@ async def list_uploads(
             progress=up.progress,
             error_message=up.error_message,
             case_id=str(up.case_id) if up.case_id else None,
-            created_at=up.created_at
+            created_at=up.created_at,
         )
         for up in uploads
     ]
     return UploadedFileListResponse(items=items, total=len(items))
 
+
 @router.post("", response_model=UploadedFileOut)
 async def upload_document(
     file: UploadFile = File(...),
-    doc_type: str | None = Form(default=None),
+    doc_type: str | None = Form(None),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> UploadedFileOut:
     """
     Tải lên hóa đơn/chứng từ đa định dạng (XML, PDF, PNG), tự động nhận diện và đối soát 3 bên dựa trên dữ liệu trong DB.
     """
     filename = file.filename or "unknown_file.xml"
-    
+
     # Tính kích thước file thân thiện
     content = await file.read()
     file_size_bytes = len(content)
@@ -106,14 +114,8 @@ async def upload_document(
         size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
     else:
         size_str = f"{file_size_bytes / 1024:.1f} KB"
-        
-    db_upload = UploadedFile(
-        id=uuid.uuid4(),
-        filename=filename,
-        size=size_str,
-        status="queued",
-        progress=0
-    )
+
+    db_upload = UploadedFile(id=uuid.uuid4(), filename=filename, size=size_str, status="queued", progress=0)
     db.add(db_upload)
     db.commit()
     db.refresh(db_upload)
@@ -127,48 +129,61 @@ async def upload_document(
         # 3. Phân tích nội dung file vừa upload bằng Strategy Pattern / Vision Parser
         parsed_doc = parser_context.parse_document(content, filename, doc_type)
         detected_type = parsed_doc.get("type", doc_type or "invoice")
-        
-        # 4. Kiểm tra Trùng lặp (Deduplication Check)
-        if detected_type == "po":
-            po_num = parsed_doc.get("po_number")
-            if po_num:
-                existing_po = db.scalars(select(PurchaseOrder).where(PurchaseOrder.po_number == po_num)).first()
-                if existing_po:
-                    raise ValueError(f"Dữ liệu trùng lặp: Đơn đặt hàng PO '{po_num}' đã tồn tại trong hệ thống.")
-        elif detected_type == "grn":
-            grn_num = parsed_doc.get("grn_number")
-            if grn_num:
-                existing_grn = db.scalars(select(GoodsReceiptNote).where(GoodsReceiptNote.grn_number == grn_num)).first()
-                if existing_grn:
-                    raise ValueError(f"Dữ liệu trùng lặp: Phiếu nhập kho GRN '{grn_num}' đã tồn tại trong hệ thống.")
-        elif detected_type == "invoice":
-            inv_num = parsed_doc.get("invoice_number")
-            tax_id = parsed_doc.get("supplier_tax_id")
-            if inv_num and tax_id:
-                existing_case = db.scalars(
-                    select(ReconciliationCase).where(
-                        ReconciliationCase.invoice_number == inv_num,
-                        ReconciliationCase.partner_tax_id == tax_id
-                    )
-                ).first()
-                if existing_case:
-                    raise ValueError(f"Dữ liệu trùng lặp: Hóa đơn '{inv_num}' của nhà cung cấp MST '{tax_id}' đã tồn tại trong hệ thống.")
 
         # Lấy số hiệu của tài liệu để làm khóa tìm kiếm PO tương ứng
         if detected_type == "invoice":
             doc_number = extract_number(parsed_doc.get("invoice_number", "")) or extract_number(filename)
         elif detected_type == "po":
             doc_number = extract_number(parsed_doc.get("po_number", "")) or extract_number(filename)
-        else: # grn
+        else:  # grn
             doc_number = extract_number(parsed_doc.get("grn_number", "")) or extract_number(filename)
-            
+
         if not doc_number:
-            # Nếu tên tệp không chứa số (vd: images.jpg, mona.jpg), tự động sinh mã định danh số từ hash thời gian
             hash_val = abs(hash(filename + str(datetime.now().timestamp()))) % 900000 + 100000
             doc_number = str(hash_val)
 
-        clean_num = str(int(doc_number))
+        clean_num = str(int(doc_number)) if doc_number.isdigit() else doc_number
         po_number_target = parsed_doc.get("po_number") or f"PO-2026-{clean_num.zfill(6)}"
+
+        # 4. Kiểm tra Trùng lặp (Deduplication Check - Bắt buộc BỊ CHẶN khi đã tồn tại)
+        if detected_type == "po":
+            raw_po = parsed_doc.get("po_number") or ""
+            base_filename = os.path.splitext(filename)[0]
+            possible_pos = list(filter(None, [raw_po, base_filename, po_number_target]))
+            existing_po = db.scalars(
+                select(PurchaseOrder).where(PurchaseOrder.po_number.in_(possible_pos))
+            ).first()
+            if existing_po:
+                raise ValueError(f"Dữ liệu trùng lặp: Đơn đặt hàng PO '{existing_po.po_number}' đã tồn tại trong hệ thống.")
+
+        elif detected_type == "grn":
+            raw_grn = parsed_doc.get("grn_number") or ""
+            base_filename = os.path.splitext(filename)[0]
+            grn_target = raw_grn or f"GRN-2026-{clean_num.zfill(6)}"
+            possible_grns = list(filter(None, [raw_grn, base_filename, grn_target]))
+            existing_grn = db.scalars(
+                select(GoodsReceiptNote).where(GoodsReceiptNote.grn_number.in_(possible_grns))
+            ).first()
+            if existing_grn:
+                raise ValueError(f"Dữ liệu trùng lặp: Phiếu nhập kho GRN '{existing_grn.grn_number}' đã tồn tại trong hệ thống.")
+
+        elif detected_type == "invoice":
+            raw_inv = parsed_doc.get("invoice_number") or ""
+            base_filename = os.path.splitext(filename)[0]
+            possible_nums = list(filter(None, [raw_inv, base_filename, clean_num, f"INV_{clean_num.zfill(7)}"]))
+
+            existing_case = db.scalars(
+                select(ReconciliationCase).where(
+                    or_(
+                        ReconciliationCase.invoice_number.in_(possible_nums),
+                        ReconciliationCase.po_number == po_number_target
+                    )
+                )
+            ).first()
+
+            if existing_case:
+                case_info = f" (Hồ sơ {existing_case.case_number})" if existing_case.case_number else ""
+                raise ValueError(f"Dữ liệu trùng lặp: Hóa đơn '{raw_inv or base_filename}' đã tồn tại trong hệ thống{case_info}.")
 
         # 5. Lưu chứng từ PO hoặc GRN vào DB nếu chưa có
         if detected_type == "po":

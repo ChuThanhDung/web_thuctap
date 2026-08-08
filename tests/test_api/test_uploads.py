@@ -74,14 +74,14 @@ async def test_upload_invalid_xml(client):
 async def test_upload_pdf_invoice_fallback(client):
     """Kiểm tra upload hóa đơn dạng PDF và sử dụng Local/Fallback strategy."""
     pdf_content = b"%PDF-1.4 mock content"
-    
-    # Upload hóa đơn số 1 dưới dạng PDF
+
+    # Upload hóa đơn số 2 dưới dạng PDF
     response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "invoice"},
-        files={"file": ("INV_0000001.pdf", pdf_content, "application/pdf")}
+        files={"file": ("INV_0000002.pdf", pdf_content, "application/pdf")},
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] in ("completed", "processing"), f"Failed: {data.get('error_message')}"
@@ -93,15 +93,32 @@ async def test_upload_pdf_invoice_fallback(client):
 async def test_upload_po_png(client):
     """Kiểm tra upload PO dạng ảnh và sử dụng Local/Fallback strategy."""
     png_content = b"\x89PNG\r\n\x1a\n mock png content"
-    
+
     response = await client.post(
-        "/api/v1/uploads",
-        data={"doc_type": "po"},
-        files={"file": ("PO-2026-000001.png", png_content, "image/png")}
+        "/api/v1/uploads", data={"doc_type": "po"}, files={"file": ("PO-2026-999991.png", png_content, "image/png")}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "completed"
     assert data["error_message"] is None
 
+
+@pytest.mark.asyncio
+async def test_upload_doc_type_mismatch(client):
+    """Kiểm tra bị chặn khi upload Hóa đơn XML dưới dạng PO."""
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
+    inv_path = os.path.join(base_dir, "invoice", "INV_0000001.xml")
+
+    with open(inv_path, "rb") as f:
+        file_content = f.read()
+
+    # Upload file hóa đơn nhưng khai báo doc_type="po" -> phải bị chặn với status='error'
+    response = await client.post(
+        "/api/v1/uploads", data={"doc_type": "po"}, files={"file": ("INV_0000001.xml", file_content, "text/xml")}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "tải lên không hợp lệ" in data["error_message"].lower() or "không khớp" in data["error_message"].lower()

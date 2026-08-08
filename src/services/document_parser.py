@@ -36,24 +36,52 @@ def detect_document_type(root: ET.Element) -> str:
         return "grn"
     raise ValueError(f"Không nhận diện được loại tài liệu XML với root tag: {tag}")
 
-def parse_invoice(root: ET.Element) -> Dict[str, Any]:
-    """Phân tích hóa đơn điện tử GDT Việt Nam."""
-    shdon = root.find(".//SHDon")
-    invoice_number = shdon.text.strip() if shdon is not None else ""
-    
-    nlap = root.find(".//NLap")
-    invoice_date = nlap.text.strip() if nlap is not None else ""
-    
-    supplier_name_el = root.find(".//NBan/Ten")
-    supplier_name = supplier_name_el.text.strip() if supplier_name_el is not None else ""
-    
-    supplier_tax_id_el = root.find(".//NBan/MST")
-    supplier_tax_id = supplier_tax_id_el.text.strip() if supplier_tax_id_el is not None else ""
-    
-    buyer_name_el = root.find(".//NMua/Ten")
-    buyer_name = buyer_name_el.text.strip() if buyer_name_el is not None else ""
+def parse_invoice(root: ET.Element) -> dict[str, Any]:
+    """Phân tích hóa đơn điện tử (GDT Việt Nam & UBL Standard & Mock XML)."""
+    shdon = (
+        root.find(".//InvoiceNumber")
+        or root.find(".//SHDon")
+        or root.find(".//ID")
+        or root.find("ID")
+        or root.find("InvoiceNumber")
+    )
+    invoice_number = shdon.text.strip() if shdon is not None and shdon.text else ""
 
-    thtien_el = root.find(".//TToan/THTien")
+    nlap = root.find(".//NLap") or root.find(".//IssueDate") or root.find("IssueDate") or root.find(".//Date")
+    invoice_date = nlap.text.strip() if nlap is not None and nlap.text else ""
+
+    supplier_name_el = (
+        root.find(".//Vendor/Name")
+        or root.find(".//NBan/Ten")
+        or root.find(".//AccountingSupplierParty//PartyName/Name")
+        or root.find(".//SellerSupplierParty//PartyName/Name")
+    )
+    supplier_name = supplier_name_el.text.strip() if supplier_name_el is not None and supplier_name_el.text else ""
+
+    supplier_tax_id_el = (
+        root.find(".//Vendor/TaxCode")
+        or root.find(".//NBan/MST")
+        or root.find(".//AccountingSupplierParty//PartyIdentification/ID")
+        or root.find(".//SellerSupplierParty//PartyIdentification/ID")
+    )
+    supplier_tax_id = (
+        supplier_tax_id_el.text.strip() if supplier_tax_id_el is not None and supplier_tax_id_el.text else ""
+    )
+
+    buyer_name_el = (
+        root.find(".//Customer/Name")
+        or root.find(".//NMua/Ten")
+        or root.find(".//AccountingCustomerParty//PartyName/Name")
+        or root.find(".//BuyerCustomerParty//PartyName/Name")
+    )
+    buyer_name = buyer_name_el.text.strip() if buyer_name_el is not None and buyer_name_el.text else ""
+
+    thtien_el = (
+        root.find(".//TotalAmount")
+        or root.find(".//TToan/THTien")
+        or root.find(".//LegalMonetaryTotal/TaxExclusiveAmount")
+        or root.find(".//MonetaryTotal/PayableAmount")
+    )
     total_amount_ex_vat = float(thtien_el.text) if thtien_el is not None and thtien_el.text else 0.0
     
     tgtttb_el = root.find(".//TToan/TgTTTBSo")

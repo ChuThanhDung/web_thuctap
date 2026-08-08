@@ -21,9 +21,11 @@ class XmlParserStrategy(BaseParserStrategy):
     """Chiến lược parse file XML bằng parser có sẵn."""
     def parse(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
         parsed = detect_and_parse_document(content)
-        if doc_type and parsed.get("type") != doc_type:
-            parsed["type"] = doc_type
+        # Chỉ dùng doc_type làm fallback nếu parser XML chưa nhận diện được type
+        if not parsed.get("type"):
+            parsed["type"] = doc_type or "invoice"
         return parsed
+
 
 class GeminiParserStrategy(BaseParserStrategy):
     """Chiến lược parse PDF/Ảnh sử dụng Google Gemini API."""
@@ -316,6 +318,27 @@ class LocalOcrParserStrategy(BaseParserStrategy):
                 "Bắt buộc phải cấu hình GEMINI_API_KEY hoặc OPENAI_API_KEY trong file .env để bóc tách chứng từ dạng PDF hoặc Hình ảnh."
             )
 
+TYPE_NAME_MAP = {
+    "invoice": "Hóa đơn (Invoice)",
+    "po": "Đơn đặt hàng (PO)",
+    "grn": "Phiếu nhập kho (GRN)",
+}
+
+
+def validate_strict_doc_type(detected_type: str, expected_type: str | None, filename: str) -> None:
+    """Kiểm tra loại chứng từ nghiêm ngặt. Từ chối nếu tệp được chọn không khớp loại chứng từ khai báo."""
+    if not expected_type:
+        return
+    exp = expected_type.lower().strip()
+    det = detected_type.lower().strip()
+    if det != exp:
+        det_name = TYPE_NAME_MAP.get(det, det.upper())
+        exp_name = TYPE_NAME_MAP.get(exp, exp.upper())
+        raise ValueError(
+            f"Tải lên không hợp lệ: Tệp '{filename}' là {det_name}, không khớp với loại chứng từ được chọn: {exp_name}."
+        )
+
+
 class ParserContext:
     """Bộ chọn Strategy phù hợp dựa trên định dạng và cấu hình môi trường."""
     def __init__(self):
@@ -330,20 +353,27 @@ class ParserContext:
         ext = os.path.splitext(filename.lower())[1]
         
         # Nếu là file XML, bắt buộc dùng XML Parser
-        if ext == ".xml":
-            return self.strategies["xml"]
-            
-        # Nếu không phải XML, chọn theo cấu hình DOCUMENT_PARSER_ENGINE
-        engine_cfg = os.getenv("DOCUMENT_PARSER_ENGINE", "local").lower().strip()
-        
+        # Nếu không phải XML, ưu tiên chọn theo cấu hình DOCUMENT_PARSER_ENGINE, hoặc tự động kích hoạt OpenAI/Gemini khi có Key
+        default_engine = "local"
+        if os.getenv("OPENAI_API_KEY"):
+            default_engine = "openai"
+        elif os.getenv("GEMINI_API_KEY"):
+            default_engine = "gemini"
+
+        engine_cfg = os.getenv("DOCUMENT_PARSER_ENGINE", default_engine).lower().strip()
+
         # Kiểm tra tính khả dụng của API Key
         if engine_cfg == "gemini" and not os.getenv("GEMINI_API_KEY"):
             engine_cfg = "local"
         elif engine_cfg == "openai" and not os.getenv("OPENAI_API_KEY"):
             engine_cfg = "local"
-            
+
         return self.strategies.get(engine_cfg, self.strategies["local"])
 
     def parse_document(self, content: bytes, filename: str, doc_type: Optional[str] = None) -> Dict[str, Any]:
         strategy = self.get_strategy(filename)
-        return strategy.parse(content, filename, doc_type)
+        parsed = strategy.parse(content, filename, doc_type)
+        detected = parsed.get("type") or "invoice"
+        if doc_type:
+            validate_strict_doc_type(detected, doc_type, filename)
+        return parsed
