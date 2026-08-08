@@ -8,22 +8,7 @@ on:
 
 jobs:
   lint-and-test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
@@ -45,4 +30,4 @@ jobs:
         env:
           APP_ENV: test
           OPENAI_API_KEY: test-key
-          DATABASE_URL: postgresql+psycopg://testuser:testpassword@localhost:5432/testdb
+          DATABASE_URL: postgresql+psycopg://admin:Admin%40123@localhost:5432/docusyncai
