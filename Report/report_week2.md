@@ -101,4 +101,10 @@ https://docusyncai-frontend.vercel.app/login
 
 - Tài khoản Kế toán trưởng: chief.accountant@docusync.ai
 - Tài khoản Kế toán viên: accountant@docusync.ai
-- Mật khẩu chung: 123456  
+- Mật khẩu chung: 123456
+
+# Kế Hoạch tuần tiếp theo 
+
+- Hoàn thiện chức năng đọc ảnh và file pdf
+- Chuẩn bị thêm nhiều mẫu hóa đơn, PO và GRN để kiểm thử
+- Bổ sung trạng thái xử lý file theo từng bước như đã tải lên, đang đọc dữ liệu, đọc thành công, cần kiểm tra lại hoặc lỗi xử lý; cải thiện thông báo lỗi để người dùng biết file lỗi
