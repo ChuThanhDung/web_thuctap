@@ -30,18 +30,18 @@ jobs:
           python -c "
           import socket, subprocess, time
           sock = socket.socket()
-          if sock.connect_ex(('127.0.0.1', 5432)) != 0:
-              print('Port 5432 is closed. Starting Postgres container...')
+          if sock.connect_ex(('127.0.0.1', 5433)) != 0:
+              print('Port 5433 is closed. Starting Postgres container...')
               subprocess.run(['docker', 'compose', 'up', '-d', 'postgres'], check=True)
               for _ in range(15):
                   time.sleep(1)
                   s = socket.socket()
-                  if s.connect_ex(('127.0.0.1', 5432)) == 0:
+                  if s.connect_ex(('127.0.0.1', 5433)) == 0:
                       s.close()
                       break
                   s.close()
           else:
-              print('Port 5432 is already open! Using existing PostgreSQL instance.')
+              print('Port 5433 is already open! Using existing PostgreSQL instance.')
           sock.close()
           "
 
@@ -50,4 +50,4 @@ jobs:
         env:
           APP_ENV: test
           OPENAI_API_KEY: test-key
-          DATABASE_URL: postgresql+psycopg://admin:Admin%40123@localhost:5432/docusyncai
+          DATABASE_URL: postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai
