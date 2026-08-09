@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle, X, Shield } from 'lucide-react';
-import { formatVND } from '../mockData.js';
+import { formatVND } from '../text.js';
 
 export default function BulkApprovalModal({ cases, onConfirm, onCancel }) {
   const [confirmed, setConfirmed] = useState(false);
-  const totalValue = cases.reduce((sum, c) => sum + c.totalAmount, 0);
+  const totalValue = cases.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0);
   const hasRisky = cases.some((c) => c.status !== 'matched');
 
   return (
@@ -75,10 +75,10 @@ export default function BulkApprovalModal({ cases, onConfirm, onCancel }) {
               <tbody className="divide-y divide-slate-100">
                 {cases.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50">
-                    <td className="px-3 py-2 font-medium text-slate-900">{c.invoiceNumber}</td>
-                    <td className="px-3 py-2 text-slate-600 truncate max-w-[160px]">{c.partner}</td>
+                    <td className="px-3 py-2 font-medium text-slate-900">{c.invoice_number || c.case_number}</td>
+                    <td className="px-3 py-2 text-slate-600 truncate max-w-[160px]">{c.partner_name}</td>
                     <td className="px-3 py-2 text-right text-slate-900 whitespace-nowrap">
-                      {formatVND(c.totalAmount)}
+                      {formatVND(c.total_amount)}
                     </td>
                   </tr>
                 ))}

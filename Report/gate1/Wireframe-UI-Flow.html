@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Wireframe / UI Flow — Invoice Reconciliation Agent</title>
+<style>
+  :root{
+    --bg:#eceff1;
+    --paper:#ffffff;
+    --line:#9aa0a6;
+    --line-soft:#d5d9dc;
+    --ink:#26292c;
+    --ink-soft:#6b7075;
+    --accent:#4a5568;
+    --tag-match:#e4e9ea;
+    --tag-diff:#e9e2d9;
+    --tag-risk:#e6dede;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+    color:var(--ink);
+    padding:32px 16px 80px;
+  }
+  .doc-header{
+    max-width:1180px;
+    margin:0 auto 28px;
+  }
+  .doc-header h1{
+    font-size:22px;
+    letter-spacing:.02em;
+    margin:0 0 4px;
+  }
+  .doc-header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+  .flow-track{
+    max-width:1180px;
+    margin:0 auto 44px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .flow-step{
+    border:1px solid var(--line-soft);
+    background:var(--paper);
+    padding:6px 12px;
+    border-radius:3px;
+    white-space:nowrap;
+  }
+  .flow-arrow{color:var(--line);}
+
+  .section-title{
+    max-width:1180px;
+    margin:48px auto 14px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .section-title .num{
+    font-size:12px;
+    color:var(--ink-soft);
+    border:1px solid var(--line-soft);
+    padding:2px 7px;
+    border-radius:3px;
+  }
+  .section-title h2{
+    font-size:15px;
+    margin:0;
+    font-weight:600;
+  }
+  .section-note{
+    max-width:1180px;
+    margin:0 auto 16px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+
+  .screen{
+    max-width:1180px;
+    margin:0 auto;
+    background:var(--paper);
+    border:1px solid var(--line-soft);
+    border-radius:4px;
+  }
+  .screen-topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 16px;
+    border-bottom:1px solid var(--line-soft);
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .dots{display:flex;gap:5px;}
+  .dot{width:7px;height:7px;border-radius:50%;border:1px solid var(--line-soft);}
+
+  .wire-box{border:1px dashed var(--line);}
+  .wire-solid{border:1px solid var(--line);}
+
+  /* ---- Screen 1: Danh sách đối soát ---- */
+  .s1-body{padding:18px 20px 24px;}
+  .s1-header{
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+  }
+  .s1-title{font-size:16px;font-weight:600;}
+  .s1-sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .btn{
+    font-size:12px;padding:7px 14px;border-radius:3px;border:1px solid var(--line);
+    background:var(--paper);color:var(--ink);white-space:nowrap;
+  }
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .search-box{
+    flex:1;min-width:160px;border:1px dashed var(--line);border-radius:3px;
+    padding:7px 10px;font-size:12px;color:var(--ink-soft);
+  }
+  table.wire-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.wire-table th{
+    text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);
+    color:var(--ink-soft);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;
+  }
+  table.wire-table td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+  .tag{
+    display:inline-block;font-size:10.5px;padding:3px 8px;border-radius:10px;border:1px solid var(--line-soft);
+  }
+  .tag-match{background:var(--tag-match);}
+  .tag-diff{background:var(--tag-diff);}
+  .tag-risk{background:var(--tag-risk);}
+  .row-check{width:16px;height:16px;border:1px solid var(--line);display:inline-block;}
+  .bulkbar{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-soft);
+    font-size:12px;color:var(--ink-soft);
+  }
+
+  /* ---- Screen 2: Chi tiết hóa đơn ---- */
+  .s2-body{padding:18px 20px 24px;}
+  .breadcrumb{font-size:11px;color:var(--ink-soft);margin-bottom:10px;}
+  .s2-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+  .compare-grid{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;
+  }
+  .compare-col{border:1px solid var(--line-soft);border-radius:3px;padding:12px;}
+  .compare-col h4{margin:0 0 8px;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);}
+  .field-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line-soft);}
+  .field-row.diff{background:var(--tag-diff);margin:0 -6px;padding:5px 6px;border-radius:2px;border-bottom:none;}
+  .explain-box{
+    border:1px solid var(--line-soft);border-radius:3px;padding:12px 14px;font-size:12px;
+    color:var(--ink-soft);margin-bottom:16px;background:#fbfbfa;
+  }
+  .explain-box b{color:var(--ink);}
+  .confidence{font-size:11px;color:var(--ink-soft);margin-top:6px;}
+  .action-row{display:flex;gap:8px;justify-content:flex-end;border-top:1px dashed var(--line-soft);padding-top:14px;}
+
+  /* ---- Screen 3: Tổng quan kế toán trưởng ---- */
+  .s3-body{padding:18px 20px 24px;}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+  .kpi{border:1px solid var(--line-soft);border-radius:3px;padding:12px;}
+  .kpi .val{font-size:20px;font-weight:600;}
+  .kpi .lbl{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .risk-list{border:1px solid var(--line-soft);border-radius:3px;}
+  .risk-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 14px;border-bottom:1px solid var(--line-soft);font-size:12.5px;
+  }
+  .risk-item:last-child{border-bottom:none;}
+
+  /* ---- Screen 4: Cảnh báo confidence thấp ---- */
+  .s4-body{padding:18px 20px 24px;}
+  .alert-banner{
+    border:1px solid var(--line);border-left:4px solid var(--ink);
+    padding:10px 14px;font-size:12px;margin-bottom:16px;background:#f7f6f4;
+  }
+  .field-conf{
+    display:flex;justify-content:space-between;align-items:center;
+    border:1px dashed var(--line-soft);border-radius:3px;padding:8px 12px;margin-bottom:8px;font-size:12px;
+  }
+  .conf-bar{width:90px;height:6px;background:var(--line-soft);border-radius:3px;position:relative;}
+  .conf-bar span{position:absolute;left:0;top:0;bottom:0;background:var(--ink-soft);border-radius:3px;}
+
+  .footer-note{
+    max-width:1180px;margin:40px auto 0;font-size:11.5px;color:var(--ink-soft);
+    border-top:1px solid var(--line-soft);padding-top:14px;
+  }
+
+  /* ---- Screen 0: Đăng nhập ---- */
+  .s0-body{
+    padding:60px 20px 70px;display:flex;flex-direction:column;align-items:center;
+  }
+  .login-card{
+    width:340px;border:1px solid var(--line-soft);border-radius:4px;padding:28px 26px;
+  }
+  .login-logo{
+    width:36px;height:36px;border:1px solid var(--line);border-radius:6px;margin:0 auto 14px;
+  }
+  .login-title{font-size:15px;font-weight:600;text-align:center;margin-bottom:2px;}
+  .login-sub{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-bottom:22px;}
+  .login-field{margin-bottom:14px;}
+  .login-field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:5px;}
+  .login-input{
+    width:100%;border:1px dashed var(--line);border-radius:3px;padding:9px 10px;font-size:12px;color:var(--ink-soft);
+  }
+  .login-row-between{
+    display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink-soft);margin-bottom:18px;
+  }
+  .login-checkbox{display:flex;align-items:center;gap:6px;}
+  .checkbox-box{width:12px;height:12px;border:1px solid var(--line);display:inline-block;}
+  .login-btn{
+    width:100%;padding:10px;font-size:12.5px;border-radius:3px;border:1px solid var(--accent);
+    background:var(--accent);color:#fff;text-align:center;
+  }
+  .login-divider{
+    display:flex;align-items:center;gap:10px;margin:18px 0;font-size:10.5px;color:var(--ink-soft);
+  }
+  .login-divider .line{flex:1;height:1px;background:var(--line-soft);}
+  .login-sso{
+    width:100%;padding:9px;font-size:12px;border-radius:3px;border:1px solid var(--line-soft);
+    text-align:center;color:var(--ink-soft);margin-bottom:8px;
+  }
+  .login-role-note{
+    max-width:340px;margin-top:16px;font-size:11px;color:var(--ink-soft);text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>Wireframe &amp; UI Flow — Invoice Reconciliation Agent</h1>
+  <p>Checkpoint 1 · Bản phác thảo mức độ low-fidelity, tập trung vào bố cục &amp; luồng thao tác, chưa phải thiết kế giao diện cuối cùng</p>
+</div>
+
+<div class="flow-track">
+  <div class="flow-step">0. Đăng nhập</div><span class="flow-arrow">→</span>
+  <div class="flow-step">1. Hóa đơn vào hệ thống</div><span class="flow-arrow">→</span>
+  <div class="flow-step">2. Trích xuất &amp; đối chiếu tự động</div><span class="flow-arrow">→</span>
+  <div class="flow-step">3. Màn hình Danh sách đối soát</div><span class="flow-arrow">→</span>
+  <div class="flow-step">4. Chi tiết hóa đơn (nếu có chênh lệch)</div><span class="flow-arrow">→</span>
+  <div class="flow-step">5. Kế toán duyệt / từ chối</div><span class="flow-arrow">→</span>
+  <div class="flow-step">6. Case rủi ro cao → Kế toán trưởng</div>
+</div>
+
+<!-- SCREEN 0 -->
+<div class="section-title"><span class="num">00</span><h2>Màn hình Đăng nhập</h2></div>
+<div class="section-note">Điểm vào của hệ thống, phân quyền theo vai trò (Kế toán viên / Kế toán trưởng) — nội dung và các mục hiển thị ở màn hình sau (Screen 01, 03) phụ thuộc vào vai trò đăng nhập tại đây.</div>
+<div class="screen">
+  <div class="screen-topbar"><span>Invoice Reconciliation — Đăng nhập</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+  <div class="s0-body">
+    <div class="login-card">
+      <div class="login-logo"></div>
+      <div class="login-title">Invoice Reconciliation Agent</div>
+      <div class="login-sub">Đăng nhập để tiếp tục đối soát hóa đơn</div>
+
+      <div class="login-field">
+        <label>Email công ty</label>
+        <div class="login-input">ketoan@xex.com.vn</div>
+      </div>
+      <div class="login-field">
+        <label>Mật khẩu</label>
+        <div class="login-input">••••••••</div>
+      </div>
+
+      <div class="login-row-between">
+        <div class="login-checkbox"><span class="checkbox-box"></span>Ghi nhớ đăng nhập</div>
+        <span>Quên mật khẩu?</span>
+      </div>
+
+      <div class="login-btn">Đăng nhập</div>
+
+      <div class="login-divider"><span class="line"></span>hoặc<span class="line"></span></div>
+      <div class="login-sso">Đăng nhập bằng SSO công ty</div>
+    </div>
+    <div class="login-role-note">Hệ thống tự nhận diện vai trò (Kế toán viên / Kế toán trưởng) theo tài khoản đăng nhập để hiển thị đúng màn hình tương ứng.</div>
+  </div>
+</div>
+
+<!-- SCREEN 1 -->
+<div class="section-title"><span class="num">01</span><h2>Màn hình Danh sách đối soát (màn hình chính của Kế toán viên)</h2></div>
+<div class="section-note">Tương ứng FR-04. Là điểm vào chính sau khi Agent xử lý xong hóa đơn — ưu tiên cho phép lọc theo trạng thái và duyệt nhanh hàng loạt với case khớp hoàn toàn.</div>
+<div class="screen">
+  <div class="screen-topbar"><span>Invoice Reconciliation — Danh sách đối soát</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+  <div class="s1-body">
+    <div class="s1-header">
+      <div>
+        <div class="s1-title">Đối soát hóa đơn tháng 08/2026</div>
+        <div class="s1-sub">128 hóa đơn · 96 khớp hoàn toàn · 24 có chênh lệch · 8 cần xem xét kỹ</div>
+      </div>
+      <button class="btn btn-primary">Duyệt hàng loạt (đã chọn)</button>
+    </div>
+    <div class="toolbar">
+      <div class="search-box">Tìm theo số hóa đơn, đối tác…</div>
+      <button class="btn">Lọc: Tất cả trạng thái ▾</button>
+      <button class="btn">Sắp xếp: Mới nhất ▾</button>
+    </div>
+    <table class="wire-table">
+      <tr><th></th><th>Số hóa đơn</th><th>Đối tác</th><th>Số tiền</th><th>PO liên kết</th><th>Trạng thái</th><th>Độ tin cậy</th><th></th></tr>
+      <tr>
+        <td><span class="row-check"></span></td><td>HD-08231</td><td>Cty Vận tải Minh An</td><td>15.000.000đ</td><td>PO-1042</td>
+        <td><span class="tag tag-match">Khớp hoàn toàn</span></td><td>Cao</td><td>Xem →</td>
+      </tr>
+      <tr>
+        <td><span class="row-check"></span></td><td>HD-08232</td><td>Cty TNHH ABC</td><td>15.500.000đ</td><td>PO-1043</td>
+        <td><span class="tag tag-diff">Chênh lệch số tiền</span></td><td>Trung bình</td><td>Xem →</td>
+      </tr>
+      <tr>
+        <td><span class="row-check"></span></td><td>HD-08233</td><td>Đối tác Xăng dầu HN</td><td>82.300.000đ</td><td>PO-1044</td>
+        <td><span class="tag tag-risk">Giá trị lớn — cần duyệt thêm</span></td><td>Cao</td><td>Xem →</td>
+      </tr>
+      <tr>
+        <td><span class="row-check"></span></td><td>HD-08234</td><td>Gara sửa chữa Phú Đạt</td><td>4.200.000đ</td><td>PO-1045</td>
+        <td><span class="tag tag-diff">Thiếu trường dữ liệu</span></td><td>Thấp (OCR)</td><td>Xem →</td>
+      </tr>
+      <tr>
+        <td><span class="row-check"></span></td><td>HD-08235</td><td>Cty Vận tải Minh An</td><td>9.800.000đ</td><td>PO-1046</td>
+        <td><span class="tag tag-match">Khớp hoàn toàn</span></td><td>Cao</td><td>Xem →</td>
+      </tr>
+    </table>
+    <div class="bulkbar">
+      <span>Đã chọn 0/128 · Chỉ có thể duyệt hàng loạt với hóa đơn "Khớp hoàn toàn"</span>
+      <span>‹ Trang 1/13 ›</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2 -->
+<div class="section-title"><span class="num">02</span><h2>Màn hình Chi tiết hóa đơn — So sánh &amp; Duyệt</h2></div>
+<div class="section-note">Tương ứng FR-02, FR-03, FR-05, FR-08. Trọng tâm là hiển thị 3 nguồn dữ liệu cạnh nhau (Hóa đơn / PO / Phiếu nhập hàng) và làm nổi bật đúng ô có chênh lệch, kèm giải thích bằng ngôn ngữ tự nhiên.</div>
+<div class="screen">
+  <div class="screen-topbar"><span>Invoice Reconciliation — Chi tiết HD-08232</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+  <div class="s2-body">
+    <div class="breadcrumb">Danh sách đối soát  /  HD-08232</div>
+    <div class="s2-top">
+      <div>
+        <div class="s1-title">Hóa đơn HD-08232 — Cty TNHH ABC</div>
+        <div class="s1-sub">Đối chiếu với PO-1043 và Phiếu nhập hàng PN-2210</div>
+      </div>
+      <span class="tag tag-diff">Chênh lệch số tiền · 3.2%</span>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-col">
+        <h4>Hóa đơn</h4>
+        <div class="field-row"><span>Số lượng</span><span>200</span></div>
+        <div class="field-row diff"><span>Đơn giá</span><span>77.500đ</span></div>
+        <div class="field-row diff"><span>Thành tiền</span><span>15.500.000đ</span></div>
+        <div class="field-row"><span>Thuế VAT</span><span>10%</span></div>
+      </div>
+      <div class="compare-col">
+        <h4>Đơn đặt hàng (PO-1043)</h4>
+        <div class="field-row"><span>Số lượng</span><span>200</span></div>
+        <div class="field-row diff"><span>Đơn giá</span><span>75.000đ</span></div>
+        <div class="field-row diff"><span>Thành tiền</span><span>15.000.000đ</span></div>
+        <div class="field-row"><span>Thuế VAT</span><span>10%</span></div>
+      </div>
+      <div class="compare-col">
+        <h4>Phiếu nhập hàng (PN-2210)</h4>
+        <div class="field-row"><span>Số lượng</span><span>200</span></div>
+        <div class="field-row"><span>Đơn giá</span><span>—</span></div>
+        <div class="field-row"><span>Ngày nhập</span><span>28/08/2026</span></div>
+        <div class="field-row"><span>Người nhận</span><span>Kho HN-01</span></div>
+      </div>
+    </div>
+
+    <div class="explain-box">
+      <b>Giải thích chênh lệch (FR-08):</b> Đơn giá trên hóa đơn (77.500đ) cao hơn đơn giá trong PO (75.000đ), chênh lệch 3.2% cho toàn bộ 200 đơn vị. Số lượng khớp với phiếu nhập hàng, không có dấu hiệu giao thiếu/thừa hàng.
+      <div class="confidence">Độ tin cậy trích xuất: Cao (dữ liệu đọc từ XML hóa đơn điện tử chuẩn)</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn">Từ chối / Yêu cầu bổ sung</button>
+      <button class="btn">Chuyển kế toán trưởng</button>
+      <button class="btn btn-primary">Duyệt với ghi chú</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3 -->
+<div class="section-title"><span class="num">03</span><h2>Màn hình Tổng quan — Kế toán trưởng</h2></div>
+<div class="section-note">Tương ứng Persona 2 và FR-09. Không hiển thị từng dòng chi tiết như màn hình kế toán viên, mà ưu tiên các chỉ số tổng quan và danh sách case rủi ro cao cần chú ý.</div>
+<div class="screen">
+  <div class="screen-topbar"><span>Invoice Reconciliation — Tổng quan tháng 08/2026</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+  <div class="s3-body">
+    <div class="kpi-row">
+      <div class="kpi"><div class="val">75%</div><div class="lbl">Tỷ lệ tự động hóa</div></div>
+      <div class="kpi"><div class="val">96</div><div class="lbl">Hóa đơn đã duyệt</div></div>
+      <div class="kpi"><div class="val">8</div><div class="lbl">Case rủi ro cao chờ duyệt</div></div>
+      <div class="kpi"><div class="val">6%</div><div class="lbl">Human override rate</div></div>
+    </div>
+    <div class="s1-sub" style="margin-bottom:8px;">Case cần kế toán trưởng duyệt</div>
+    <div class="risk-list">
+      <div class="risk-item"><span>HD-08233 — Đối tác Xăng dầu HN</span><span class="tag tag-risk">82.300.000đ · Giá trị lớn</span></div>
+      <div class="risk-item"><span>HD-08240 — Cty Vận tải Minh An</span><span class="tag tag-risk">Chênh lệch 18%</span></div>
+      <div class="risk-item"><span>HD-08251 — Gara Phú Đạt</span><span class="tag tag-risk">OCR tin cậy thấp</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 4 -->
+<div class="section-title"><span class="num">04</span><h2>Trạng thái cảnh báo — Độ tin cậy trích xuất thấp</h2></div>
+<div class="section-note">Tương ứng FR-06, FR-07 và yêu cầu phi chức năng "Độ tin cậy" trong PRD. Đây là trạng thái đặc biệt của màn hình Chi tiết hóa đơn khi hệ thống không chắc chắn về dữ liệu đọc được.</div>
+<div class="screen">
+  <div class="screen-topbar"><span>Invoice Reconciliation — Chi tiết HD-08234</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+  <div class="s4-body">
+    <div class="alert-banner">⚠ Một số trường dữ liệu có độ tin cậy thấp do hóa đơn scan mờ. Vui lòng kiểm tra lại thủ công trước khi duyệt.</div>
+    <div class="field-conf"><span>Số tiền: 4.200.000đ</span><div class="conf-bar"><span style="width:40%"></span></div></div>
+    <div class="field-conf"><span>Mã hàng: SP-771?</span><div class="conf-bar"><span style="width:25%"></span></div></div>
+    <div class="field-conf"><span>Ngày hóa đơn: 27/08/2026</span><div class="conf-bar"><span style="width:85%"></span></div></div>
+    <div class="action-row" style="margin-top:14px;">
+      <button class="btn">Xem ảnh hóa đơn gốc</button>
+      <button class="btn btn-primary">Sửa &amp; xác nhận thủ công</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">
+  Wireframe này minh họa bố cục và luồng thao tác cho Checkpoint 1, đi kèm với bản Brief và PRD. Nội dung số liệu trong wireframe là dữ liệu minh họa, không phải dữ liệu thật.
+</div>
+
+</body>
+</html>

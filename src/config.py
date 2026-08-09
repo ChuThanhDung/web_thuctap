@@ -26,10 +26,18 @@ class Settings(BaseSettings):
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Database
-    database_url: str = "postgresql+psycopg://admin:Admin%40123@localhost:5432/docusyncai"
+    database_url: str = "postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai"
 
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
+
+    # SMTP Email
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = "chuthanhdungtruong@gmail.com"
+    smtp_password: str = ""
+    smtp_from: str = "chuthanhdungtruong@gmail.com"
+    smtp_tls: bool = True
 
 
 @lru_cache

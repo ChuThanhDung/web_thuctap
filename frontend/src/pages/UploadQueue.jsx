@@ -1,15 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Upload,
   FileText,
   CheckCircle2,
   Clock,
   AlertCircle,
   Loader2,
-  X,
   FileUp,
+  ExternalLink,
+  ShoppingCart,
+  PackageCheck,
+  FileCode2,
 } from 'lucide-react';
-import { uploadQueue } from '../mockData.js';
+import { fetchUploadFileBlob, getUploadQueue, uploadDocument } from '../api.js';
 
 const STATUS_STYLES = {
   completed: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Hoàn tất' },
@@ -18,10 +20,51 @@ const STATUS_STYLES = {
   error: { icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50', label: 'Lỗi' },
 };
 
-export default function UploadQueue() {
-  const [files, setFiles] = useState(uploadQueue);
+const DOC_TYPES = [
+  { value: 'invoice', label: 'Hóa đơn (Invoice)', desc: 'Kích hoạt đối soát 3 bên chéo trực tiếp từ DB', icon: FileText },
+  { value: 'po', label: 'Đơn đặt hàng (PO)', desc: 'Lưu thông tin thô đơn đặt hàng làm cơ sở đối chiếu', icon: ShoppingCart },
+  { value: 'grn', label: 'Phiếu nhập kho (GRN)', desc: 'Lưu thông tin thực nhận làm cơ sở đối chiếu', icon: PackageCheck },
+];
+
+export default function UploadQueue({ token }) {
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState('invoice');
   const fileInputRef = useRef(null);
+
+  // Hàm load hàng đợi upload thực tế từ BE
+  const fetchQueue = useCallback(async (showLoading = false) => {
+    try {
+      if (showLoading) setLoading(true);
+      const data = await getUploadQueue(token);
+      setFiles(data.items || []);
+    } catch (err) {
+      console.error('Không thể lấy danh sách hàng đợi upload:', err);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, [token]);
+
+  // Load danh sách lần đầu khi render
+  useEffect(() => {
+    fetchQueue(true);
+  }, [fetchQueue]);
+
+  // Thiết lập cơ chế tự động làm mới hàng đợi (polling) nếu có file đang xử lý
+  useEffect(() => {
+    const hasActiveFiles = files.some(
+      (f) => f.status === 'processing' || f.status === 'queued'
+    );
+    
+    if (!hasActiveFiles) return;
+
+    const timer = setInterval(() => {
+      fetchQueue(false);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [files, fetchQueue]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -32,40 +75,120 @@ export default function UploadQueue() {
     setIsDragOver(false);
   };
 
+  // Upload file lên BE
+  const uploadFiles = async (fileList) => {
+    const filesArray = Array.from(fileList);
+    
+    // Thêm các file mới vào UI ngay lập tức với trạng thái 'queued' để tối ưu trải nghiệm
+    const tempFiles = filesArray.map((f, i) => ({
+      id: `temp-${Date.now()}-${i}`,
+      filename: f.name,
+      size: `${(f.size / 1024 / 1024).toFixed(1)} MB`,
+      status: 'queued',
+      progress: 0,
+      created_at: new Date().toISOString(),
+    }));
+    
+    setFiles((prev) => [...tempFiles, ...prev]);
+
+    // Tiến hành upload từng file lên BE
+    for (let i = 0; i < filesArray.length; i++) {
+      const fileObj = filesArray[i];
+      try {
+        // Cập nhật trạng thái file local thành 'processing'
+        setFiles((prev) =>
+          prev.map((f, idx) =>
+            f.id === tempFiles[i].id ? { ...f, status: 'processing', progress: 30 } : f
+          )
+        );
+
+        // Gọi API thật, truyền kèm loại tài liệu đã chọn
+        await uploadDocument(token, fileObj, selectedDocType);
+        
+        // Load lại danh sách thật từ BE để đồng bộ hóa
+        await fetchQueue(false);
+      } catch (err) {
+        // Đánh dấu lỗi nếu upload thất bại
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === tempFiles[i].id
+              ? { ...f, status: 'error', progress: 0, error_message: err.message || 'Lỗi tải lên' }
+              : f
+          )
+        );
+      }
+    }
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
-    // Mock — in real app would upload
-    const newFiles = Array.from(e.dataTransfer.files).map((f, i) => ({
-      id: `UQ-new-${Date.now()}-${i}`,
-      filename: f.name,
-      size: `${(f.size / 1024 / 1024).toFixed(1)} MB`,
-      uploadedAt: new Date().toISOString(),
-      status: 'queued',
-      progress: 0,
-    }));
-    setFiles((prev) => [...newFiles, ...prev]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      uploadFiles(e.dataTransfer.files);
+    }
   };
 
   const handleFileSelect = (e) => {
-    const newFiles = Array.from(e.target.files).map((f, i) => ({
-      id: `UQ-new-${Date.now()}-${i}`,
-      filename: f.name,
-      size: `${(f.size / 1024 / 1024).toFixed(1)} MB`,
-      uploadedAt: new Date().toISOString(),
-      status: 'queued',
-      progress: 0,
-    }));
-    setFiles((prev) => [...newFiles, ...prev]);
+    if (e.target.files && e.target.files.length > 0) {
+      uploadFiles(e.target.files);
+    }
+  };
+
+  const handleOpenUploadedFile = async (file) => {
+    if (!file.file_url || file.status !== 'completed') return;
+
+    const previewTab = window.open('', '_blank');
+    if (!previewTab) {
+      alert('Trình duyệt đang chặn tab mới. Vui lòng cho phép pop-up để xem file.');
+      return;
+    }
+
+    try {
+      previewTab.document.title = file.filename;
+      previewTab.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 24px;">Đang mở file...</p>';
+      const blob = await fetchUploadFileBlob(token, file);
+      const objectUrl = URL.createObjectURL(blob);
+      previewTab.location.href = objectUrl;
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (err) {
+      previewTab.close();
+      alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Tải lên hóa đơn</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Kéo thả hoặc chọn file hóa đơn, PO, phiếu nhập kho để bắt đầu đối soát
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải lên & Xử lý chứng từ</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Tải lên hóa đơn (.xml, .pdf, .png), đơn đặt hàng PO hoặc phiếu nhập kho GRN để AI tự động bóc tách và đối soát.
         </p>
+      </div>
+
+      {/* Select Document Type with Highlight Bounding Container */}
+      <div className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3">
+        {DOC_TYPES.map((type) => {
+          const isSelected = selectedDocType === type.value;
+          const Icon = type.icon;
+          return (
+            <button
+              key={type.value}
+              onClick={() => setSelectedDocType(type.value)}
+              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all ${
+                isSelected
+                  ? 'border-brand-500 bg-white shadow-md dark:bg-slate-800 dark:border-brand-400'
+                  : 'border-slate-200/80 bg-white/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${isSelected ? 'bg-brand-600 text-white dark:bg-brand-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                <Icon size={18} />
+              </div>
+              <span className="mt-3 font-bold text-sm text-slate-900 dark:text-slate-100">{type.label}</span>
+              <span className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{type.desc}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Dropzone */}
@@ -74,36 +197,40 @@ export default function UploadQueue() {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`card flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-all ${
+        className={`card flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-all ${
           isDragOver
-            ? 'border-brand-500 bg-brand-50'
-            : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50'
+            ? 'border-brand-500 bg-brand-50/80 dark:bg-brand-950/40'
+            : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50/50 dark:border-slate-700 dark:hover:border-brand-500 dark:hover:bg-slate-800/40'
         }`}
       >
         <div
           className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
-            isDragOver ? 'bg-brand-100' : 'bg-slate-100'
+            isDragOver ? 'bg-brand-100 dark:bg-brand-900' : 'bg-slate-100 dark:bg-slate-800'
           }`}
         >
           <FileUp
             size={28}
-            className={isDragOver ? 'text-brand-600' : 'text-slate-400'}
+            className={isDragOver ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400 dark:text-slate-500'}
           />
         </div>
-        <p className="text-sm font-semibold text-slate-700">
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           {isDragOver ? 'Thả file tại đây' : 'Kéo thả file vào đây'}
         </p>
-        <p className="mt-1 text-xs text-slate-500">
-          hoặc <span className="font-medium text-brand-600">bấm để chọn file</span>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 text-center">
+          hoặc <span className="font-semibold text-brand-600 dark:text-brand-400">bấm để chọn file từ máy tính</span>
         </p>
-        <p className="mt-3 text-[11px] text-slate-400">
-          Hỗ trợ: PDF, XLSX, JPG, PNG · Tối đa 25 MB/file
-        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.XML</span>
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.PDF</span>
+          <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.PNG / .JPG</span>
+          <span>·</span>
+          <span>Dung lượng tối đa 25 MB</span>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png"
+          accept=".xml,.pdf,.png,.jpg,.jpeg"
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -111,52 +238,110 @@ export default function UploadQueue() {
 
       {/* Queue */}
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-200 px-5 py-3">
-          <h3 className="text-sm font-semibold text-slate-700">
+        <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
             Hàng đợi xử lý ({files.length} file)
           </h3>
+          {files.length > 0 && (
+            <button
+              onClick={() => fetchQueue(true)}
+              className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-semibold"
+            >
+              Làm mới
+            </button>
+          )}
         </div>
-        <div className="divide-y divide-slate-100">
-          {files.map((file) => {
-            const st = STATUS_STYLES[file.status] || STATUS_STYLES.queued;
-            const StatusIcon = st.icon;
-            return (
-              <div
-                key={file.id}
-                className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition-colors"
-              >
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${st.bg}`}>
-                  <FileText size={18} className={st.color} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-900 truncate">
-                    {file.filename}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-400">{file.size}</span>
-                    {file.error && (
-                      <span className="text-xs text-rose-600">{file.error}</span>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="animate-spin text-brand-600 dark:text-brand-400" size={24} />
+            <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">Đang tải danh sách...</span>
+          </div>
+        ) : files.length === 0 ? (
+          <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
+            Chưa có tệp nào được tải lên trong phiên làm việc này.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+            {files.map((file) => {
+              const st = STATUS_STYLES[file.status] || STATUS_STYLES.queued;
+              const StatusIcon = st.icon;
+              const canOpenFile = Boolean(file.file_url && file.status === 'completed');
+              
+              // Nhận diện icon biểu tượng tương ứng với đuôi file
+              const ext = file.filename.split('.').pop()?.toLowerCase();
+              let fileIconColor = 'text-brand-600';
+              if (ext === 'pdf') fileIconColor = 'text-rose-600';
+              else if (['png', 'jpg', 'jpeg'].includes(ext)) fileIconColor = 'text-amber-600';
+
+              return (
+                <div
+                  key={file.id}
+                  role={canOpenFile ? 'button' : undefined}
+                  tabIndex={canOpenFile ? 0 : undefined}
+                  title={canOpenFile ? 'Bấm để mở file trong tab mới' : undefined}
+                  onClick={() => handleOpenUploadedFile(file)}
+                  onKeyDown={(event) => {
+                    if (!canOpenFile) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleOpenUploadedFile(file);
+                    }
+                  }}
+                  className={`flex items-center gap-4 px-5 py-3 transition-colors ${
+                    canOpenFile
+                      ? 'cursor-pointer hover:bg-brand-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset'
+                      : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${st.bg}`}>
+                    <FileText size={18} className={fileIconColor} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`flex items-center gap-1.5 text-sm font-medium truncate ${
+                      canOpenFile ? 'text-slate-900 hover:text-brand-700' : 'text-slate-900'
+                    }`}>
+                      {file.filename}
+                      {canOpenFile && (
+                        <ExternalLink size={13} className="shrink-0 text-slate-400" />
+                      )}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-slate-400">{file.size}</span>
+                      {file.error_message && (
+                        <span className="text-xs text-rose-600 truncate max-w-[400px]" title={file.error_message}>
+                          Lỗi: {file.error_message}
+                        </span>
+                      )}
+                      {file.case_id && (
+                        <a
+                          href={`/case/${file.case_id}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="text-xs text-brand-600 hover:underline font-medium"
+                        >
+                          Xem kết quả đối soát
+                        </a>
+                      )}
+                    </div>
+                    {file.status === 'processing' && (
+                      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-brand-500 transition-all"
+                          style={{ width: `${file.progress}%` }}
+                        />
+                      </div>
                     )}
                   </div>
-                  {file.status === 'processing' && (
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-brand-500 transition-all"
-                        style={{ width: `${file.progress}%` }}
-                      />
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`flex items-center gap-1 text-xs font-medium ${st.color}`}>
+                      <StatusIcon size={14} className={st.spin ? 'animate-spin' : ''} />
+                      {st.label}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`flex items-center gap-1 text-xs font-medium ${st.color}`}>
-                    <StatusIcon size={14} className={st.spin ? 'animate-spin' : ''} />
-                    {st.label}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

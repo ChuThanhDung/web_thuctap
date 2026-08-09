@@ -1,6 +1,15 @@
-from datetime import date
+"""
+src/models/schemas.py — Pydantic schemas cho toàn bộ dự án
+"""
 
-from pydantic import BaseModel, Field
+from datetime import date, datetime
+from decimal import Decimal
+
+from pydantic import BaseModel, EmailStr, Field
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH SCHEMAS (giữ nguyên)
+# ══════════════════════════════════════════════════════════════════════════════
 
 
 class ChatRequest(BaseModel):
@@ -64,5 +73,209 @@ class PasswordChangeRequest(BaseModel):
     confirm_password: str = Field(..., min_length=6, max_length=128)
 
 
+class UserCreateRequest(BaseModel):
+    email: EmailStr = Field(..., description="Email phải đúng định dạng hợp lệ")
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: str = Field(..., min_length=2, max_length=100)
+    role_code: str = Field(..., description="'chief_accountant' hoặc 'accountant'")
+    department: str | None = Field(default=None, max_length=100)
+    employee_code: str | None = Field(default=None, max_length=50)
+    phone: str | None = Field(default=None, max_length=20)
+
+
+class UserListResponse(BaseModel):
+    items: list[AuthUser]
+    total: int
+
+
 class MessageResponse(BaseModel):
     message: str
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RECONCILIATION SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class LineItemOut(BaseModel):
+    id: str
+    row_index: int
+    item_sku: str | None
+    item_name: str | None
+    unit: str | None
+    inv_qty: Decimal | None
+    po_qty: Decimal | None
+    grn_qty: Decimal | None
+    inv_unit_price: Decimal | None
+    po_unit_price: Decimal | None
+    vat_rate_pct: int | None
+    diff_type: str | None
+    diff_note: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class ReconciliationListItem(BaseModel):
+    """Schema gọn cho danh sách."""
+
+    id: str
+    case_number: str
+    invoice_number: str | None
+    po_number: str | None
+    grn_number: str | None
+    partner_name: str | None
+    case_date: date | None
+    total_amount: Decimal | None
+    status: str
+    risk_level: str
+    confidence: Decimal | None
+    diff_amount: Decimal | None
+    diff_type: str | None
+    ai_note: str | None
+    decision: str | None
+    processed_by_name: str | None = None
+    processed_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class CaseDetailOut(BaseModel):
+    """Schema đầy đủ cho trang chi tiết."""
+
+    id: str
+    case_number: str
+    invoice_number: str | None
+    po_number: str | None
+    grn_number: str | None
+    partner_name: str | None
+    partner_tax_id: str | None
+    case_date: date | None
+    total_amount: Decimal | None
+    status: str
+    risk_level: str
+    confidence: Decimal | None
+    diff_amount: Decimal | None
+    diff_type: str | None
+    ai_note: str | None
+    ai_summary: str | None
+    ai_recommendation: str | None
+    decision: str | None
+    rejection_note: str | None
+    processed_by_name: str | None = None
+    processed_at: datetime | None
+    line_items: list[LineItemOut] = []
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ReconciliationListResponse(BaseModel):
+    items: list[ReconciliationListItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class CaseDecisionRequest(BaseModel):
+    decision: str = Field(..., pattern="^(approved|rejected|escalated)$")
+    note: str | None = Field(default=None, max_length=1000)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class DashboardStatsOut(BaseModel):
+    total_cases: int
+    total_matched: int
+    total_pending: int
+    total_escalated: int
+    total_value: Decimal
+    pending_value: Decimal
+    match_rate: float  # %
+    cases_by_status: dict[str, int]
+    cases_by_risk: dict[str, int]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDIT LOG SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class AuditLogOut(BaseModel):
+    id: int
+    user_id: str | None
+    user_name: str | None = None
+    action: str
+    target_type: str | None
+    target_id: str | None
+    details: dict | None
+    ip_address: str | None
+    created_at: datetime
+    timestamp: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AuditLogListResponse(BaseModel):
+    items: list[AuditLogOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# THRESHOLD SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class ThresholdOut(BaseModel):
+    id: str
+    category: str
+    percent_threshold: Decimal
+    absolute_threshold: Decimal
+    updated_at: datetime
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ThresholdUpdateRequest(BaseModel):
+    percent_threshold: Decimal = Field(..., ge=0, le=100)
+    absolute_threshold: Decimal = Field(..., ge=0)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UPLOAD SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class UploadedFileOut(BaseModel):
+    id: str
+    uploaded_by_id: str | None = None
+    uploaded_by_name: str | None = None
+    filename: str
+    original_filename: str | None = None
+    stored_filename: str | None = None
+    storage_provider: str | None = None
+    storage_key: str | None = None
+    file_url: str | None = None
+    content_type: str | None = None
+    file_ext: str | None = None
+    size: str
+    status: str
+    progress: int
+    error_message: str | None
+    case_id: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UploadedFileListResponse(BaseModel):
+    items: list[UploadedFileOut]
+    total: int

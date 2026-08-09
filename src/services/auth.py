@@ -3,15 +3,19 @@ from hashlib import sha256
 from secrets import randbelow, token_urlsafe
 
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.models.audit_log import AuditLog
 from src.models.password_reset_otp import PasswordResetOtp
+from src.models.role import Role
+from src.models.schemas import UserCreateRequest
 from src.models.user import User
 from src.models.user_session import UserSession
+from src.services.email import send_otp_email
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
@@ -30,7 +34,10 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
     stmt = (
         select(User)
         .options(selectinload(User.role))
-        .where(User.email == email.lower().strip(), User.status == "ACTIVE")
+        .where(
+            func.lower(User.email) == email.lower().strip(),
+            func.upper(User.status) == "ACTIVE",
+        )
     )
     user = db.scalars(stmt).first()
 
@@ -72,7 +79,7 @@ def get_user_by_session_token(db: Session, access_token: str) -> User | None:
             UserSession.session_token_hash == hash_token(access_token),
             UserSession.revoked_at.is_(None),
             UserSession.expires_at > datetime.now(UTC),
-            User.status == "ACTIVE",
+            func.upper(User.status) == "ACTIVE",
         )
     )
     return db.scalars(stmt).first()
@@ -88,7 +95,42 @@ def create_password_reset_otp(db: Session, user: User) -> str:
         )
     )
     db.commit()
+    send_otp_email(user.email, otp)
     return otp
+
+
+def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
+    email_clean = payload.email.lower().strip()
+    existing_user = db.scalars(select(User).where(User.email == email_clean)).first()
+    if existing_user:
+        raise ValueError("Email này đã được sử dụng bởi tài khoản khác trong hệ thống.")
+
+    emp_code_clean = payload.employee_code.strip() if payload.employee_code else None
+    if emp_code_clean:
+        existing_emp = db.scalars(select(User).where(User.employee_code == emp_code_clean)).first()
+        if existing_emp:
+            raise ValueError("Mã nhân viên này đã tồn tại.")
+
+    role = db.scalars(select(Role).where(Role.code == payload.role_code)).first()
+    if not role:
+        raise ValueError(f"Vai trò '{payload.role_code}' không hợp lệ.")
+
+    new_user = User(
+        email=email_clean,
+        password_hash=hash_password(payload.password),
+        full_name=payload.full_name.strip(),
+        role_id=role.id,
+        department=payload.department.strip() if payload.department else None,
+        employee_code=emp_code_clean,
+        phone=payload.phone.strip() if payload.phone else None,
+        status="ACTIVE",
+    )
+    db.add(new_user)
+    db.commit()
+
+    stmt = select(User).options(selectinload(User.role)).where(User.id == new_user.id)
+    return db.scalars(stmt).first()
+
 
 
 def verify_password_reset_otp(db: Session, user: User, otp: str) -> str | None:
@@ -142,13 +184,16 @@ def write_audit_log(
     details: dict | None,
     ip_address: str | None,
     user_agent: str | None,
+    target_type: str = "USER",
+    target_id: str | None = None,
 ) -> None:
+    resolved_target_id = target_id if target_id else (str(user.id) if user else None)
     db.add(
         AuditLog(
             user_id=user.id if user else None,
             action=action,
-            target_type="USER",
-            target_id=str(user.id) if user else None,
+            target_type=target_type,
+            target_id=resolved_target_id,
             details=details,
             ip_address=ip_address,
             user_agent=user_agent,

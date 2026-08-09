@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ClipboardList,
   Search,
@@ -11,7 +11,8 @@ import {
   Bot,
   X,
 } from 'lucide-react';
-import { auditTrailData } from '../mockData.js';
+import { getAuditLogs } from '../services/auditLogs.js';
+import { formatDate } from '../text.js';
 
 const ACTION_STYLES = {
   'Duyệt': { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -23,20 +24,41 @@ const ACTION_STYLES = {
   'Cấu hình': { icon: Settings, color: 'text-slate-600', bg: 'bg-slate-100' },
 };
 
-export default function AuditTrail() {
+export default function AuditTrail({ token }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('');
 
-  const actions = [...new Set(auditTrailData.map((a) => a.action))];
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        setLoading(true);
+        const data = await getAuditLogs(token, { action: actionFilter, page_size: 100 });
+        setLogs(data.items || []);
+      } catch (err) {
+        setError(err.message || 'Lỗi tải nhật ký hệ thống');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLogs();
+  }, [token, actionFilter]);
 
-  const filtered = auditTrailData.filter((item) => {
-    if (actionFilter && item.action !== actionFilter) return false;
+  const actions = [...new Set(logs.map((a) => a.action))];
+
+  const filtered = logs.filter((item) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
+      const userName = item.user_name || '';
+      const action = item.action || '';
+      const details = JSON.stringify(item.details || {}).toLowerCase();
       return (
-        item.user.toLowerCase().includes(q) ||
-        item.target.toLowerCase().includes(q) ||
-        item.detail.toLowerCase().includes(q)
+        userName.toLowerCase().includes(q) ||
+        action.toLowerCase().includes(q) ||
+        details.includes(q)
       );
     }
     return true;
@@ -61,7 +83,7 @@ export default function AuditTrail() {
             />
             <input
               type="text"
-              placeholder="Tìm theo người dùng, hóa đơn..."
+              placeholder="Tìm theo người dùng, chi tiết..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field pl-9"
@@ -83,11 +105,11 @@ export default function AuditTrail() {
               className="input-field appearance-none pr-9 min-w-[160px]"
             >
               <option value="">Tất cả hành động</option>
-              {actions.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
+              {/* Could be hardcoded list of actions, but dynamic from current logs is also okay */}
+              <option value="CASE_APPROVED">Duyệt hồ sơ</option>
+              <option value="CASE_REJECTED">Từ chối hồ sơ</option>
+              <option value="CASE_ESCALATED">Escalate hồ sơ</option>
+              <option value="LOGIN">Đăng nhập</option>
             </select>
             <ChevronDown
               size={14}
@@ -99,72 +121,80 @@ export default function AuditTrail() {
 
       {/* Table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
-                <th className="px-4 py-3 text-left font-semibold text-slate-600 whitespace-nowrap">
-                  Thời gian
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">
-                  Người thực hiện
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">
-                  Hành động
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">
-                  Đối tượng
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">
-                  Chi tiết
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">
-                  IP
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((item) => {
-                const actionStyle = ACTION_STYLES[item.action] || ACTION_STYLES['Cấu hình'];
-                const ActionIcon = actionStyle.icon;
-                return (
-                  <tr key={item.id} className="table-row-hover">
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap text-xs">
-                      {new Date(item.timestamp).toLocaleString('vi-VN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-slate-900">{item.user}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${actionStyle.bg} ${actionStyle.color}`}
-                      >
-                        <ActionIcon size={13} />
-                        {item.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 font-mono text-xs">
-                      {item.target}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[280px]">
-                      <p className="truncate">{item.detail}</p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">
-                      {item.ipAddress}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {loading ? (
+           <div className="flex justify-center py-12">
+             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600"></div>
+           </div>
+        ) : error ? (
+           <div className="py-12 text-center text-rose-600">{error}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 whitespace-nowrap">
+                    Thời gian
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                    Người thực hiện
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                    Hành động
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                    Chi tiết
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                    IP
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((item) => {
+                  let actionLabel = item.action;
+                  let styleKey = 'Cấu hình';
+                  
+                  if (item.action === 'CASE_APPROVED') { actionLabel = 'Duyệt'; styleKey = 'Duyệt'; }
+                  else if (item.action === 'CASE_REJECTED') { actionLabel = 'Từ chối'; styleKey = 'Từ chối'; }
+                  else if (item.action === 'CASE_ESCALATED') { actionLabel = 'Escalate'; styleKey = 'Escalate'; }
+                  else if (item.action === 'LOGIN') { actionLabel = 'Đăng nhập'; styleKey = 'Auto-match'; }
 
-        {filtered.length === 0 && (
+                  const actionStyle = ACTION_STYLES[styleKey] || ACTION_STYLES['Cấu hình'];
+                  const ActionIcon = actionStyle.icon;
+                  
+                  const detailText = item.details ? JSON.stringify(item.details) : '-';
+                  
+                  return (
+                    <tr key={item.id} className="table-row-hover">
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap text-xs">
+                        {formatDate(item.timestamp)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-slate-900">{item.user_name || 'Hệ thống'}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${actionStyle.bg} ${actionStyle.color}`}
+                        >
+                          <ActionIcon size={13} />
+                          {actionLabel}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 max-w-[280px]">
+                        <p className="truncate" title={detailText}>{detailText}</p>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 font-mono text-xs">
+                        {item.ip_address || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!loading && !error && filtered.length === 0 && (
           <div className="py-12 text-center">
             <p className="text-slate-500">Không tìm thấy hoạt động nào.</p>
           </div>

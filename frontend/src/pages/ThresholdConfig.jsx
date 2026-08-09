@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Settings, Edit2, Check, X, Info } from 'lucide-react';
-import { thresholdConfig, formatVND } from '../mockData.js';
+import { formatVND, formatDate } from '../text.js';
+import { getThresholds, updateThreshold } from '../services/thresholds.js';
 
-export default function ThresholdConfig() {
-  const [configs, setConfigs] = useState(thresholdConfig);
+export default function ThresholdConfig({ token }) {
+  const [configs, setConfigs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    async function fetchConfigs() {
+      try {
+        setLoading(true);
+        const data = await getThresholds(token);
+        setConfigs(data.items || []);
+      } catch (err) {
+        setError(err.message || 'Không thể tải cấu hình ngưỡng');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchConfigs();
+  }, [token]);
+
   const startEdit = (item) => {
     setEditingId(item.id);
     setEditValues({
-      percentThreshold: item.percentThreshold,
-      absoluteThreshold: item.absoluteThreshold,
+      percent_threshold: item.percent_threshold,
+      absolute_threshold: item.absolute_threshold,
     });
   };
 
@@ -21,24 +39,42 @@ export default function ThresholdConfig() {
     setEditValues({});
   };
 
-  const saveEdit = (id) => {
-    setConfigs((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              percentThreshold: parseFloat(editValues.percentThreshold) || c.percentThreshold,
-              absoluteThreshold: parseInt(editValues.absoluteThreshold) || c.absoluteThreshold,
-              lastUpdated: new Date().toISOString().split('T')[0],
-              updatedBy: 'Nguyễn Thị Lan',
-            }
-          : c
-      )
-    );
-    setEditingId(null);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const saveEdit = async (id) => {
+    try {
+      const payload = {
+        percent_threshold: parseFloat(editValues.percent_threshold) || 0,
+        absolute_threshold: parseInt(editValues.absolute_threshold) || 0,
+      };
+      
+      const updatedItem = await updateThreshold(token, id, payload);
+      
+      setConfigs((prev) =>
+        prev.map((c) => (c.id === id ? updatedItem : c))
+      );
+      
+      setEditingId(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      alert(err.message || 'Lỗi khi cập nhật cấu hình');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center text-rose-600 bg-rose-50 rounded-md border border-rose-200">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -111,36 +147,36 @@ export default function ThresholdConfig() {
                         <input
                           type="number"
                           step="0.5"
-                          value={editValues.percentThreshold}
+                          value={editValues.percent_threshold}
                           onChange={(e) =>
-                            setEditValues((v) => ({ ...v, percentThreshold: e.target.value }))
+                            setEditValues((v) => ({ ...v, percent_threshold: e.target.value }))
                           }
                           className="input-field w-24 text-right ml-auto"
                           autoFocus
                         />
                       ) : (
-                        <span className="font-mono text-slate-900">{item.percentThreshold}%</span>
+                        <span className="font-mono text-slate-900">{item.percent_threshold}%</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-right">
                       {isEditing ? (
                         <input
                           type="number"
-                          step="1000000"
-                          value={editValues.absoluteThreshold}
+                          step="100000"
+                          value={editValues.absolute_threshold}
                           onChange={(e) =>
-                            setEditValues((v) => ({ ...v, absoluteThreshold: e.target.value }))
+                            setEditValues((v) => ({ ...v, absolute_threshold: e.target.value }))
                           }
                           className="input-field w-40 text-right ml-auto"
                         />
                       ) : (
                         <span className="font-mono text-slate-900">
-                          {formatVND(item.absoluteThreshold)}
+                          {formatVND(item.absolute_threshold)}
                         </span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-slate-500 text-xs">
-                      {item.lastUpdated} · {item.updatedBy}
+                      {formatDate(item.updated_at)} · {item.updated_by_name || '-'}
                     </td>
                     <td className="px-5 py-3">
                       {isEditing ? (
