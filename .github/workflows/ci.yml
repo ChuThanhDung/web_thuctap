@@ -25,24 +25,34 @@ jobs:
       - name: Lint with ruff
         run: ruff check src/ tests/
 
-      - name: Ensure Postgres DB is available
+      - name: Start clean test Postgres DB
         run: |
           python -c "
-          import socket, subprocess, time
-          sock = socket.socket()
-          if sock.connect_ex(('127.0.0.1', 5433)) != 0:
-              print('Port 5433 is closed. Starting Postgres container...')
-              subprocess.run(['docker', 'compose', 'up', '-d', 'postgres'], check=True)
-              for _ in range(15):
-                  time.sleep(1)
-                  s = socket.socket()
-                  if s.connect_ex(('127.0.0.1', 5433)) == 0:
-                      s.close()
-                      break
-                  s.close()
+          import os, subprocess, time
+
+          env = os.environ.copy()
+          env.update({
+              'COMPOSE_PROJECT_NAME': 'docusyncai_ci',
+              'POSTGRES_USER': 'admin',
+              'POSTGRES_PASSWORD': 'Admin@123',
+              'POSTGRES_DB': 'docusyncai',
+              'POSTGRES_PORT': '55433',
+          })
+
+          subprocess.run(['docker', 'compose', 'down', '--volumes', '--remove-orphans'], env=env, check=False)
+          subprocess.run(['docker', 'compose', 'up', '-d', 'postgres'], env=env, check=True)
+
+          for _ in range(30):
+              result = subprocess.run(
+                  ['docker', 'compose', 'exec', '-T', 'postgres', 'pg_isready', '-U', 'admin', '-d', 'docusyncai'],
+                  env=env,
+                  check=False,
+              )
+              if result.returncode == 0:
+                  break
+              time.sleep(1)
           else:
-              print('Port 5433 is already open! Using existing PostgreSQL instance.')
-          sock.close()
+              raise SystemExit('Postgres did not become ready in time')
           "
 
       - name: Run tests
@@ -50,4 +60,11 @@ jobs:
         env:
           APP_ENV: test
           OPENAI_API_KEY: test-key
-          DATABASE_URL: postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai
+          DATABASE_URL: postgresql+psycopg://admin:Admin%40123@localhost:55433/docusyncai
+
+      - name: Stop test Postgres DB
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+        env:
+          COMPOSE_PROJECT_NAME: docusyncai_ci
+          POSTGRES_PORT: 55433
