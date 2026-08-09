@@ -1,17 +1,26 @@
-import os
+from datetime import datetime
+from pathlib import Path
 
 import pytest
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
+from src.api.uploads import PROJECT_ROOT
 from src.database import get_db
 from src.main import app
 from src.models.user import User
 
 
+def assert_stored_filename(data, doc_type, file_ext):
+    date_part = datetime.now().strftime("%d_%m_%Y")
+    stored_filename = data["stored_filename"]
+    assert stored_filename.startswith(f"{doc_type}_{date_part}_")
+    assert stored_filename.endswith(f".{file_ext}")
+    assert stored_filename.removesuffix(f".{file_ext}").split("_")[-1].isdigit()
+
+
 def override_get_current_user(db: Session = Depends(get_db)):
-    # Lấy tài khoản kế toán viên đã được seed sẵn trong DB để tránh lỗi khóa ngoại (ForeignKeyViolation)
     user = db.query(User).filter(User.email == "accountant@docusync.ai").first()
     return user
 
@@ -25,30 +34,14 @@ def auth_override():
 
 @pytest.fixture(autouse=True)
 def clean_db_fixture(db_session):
-    """Xóa sạch dữ liệu chứng từ trước mỗi test case để tránh trùng lặp giữa các lượt chạy."""
-    from src.models.reconciliation import (
-        GoodsReceiptNote,
-        GoodsReceiptNoteItem,
-        LineItem,
-        PurchaseOrder,
-        PurchaseOrderItem,
-        ReconciliationCase,
-        UploadedFile,
-    )
+    from src.models.reconciliation import UploadedFile
 
-    db_session.query(LineItem).delete()
-    db_session.query(ReconciliationCase).delete()
-    db_session.query(PurchaseOrderItem).delete()
-    db_session.query(PurchaseOrder).delete()
-    db_session.query(GoodsReceiptNoteItem).delete()
-    db_session.query(GoodsReceiptNote).delete()
     db_session.query(UploadedFile).delete()
     db_session.commit()
 
 
 @pytest.mark.asyncio
 async def test_list_uploads_empty(client):
-    """Kiểm tra API lấy danh sách upload queue trả về kết quả."""
     response = await client.get("/api/v1/uploads")
     assert response.status_code == 200
     data = response.json()
@@ -59,48 +52,46 @@ async def test_list_uploads_empty(client):
 
 @pytest.mark.asyncio
 async def test_upload_valid_invoice(client):
-    """Kiểm tra API upload hóa đơn thực tế và đối soát tự động."""
-    # Tìm file hóa đơn mẫu trong thư mục raw_data
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
-    inv_path = os.path.join(base_dir, "invoice", "INV_0000001.xml")
-
-    # Đọc file hóa đơn mẫu
-    with open(inv_path, "rb") as f:
-        file_content = f.read()
-
-    # Gọi API POST upload
-    response = await client.post("/api/v1/uploads", files={"file": ("INV_0000001.xml", file_content, "text/xml")})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] in ("completed", "processing"), f"Upload failed with error: {data.get('error_message')}"
-
-    # Nếu đối soát thành công, sẽ có case_id
-    if data["status"] == "completed":
-        assert data["case_id"] is not None
-
-
-@pytest.mark.asyncio
-async def test_upload_invalid_xml(client):
-    """Kiểm tra API upload xử lý ngoại lệ khi file lỗi."""
     response = await client.post(
-        "/api/v1/uploads", files={"file": ("bad_file.xml", b"<InvalidXML>missing_close_tag", "text/xml")}
+        "/api/v1/uploads",
+        files={"file": ("INV_0000001.xml", b"<Invoice></Invoice>", "text/xml")},
     )
 
-    # API sẽ bắt lỗi và trả về bản ghi với status 'error'
     assert response.status_code == 200
     data = response.json()
-    assert data["filename"] == "bad_file.xml"
-    assert data["status"] == "error"
-    assert data["error_message"] is not None
+    assert data["status"] == "completed"
+    assert data["progress"] == 100
+    assert data["case_id"] is None
+    assert data["uploaded_by_id"] is not None
+    assert data["original_filename"] is None
+    assert_stored_filename(data, "invoice", "xml")
+    assert data["storage_provider"] == "local"
+    assert data["storage_key"].startswith("storage/upload/invoice/")
+    assert data["file_url"] == f"/api/v1/uploads/{data['id']}/file"
+    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
-async def test_upload_pdf_invoice_fallback(client):
-    """Kiểm tra upload hóa đơn dạng PDF và sử dụng Local/Fallback strategy."""
+async def test_upload_invalid_xml_still_saves_file(client):
+    response = await client.post(
+        "/api/v1/uploads",
+        files={"file": ("bad_file.xml", b"<InvalidXML>missing_close_tag", "text/xml")},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["error_message"] is None
+    assert data["uploaded_by_id"] is not None
+    assert_stored_filename(data, "invoice", "xml")
+    assert data["storage_key"].startswith("storage/upload/invoice/")
+    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+
+
+@pytest.mark.asyncio
+async def test_upload_pdf_invoice_only_stores_file(client):
     pdf_content = b"%PDF-1.4 mock content"
 
-    # Upload hóa đơn số 2 dưới dạng PDF
     response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "invoice"},
@@ -109,41 +100,72 @@ async def test_upload_pdf_invoice_fallback(client):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] in ("completed", "processing"), f"Failed: {data.get('error_message')}"
-    if data["status"] == "completed":
-        assert data["case_id"] is not None
+    assert data["status"] == "completed"
+    assert data["case_id"] is None
+    assert data["uploaded_by_id"] is not None
+    assert data["original_filename"] is None
+    assert data["file_ext"] == "pdf"
+    assert_stored_filename(data, "invoice", "pdf")
+    assert data["storage_key"].startswith("storage/upload/invoice/")
+    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
-async def test_upload_po_png(client):
-    """Kiểm tra upload PO dạng ảnh và sử dụng Local/Fallback strategy."""
+async def test_uploaded_file_can_be_opened_from_file_url(client):
+    pdf_content = b"%PDF-1.4 mock content"
+    upload_response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "invoice"},
+        files={"file": ("INV_0000003.pdf", pdf_content, "application/pdf")},
+    )
+
+    assert upload_response.status_code == 200
+    data = upload_response.json()
+
+    file_response = await client.get(data["file_url"])
+
+    assert file_response.status_code == 200
+    assert file_response.content == pdf_content
+    assert file_response.headers["content-type"].startswith("application/pdf")
+    assert "inline" in file_response.headers["content-disposition"]
+
+
+@pytest.mark.asyncio
+async def test_upload_po_png_only_stores_file(client):
     png_content = b"\x89PNG\r\n\x1a\n mock png content"
 
     response = await client.post(
-        "/api/v1/uploads", data={"doc_type": "po"}, files={"file": ("PO-2026-999991.png", png_content, "image/png")}
+        "/api/v1/uploads",
+        data={"doc_type": "po"},
+        files={"file": ("PO-2026-999991.png", png_content, "image/png")},
     )
 
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "completed"
     assert data["error_message"] is None
+    assert data["uploaded_by_id"] is not None
+    assert data["original_filename"] is None
+    assert data["file_ext"] == "png"
+    assert_stored_filename(data, "po", "png")
+    assert data["storage_key"].startswith("storage/upload/po/")
+    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
-async def test_upload_doc_type_mismatch(client):
-    """Kiểm tra bị chặn khi upload Hóa đơn XML dưới dạng PO."""
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
-    inv_path = os.path.join(base_dir, "invoice", "INV_0000001.xml")
-
-    with open(inv_path, "rb") as f:
-        file_content = f.read()
-
-    # Upload file hóa đơn nhưng khai báo doc_type="po" -> phải bị chặn với status='error'
+async def test_upload_selected_type_controls_storage_folder(client):
     response = await client.post(
-        "/api/v1/uploads", data={"doc_type": "po"}, files={"file": ("INV_0000001.xml", file_content, "text/xml")}
+        "/api/v1/uploads",
+        data={"doc_type": "po"},
+        files={"file": ("INV_0000001.xml", b"<Invoice></Invoice>", "text/xml")},
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "error"
-    assert "tải lên không hợp lệ" in data["error_message"].lower() or "không khớp" in data["error_message"].lower()
+    assert data["status"] == "completed"
+    assert data["error_message"] is None
+    assert data["uploaded_by_id"] is not None
+    assert data["original_filename"] is None
+    assert_stored_filename(data, "po", "xml")
+    assert data["storage_key"].startswith("storage/upload/po/")
+    assert Path(PROJECT_ROOT / data["storage_key"]).exists()

@@ -11,11 +11,12 @@ from src.main import app
 @pytest.fixture(scope="session", autouse=True)
 def init_db():
     from src.database import Base, engine
-    from src.main import ensure_user_profile_columns, seed_initial_data_if_needed
+    from src.main import ensure_uploaded_file_storage_columns, ensure_user_profile_columns, seed_initial_data_if_needed
     from src.models.reconciliation import ReconciliationCase
 
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
+    ensure_uploaded_file_storage_columns()
     seed_initial_data_if_needed()
 
     with Session(engine) as db:

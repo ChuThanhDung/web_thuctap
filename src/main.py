@@ -29,6 +29,63 @@ def ensure_user_profile_columns() -> None:
             connection.execute(text(statement))
 
 
+def ensure_uploaded_file_storage_columns() -> None:
+    statements = [
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS storage_key VARCHAR(500)",
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS uploaded_by_id UUID",
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
+        """
+        DO $$
+        DECLARE
+            col_name text;
+        BEGIN
+            FOREACH col_name IN ARRAY ARRAY[
+                'filename',
+                'original_filename',
+                'stored_filename',
+                'storage_provider',
+                'file_url',
+                'content_type',
+                'file_ext',
+                'size',
+                'status',
+                'progress',
+                'error_message',
+                'case_id',
+                'updated_at'
+            ]
+            LOOP
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'uploaded_files'
+                    AND column_name = col_name
+                ) THEN
+                    EXECUTE format('ALTER TABLE uploaded_files DROP COLUMN %I', col_name);
+                END IF;
+            END LOOP;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'uploaded_files_uploaded_by_id_fkey'
+            ) THEN
+                ALTER TABLE uploaded_files
+                ADD CONSTRAINT uploaded_files_uploaded_by_id_fkey
+                FOREIGN KEY (uploaded_by_id) REFERENCES users(id) ON DELETE SET NULL;
+            END IF;
+        END $$;
+        """,
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
@@ -125,6 +182,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
+    ensure_uploaded_file_storage_columns()
     seed_initial_data_if_needed()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield

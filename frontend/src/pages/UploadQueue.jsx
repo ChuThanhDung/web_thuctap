@@ -6,11 +6,12 @@ import {
   AlertCircle,
   Loader2,
   FileUp,
+  ExternalLink,
   ShoppingCart,
   PackageCheck,
   FileCode2,
 } from 'lucide-react';
-import { getUploadQueue, uploadDocument } from '../api.js';
+import { fetchUploadFileBlob, getUploadQueue, uploadDocument } from '../api.js';
 
 const STATUS_STYLES = {
   completed: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Hoàn tất' },
@@ -133,6 +134,28 @@ export default function UploadQueue({ token }) {
     }
   };
 
+  const handleOpenUploadedFile = async (file) => {
+    if (!file.file_url || file.status !== 'completed') return;
+
+    const previewTab = window.open('', '_blank');
+    if (!previewTab) {
+      alert('Trình duyệt đang chặn tab mới. Vui lòng cho phép pop-up để xem file.');
+      return;
+    }
+
+    try {
+      previewTab.document.title = file.filename;
+      previewTab.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 24px;">Đang mở file...</p>';
+      const blob = await fetchUploadFileBlob(token, file);
+      const objectUrl = URL.createObjectURL(blob);
+      previewTab.location.href = objectUrl;
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (err) {
+      previewTab.close();
+      alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -242,6 +265,7 @@ export default function UploadQueue({ token }) {
             {files.map((file) => {
               const st = STATUS_STYLES[file.status] || STATUS_STYLES.queued;
               const StatusIcon = st.icon;
+              const canOpenFile = Boolean(file.file_url && file.status === 'completed');
               
               // Nhận diện icon biểu tượng tương ứng với đuôi file
               const ext = file.filename.split('.').pop()?.toLowerCase();
@@ -252,14 +276,34 @@ export default function UploadQueue({ token }) {
               return (
                 <div
                   key={file.id}
-                  className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition-colors"
+                  role={canOpenFile ? 'button' : undefined}
+                  tabIndex={canOpenFile ? 0 : undefined}
+                  title={canOpenFile ? 'Bấm để mở file trong tab mới' : undefined}
+                  onClick={() => handleOpenUploadedFile(file)}
+                  onKeyDown={(event) => {
+                    if (!canOpenFile) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleOpenUploadedFile(file);
+                    }
+                  }}
+                  className={`flex items-center gap-4 px-5 py-3 transition-colors ${
+                    canOpenFile
+                      ? 'cursor-pointer hover:bg-brand-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset'
+                      : 'hover:bg-slate-50'
+                  }`}
                 >
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${st.bg}`}>
                     <FileText size={18} className={fileIconColor} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-900 truncate">
+                    <p className={`flex items-center gap-1.5 text-sm font-medium truncate ${
+                      canOpenFile ? 'text-slate-900 hover:text-brand-700' : 'text-slate-900'
+                    }`}>
                       {file.filename}
+                      {canOpenFile && (
+                        <ExternalLink size={13} className="shrink-0 text-slate-400" />
+                      )}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-slate-400">{file.size}</span>
@@ -271,6 +315,7 @@ export default function UploadQueue({ token }) {
                       {file.case_id && (
                         <a
                           href={`/case/${file.case_id}`}
+                          onClick={(event) => event.stopPropagation()}
                           className="text-xs text-brand-600 hover:underline font-medium"
                         >
                           Xem kết quả đối soát

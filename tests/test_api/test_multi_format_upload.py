@@ -1,12 +1,26 @@
+from datetime import datetime
+from pathlib import Path
+
 import pytest
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
+from src.api.uploads import PROJECT_ROOT
 from src.database import get_db
 from src.main import app
-from src.models.reconciliation import PurchaseOrder
 from src.models.user import User
+
+
+def stored_index(data):
+    return int(Path(data["stored_filename"]).stem.split("_")[-1])
+
+
+def assert_stored_filename(data, doc_type, file_ext):
+    date_part = datetime.now().strftime("%d_%m_%Y")
+    stored_filename = data["stored_filename"]
+    assert stored_filename.startswith(f"{doc_type}_{date_part}_")
+    assert stored_filename.endswith(f".{file_ext}")
 
 
 def override_get_current_user(db: Session = Depends(get_db)):
@@ -23,57 +37,46 @@ def auth_override():
 
 @pytest.fixture(autouse=True)
 def clean_db_fixture(db_session):
-    """Xóa sạch dữ liệu chứng từ trước mỗi test case để tránh trùng lặp giữa các lượt chạy."""
-    from src.models.reconciliation import (
-        GoodsReceiptNote,
-        GoodsReceiptNoteItem,
-        LineItem,
-        PurchaseOrder,
-        PurchaseOrderItem,
-        ReconciliationCase,
-        UploadedFile,
-    )
+    from src.models.reconciliation import UploadedFile
 
-    db_session.query(LineItem).delete()
-    db_session.query(ReconciliationCase).delete()
-    db_session.query(PurchaseOrderItem).delete()
-    db_session.query(PurchaseOrder).delete()
-    db_session.query(GoodsReceiptNoteItem).delete()
-    db_session.query(GoodsReceiptNote).delete()
     db_session.query(UploadedFile).delete()
     db_session.commit()
 
 
 @pytest.mark.asyncio
-async def test_upload_png_po_and_deduplication(client, db_session):
-    # 1. Test uploading a PO in PNG format
+async def test_upload_png_po_twice_stores_two_files(client):
     png_content = b"\x89PNG\r\n\x1a\n mock png content for PO test"
 
     response = await client.post(
-        "/api/v1/uploads", data={"doc_type": "po"}, files={"file": ("PO_TEST_999999.png", png_content, "image/png")}
+        "/api/v1/uploads",
+        data={"doc_type": "po"},
+        files={"file": ("PO_TEST_999999.png", png_content, "image/png")},
+    )
+    dup_response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po"},
+        files={"file": ("PO_TEST_999999.png", png_content, "image/png")},
     )
 
     assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "completed"
-
-    # Verify PO was stored in DB
-    po_in_db = db_session.query(PurchaseOrder).filter(PurchaseOrder.po_number == "PO_TEST_999999").first()
-    assert po_in_db is not None or db_session.query(PurchaseOrder).first() is not None
-
-    # 2. Test uploading the exact same duplicate PO -> Should fail with deduplication error
-    dup_response = await client.post(
-        "/api/v1/uploads", data={"doc_type": "po"}, files={"file": ("PO_TEST_999999.png", png_content, "image/png")}
-    )
-
     assert dup_response.status_code == 200
-    dup_data = dup_response.json()
-    assert dup_data["status"] == "error"
-    assert "trùng lặp" in dup_data["error_message"].lower()
+
+    first_data = response.json()
+    second_data = dup_response.json()
+    assert first_data["status"] == "completed"
+    assert second_data["status"] == "completed"
+    assert_stored_filename(first_data, "po", "png")
+    assert_stored_filename(second_data, "po", "png")
+    assert stored_index(second_data) == stored_index(first_data) + 1
+    assert first_data["storage_key"].startswith("storage/upload/po/")
+    assert second_data["storage_key"].startswith("storage/upload/po/")
+    assert first_data["storage_key"] != second_data["storage_key"]
+    assert Path(PROJECT_ROOT / first_data["storage_key"]).exists()
+    assert Path(PROJECT_ROOT / second_data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
-async def test_upload_pdf_grn_deduplication(client, db_session):
+async def test_upload_pdf_grn_twice_stores_two_files(client):
     pdf_content = b"%PDF-1.4 mock pdf content for GRN test"
 
     response = await client.post(
@@ -81,18 +84,24 @@ async def test_upload_pdf_grn_deduplication(client, db_session):
         data={"doc_type": "grn"},
         files={"file": ("GRN_TEST_888888.pdf", pdf_content, "application/pdf")},
     )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "completed"
-
-    # Upload duplicate GRN -> should be rejected
     dup_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "grn"},
         files={"file": ("GRN_TEST_888888.pdf", pdf_content, "application/pdf")},
     )
+
+    assert response.status_code == 200
     assert dup_response.status_code == 200
-    dup_data = dup_response.json()
-    assert dup_data["status"] == "error"
-    assert "trùng lặp" in dup_data["error_message"].lower()
+
+    first_data = response.json()
+    second_data = dup_response.json()
+    assert first_data["status"] == "completed"
+    assert second_data["status"] == "completed"
+    assert_stored_filename(first_data, "grn", "pdf")
+    assert_stored_filename(second_data, "grn", "pdf")
+    assert stored_index(second_data) == stored_index(first_data) + 1
+    assert first_data["storage_key"].startswith("storage/upload/grn/")
+    assert second_data["storage_key"].startswith("storage/upload/grn/")
+    assert first_data["storage_key"] != second_data["storage_key"]
+    assert Path(PROJECT_ROOT / first_data["storage_key"]).exists()
+    assert Path(PROJECT_ROOT / second_data["storage_key"]).exists()

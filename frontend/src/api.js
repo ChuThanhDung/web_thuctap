@@ -1,6 +1,26 @@
 import { repairTextDeep } from './text.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8000/api/v1' : '/api/v1');
+
+function buildApiUrl(pathOrUrl) {
+  if (!pathOrUrl) return null;
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+
+  const apiBase = new URL(API_BASE_URL, window.location.origin);
+  if (pathOrUrl.startsWith('/api/')) {
+    return `${apiBase.origin}${pathOrUrl}`;
+  }
+  if (pathOrUrl.startsWith('/')) {
+    return `${API_BASE_URL}${pathOrUrl}`;
+  }
+  return `${API_BASE_URL}/${pathOrUrl}`;
+}
+
+export function getUploadFileViewUrl(file) {
+  return buildApiUrl(file?.file_url || (file?.id ? `/uploads/${file.id}/file` : null));
+}
 
 export async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
@@ -104,6 +124,25 @@ export async function uploadDocument(token, file, docType = null) {
 export async function getUploadQueue(token) {
   const response = await authFetch('/uploads', token);
   return parseResponse(response);
+}
+
+export async function fetchUploadFileBlob(token, file) {
+  const fileUrl = getUploadFileViewUrl(file);
+  if (!fileUrl) {
+    throw new Error('Không tìm thấy đường dẫn file để mở.');
+  }
+
+  const response = await fetch(fileUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Không thể mở file này. Vui lòng tải lại danh sách và thử lại.');
+  }
+
+  return response.blob();
 }
 
 export async function createUserAccount(token, userData) {

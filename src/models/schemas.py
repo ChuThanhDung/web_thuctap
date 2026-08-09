@@ -256,7 +256,16 @@ class ThresholdUpdateRequest(BaseModel):
 
 class UploadedFileOut(BaseModel):
     id: str
+    uploaded_by_id: str | None = None
+    uploaded_by_name: str | None = None
     filename: str
+    original_filename: str | None = None
+    stored_filename: str | None = None
+    storage_provider: str | None = None
+    storage_key: str | None = None
+    file_url: str | None = None
+    content_type: str | None = None
+    file_ext: str | None = None
     size: str
     status: str
     progress: int
