@@ -5,16 +5,18 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
+from src.config import get_settings
 from src.database import get_db
 from src.models.reconciliation import UploadedFile
 from src.models.schemas import UploadedFileListResponse, UploadedFileOut
 from src.models.user import User
 from src.services.auth import write_audit_log
+from src.services.s3_service import generate_presigned_url, upload_file_to_object_storage
 
 router = APIRouter(prefix="/uploads", tags=["Uploads & Ingestion"])
 ALLOWED_DOC_TYPES = {"invoice", "po", "grn"}
@@ -61,6 +63,26 @@ def save_uploaded_file_to_local_storage(content: bytes, filename: str, selected_
     return target_path.relative_to(PROJECT_ROOT).as_posix()
 
 
+def build_cloud_storage_key(filename: str, selected_doc_type: str) -> str:
+    original_filename = os.path.basename(filename)
+    file_ext = Path(original_filename).suffix.lower().lstrip(".")
+    today = datetime.now()
+    unique_name = uuid.uuid4().hex
+    if file_ext:
+        unique_name = f"{unique_name}.{file_ext}"
+    return f"uploads/{selected_doc_type}/{today.year}/{today.month:02d}/{today.day:02d}/{unique_name}"
+
+
+def save_uploaded_file(content: bytes, filename: str, selected_doc_type: str, content_type: str) -> str:
+    settings = get_settings()
+    if settings.storage_provider in {"r2", "s3"}:
+        storage_key = build_cloud_storage_key(filename, selected_doc_type)
+        upload_file_to_object_storage(content, storage_key, content_type)
+        return storage_key
+
+    return save_uploaded_file_to_local_storage(content, filename, selected_doc_type)
+
+
 def format_file_size(storage_key: str) -> str:
     path = PROJECT_ROOT / storage_key
     if not path.exists():
@@ -80,6 +102,7 @@ def resolve_uploaded_file_path(storage_key: str) -> Path:
 
 
 def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
+    settings = get_settings()
     storage_path = Path(upload.storage_key)
     stored_filename = storage_path.name
     file_ext = storage_path.suffix.lower().lstrip(".")
@@ -90,12 +113,12 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         filename=stored_filename,
         original_filename=None,
         stored_filename=stored_filename,
-        storage_provider="local",
+        storage_provider=settings.storage_provider,
         storage_key=upload.storage_key,
         file_url=f"/api/v1/uploads/{upload.id}/file",
         content_type=None,
         file_ext=file_ext,
-        size=format_file_size(upload.storage_key),
+        size=format_file_size(upload.storage_key) if settings.storage_provider == "local" else "-",
         status="completed",
         progress=100,
         error_message=None,
@@ -116,15 +139,26 @@ async def list_uploads(
     return UploadedFileListResponse(items=items, total=len(items))
 
 
-@router.get("/{upload_id}/file")
+@router.get("/{upload_id}/file", response_model=None)
 async def view_uploaded_file(
     upload_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> FileResponse:
+) -> Response:
     upload = db.get(UploadedFile, upload_id)
     if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
+
+    settings = get_settings()
+    if settings.storage_provider in {"r2", "s3"}:
+        try:
+            presigned_url = generate_presigned_url(upload.storage_key)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Khong tao duoc link tam thoi de xem file: {exc}",
+            ) from exc
+        return RedirectResponse(url=presigned_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
     file_path = resolve_uploaded_file_path(upload.storage_key)
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
@@ -147,7 +181,14 @@ async def upload_document(
     selected_doc_type = normalize_selected_doc_type(doc_type)
 
     content = await file.read()
-    storage_key = save_uploaded_file_to_local_storage(content, filename, selected_doc_type)
+    content_type = file.content_type or "application/octet-stream"
+    try:
+        storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Upload file len cloud storage that bai: {exc}",
+        ) from exc
 
     db_upload = UploadedFile(
         id=uuid.uuid4(),
@@ -168,7 +209,8 @@ async def upload_document(
             "uploaded_filename": filename,
             "doc_type": selected_doc_type,
             "storage_key": db_upload.storage_key,
-            "note": "File uploaded and stored locally. Only uploader, storage path, and creation time are stored.",
+            "storage_provider": get_settings().storage_provider,
+            "note": "File uploaded. Only uploader, storage key, and creation time are stored.",
         },
         ip_address=None,
         user_agent=None,

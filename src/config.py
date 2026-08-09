@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai"
 
+    # File storage
+    storage_provider: Literal["local", "r2", "s3"] = "local"
+    storage_bucket: str = ""
+    storage_endpoint_url: str = ""
+    storage_access_key_id: str = ""
+    storage_secret_access_key: str = ""
+    storage_region: str = "auto"
+    storage_presigned_url_expiration_seconds: int = Field(default=1800, ge=60, le=86400)
+
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
 
