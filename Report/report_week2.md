@@ -90,7 +90,7 @@ Phần upload PDF/PNG và liên kết dữ liệu giữa database, backend, fron
 ## 4. Khó khăn
 
 - Luồng đọc PDF/PNG chưa ổn định với mọi mẫu hóa đơn; kết quả còn phụ thuộc chất lượng file.
-- Dữ liệu liên kết hóa đơn - PO - GRN cần thêm bộ mẫu chuẩn để kiểm tra các trường hợp thiếu chứng từ, sai số lượng, sai đơn giá và trùng hóa đơn.
+- Dữ liệu liên kết hóa đơn - PO - GRN cần thêm nhiều dữ liệu để kiểm tra các trường hợp thiếu chứng từ, sai số lượng, sai đơn giá và trùng hóa đơn.
 
 # Demo
 
