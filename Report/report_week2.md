@@ -15,8 +15,6 @@
 
 ## 1. Mục tiêu tuần 2
 
-Trong tuần 2, nhóm tập trung chuyển từ giai đoạn xác định bài toán sang xây dựng nền tảng MVP. Các mục tiêu chính gồm:
-
 - Hoàn thiện Project Brief, PRD, user stories và wireframe cho Gate 1.
 - Dựng frontend cho luồng làm việc của kế toán viên và kế toán trưởng.
 - Xây dựng backend FastAPI, kết nối PostgreSQL và frontend.
@@ -35,7 +33,7 @@ Trong tuần 2, nhóm tập trung chuyển từ giai đoạn xác định bài t
 
 ### 2.2. Frontend
 
-Frontend được xây dựng bằng **React 18, Vite và Tailwind CSS**, gồm các màn hình/chức năng:
+Frontend được xây dựng bằng **React 18, Vite và Tailwind CSS**, gồm các chức năng:
 
 - Đăng nhập và quản lý phiên người dùng.
 - Dashboard tổng quan tình trạng đối soát.
@@ -50,7 +48,7 @@ Frontend được xây dựng bằng **React 18, Vite và Tailwind CSS**, gồm 
 
 ### 2.3. Backend và cơ sở dữ liệu
 
-Backend sử dụng **FastAPI**, **SQLAlchemy** và **PostgreSQL**. Các nhóm API chính đã được xây dựng:
+Backend sử dụng **FastAPI**, **SQLAlchemy** và **PostgreSQL**. Các chức năng đã được xây dựng:
 
 - Xác thực: đăng nhập, lấy/cập nhật hồ sơ, yêu cầu và xác minh OTP, đổi mật khẩu.
 - Tải lên và liệt kê chứng từ.
@@ -58,7 +56,7 @@ Backend sử dụng **FastAPI**, **SQLAlchemy** và **PostgreSQL**. Các nhóm A
 - Danh sách nhật ký thao tác.
 - Xem và cập nhật ngưỡng chênh lệch dành cho kế toán trưởng.
 
-Các model dữ liệu chính gồm người dùng, vai trò, phiên đăng nhập, hóa đơn/PO/GRN, dòng hàng, case đối soát, file tải lên, ngưỡng và audit log.
+Các model dữ liệu chính gồm: người dùng, vai trò, phiên đăng nhập, hóa đơn/PO/GRN, dòng hàng, case đối soát, file tải lên, ngưỡng, audit log.
 
 ### 2.4. Xử lý chứng từ và đối soát
 
@@ -68,7 +66,7 @@ Các model dữ liệu chính gồm người dùng, vai trò, phiên đăng nh�
 - Áp dụng ngưỡng theo giá trị tuyệt đối và tỷ lệ phần trăm cho từng mặt hàng.
 - Bước đầu lưu kết quả đối soát và trạng thái xử lý vào cơ sở dữ liệu.
 
-Phần upload PDF/PNG và liên kết dữ liệu giữa database, backend, frontend đã được triển khai nhưng vẫn cần kiểm thử thêm với nhiều mẫu chứng từ thực tế.
+Phần upload PDF/PNG và liên kết dữ liệu giữa database, backend, frontend đã được triển khai nhưng vẫn chưa kiểm thử thêm với nhiều mẫu chứng từ thực tế.
 
 ### 2.5. DevOps và triển khai
 
@@ -79,7 +77,6 @@ Phần upload PDF/PNG và liên kết dữ liệu giữa database, backend, fron
 
 | Hạng mục | Trạng thái | Kết quả |
 | --- | --- | --- |
-| Project Brief, PRD, user stories | Hoàn thành | Đã có tài liệu trong `Report/gate1/` |
 | Wireframe và UI flow | Hoàn thành bản đầu | Đã mô tả các màn hình và luồng nghiệp vụ chính |
 | Frontend MVP | Đã triển khai bản đầu | Có dashboard, upload, danh sách/chi tiết đối soát, audit log, threshold và hồ sơ |
 | Đăng nhập và hồ sơ người dùng | Đã triển khai | Backend API và frontend đã được kết nối |
