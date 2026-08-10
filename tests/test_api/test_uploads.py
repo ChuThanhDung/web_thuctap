@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -155,8 +154,7 @@ async def test_uploaded_cloud_file_can_be_opened_without_redirect(client, db_ses
 
     user = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
     upload = UploadedFile(
-        id=uuid.uuid4(),
-        uploaded_by_id=user.id,
+        uploaded_by_id=user.public_id,
         storage_key="uploads/invoice/2026/08/10/invoice_10_08_2026_1.pdf",
     )
     db_session.add(upload)
