@@ -15,7 +15,6 @@
 
 ## 1. Mục tiêu tuần 2
 
-- Hoàn thiện Project Brief, PRD, user stories và wireframe cho Gate 1.
 - Dựng frontend cho luồng làm việc của kế toán viên và kế toán trưởng.
 - Xây dựng backend FastAPI, kết nối PostgreSQL và frontend.
 - Triển khai xác thực người dùng, xem/cập nhật hồ sơ và phân quyền cơ bản.
@@ -26,10 +25,10 @@
 
 ### 2.1. Phân tích sản phẩm và thiết kế
 
-- Hoàn thiện **Project Brief** mô tả bài toán, người dùng mục tiêu, phạm vi MVP, ràng buộc và chỉ số thành công.
-- Hoàn thiện **PRD**, bổ sung hai nhóm người dùng chính là kế toán viên và kế toán trưởng.
+- Hoàn thiện **Project Brief**
+- Hoàn thiện **PRD**
 - Bổ sung user stories cho các luồng: tải chứng từ, xem kết quả đối soát, duyệt/từ chối, duyệt hàng loạt, audit trail và cấu hình ngưỡng.
-- Xây dựng wireframe/UI flow cho các màn hình chính và cập nhật tài liệu Gate 1.
+- Xây dựng wireframe/UI flow 
 
 ### 2.2. Frontend
 
