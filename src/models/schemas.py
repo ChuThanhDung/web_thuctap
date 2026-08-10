@@ -255,8 +255,8 @@ class ThresholdUpdateRequest(BaseModel):
 
 
 class UploadedFileOut(BaseModel):
-    id: str
-    uploaded_by_id: str | None = None
+    id: int
+    uploaded_by_id: int | None = None
     uploaded_by_name: str | None = None
     filename: str
     original_filename: str | None = None
@@ -271,7 +271,7 @@ class UploadedFileOut(BaseModel):
     progress: int
     error_message: str | None
     case_id: str | None
-    created_at: datetime
+    created_at: str
 
     model_config = {"from_attributes": True}
 

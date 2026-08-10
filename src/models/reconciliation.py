@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -127,12 +127,15 @@ class Threshold(Base):
 class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
-    id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    uploaded_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        postgresql.UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    uploaded_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
     )
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
+    )
 
     uploaded_by: Mapped[User | None] = relationship()
 

@@ -15,8 +15,53 @@ from src.config import get_settings
 from src.database import Base, engine
 
 
+def ensure_database_timezone() -> None:
+    settings = get_settings()
+    if not settings.database_url.startswith("postgresql"):
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text(f"SET TIME ZONE '{settings.database_timezone}'"))
+
+    database_name = engine.url.database
+    if not database_name:
+        return
+
+    safe_database_name = '"' + database_name.replace('"', '""') + '"'
+    try:
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            connection.execute(text(f"ALTER DATABASE {safe_database_name} SET timezone TO '{settings.database_timezone}'"))
+    except Exception as exc:
+        print(f"Could not persist database timezone setting: {exc}")
+
+
 def ensure_user_profile_columns() -> None:
     statements = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS public_id INTEGER",
+        "CREATE SEQUENCE IF NOT EXISTS users_public_id_seq",
+        """
+        WITH numbered_users AS (
+            SELECT
+                id,
+                (SELECT COALESCE(MAX(public_id), 0) FROM users)
+                    + row_number() OVER (ORDER BY created_at, email) AS next_public_id
+            FROM users
+            WHERE public_id IS NULL
+        )
+        UPDATE users
+        SET public_id = numbered_users.next_public_id
+        FROM numbered_users
+        WHERE users.id = numbered_users.id
+        """,
+        """
+        SELECT setval(
+            'users_public_id_seq',
+            GREATEST((SELECT COALESCE(MAX(public_id), 0) FROM users), 1),
+            (SELECT COALESCE(MAX(public_id), 0) FROM users) > 0
+        )
+        """,
+        "ALTER TABLE users ALTER COLUMN public_id SET DEFAULT nextval('users_public_id_seq')",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_public_id ON users (public_id)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(255)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS citizen_id VARCHAR(20)",
@@ -31,9 +76,187 @@ def ensure_user_profile_columns() -> None:
 
 def ensure_uploaded_file_storage_columns() -> None:
     statements = [
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'id'
+                AND data_type = 'uuid'
+            ) THEN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'uploaded_files'
+                    AND column_name = 'legacy_uuid'
+                ) THEN
+                    ALTER TABLE uploaded_files RENAME COLUMN id TO legacy_uuid;
+                END IF;
+            END IF;
+        END $$;
+        """,
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS id INTEGER",
         "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS storage_key VARCHAR(500)",
-        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS uploaded_by_id UUID",
-        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
+        "CREATE SEQUENCE IF NOT EXISTS uploaded_files_id_seq",
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'legacy_uuid'
+            ) THEN
+                WITH numbered_uploads AS (
+                    SELECT
+                        legacy_uuid,
+                        (SELECT COALESCE(MAX(id), 0) FROM uploaded_files)
+                            + row_number() OVER (ORDER BY created_at, storage_key) AS next_upload_id
+                    FROM uploaded_files
+                    WHERE id IS NULL
+                )
+                UPDATE uploaded_files
+                SET id = numbered_uploads.next_upload_id
+                FROM numbered_uploads
+                WHERE uploaded_files.legacy_uuid = numbered_uploads.legacy_uuid;
+            ELSE
+                UPDATE uploaded_files
+                SET id = nextval('uploaded_files_id_seq')
+                WHERE id IS NULL;
+            END IF;
+        END $$;
+        """,
+        """
+        SELECT setval(
+            'uploaded_files_id_seq',
+            GREATEST((SELECT COALESCE(MAX(id), 0) FROM uploaded_files), 1),
+            (SELECT COALESCE(MAX(id), 0) FROM uploaded_files) > 0
+        )
+        """,
+        "ALTER TABLE uploaded_files ALTER COLUMN id SET DEFAULT nextval('uploaded_files_id_seq')",
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'uploaded_files_pkey'
+            ) THEN
+                ALTER TABLE uploaded_files DROP CONSTRAINT uploaded_files_pkey;
+            END IF;
+
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'uploaded_files_pkey'
+            ) THEN
+                ALTER TABLE uploaded_files ADD CONSTRAINT uploaded_files_pkey PRIMARY KEY (id);
+            END IF;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'legacy_uuid'
+            ) THEN
+                ALTER TABLE uploaded_files DROP COLUMN legacy_uuid;
+            END IF;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'uploaded_files_uploaded_by_id_fkey'
+            ) THEN
+                ALTER TABLE uploaded_files DROP CONSTRAINT uploaded_files_uploaded_by_id_fkey;
+            END IF;
+
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'uploaded_by_id'
+                AND data_type = 'uuid'
+            ) THEN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'uploaded_files'
+                    AND column_name = 'uploaded_by_uuid'
+                ) THEN
+                    ALTER TABLE uploaded_files RENAME COLUMN uploaded_by_id TO uploaded_by_uuid;
+                END IF;
+            END IF;
+        END $$;
+        """,
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS uploaded_by_id INTEGER",
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'uploaded_by_uuid'
+            ) THEN
+                UPDATE uploaded_files
+                SET uploaded_by_id = users.public_id
+                FROM users
+                WHERE uploaded_files.uploaded_by_id IS NULL
+                AND uploaded_files.uploaded_by_uuid = users.id;
+            END IF;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'uploaded_by_uuid'
+            ) THEN
+                ALTER TABLE uploaded_files DROP COLUMN uploaded_by_uuid;
+            END IF;
+        END $$;
+        """,
+        """
+        ALTER TABLE uploaded_files
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(0) WITHOUT TIME ZONE
+        DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))
+        """,
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'uploaded_files'
+                AND column_name = 'created_at'
+                AND data_type = 'timestamp with time zone'
+            ) THEN
+                ALTER TABLE uploaded_files
+                ALTER COLUMN created_at DROP DEFAULT,
+                ALTER COLUMN created_at TYPE TIMESTAMP(0) WITHOUT TIME ZONE
+                    USING date_trunc('second', created_at AT TIME ZONE 'Asia/Ho_Chi_Minh'),
+                ALTER COLUMN created_at SET DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()));
+            ELSE
+                ALTER TABLE uploaded_files
+                ALTER COLUMN created_at TYPE TIMESTAMP(0) WITHOUT TIME ZONE
+                    USING date_trunc('second', created_at),
+                ALTER COLUMN created_at SET DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()));
+            END IF;
+        END $$;
+        """,
         """
         DO $$
         DECLARE
@@ -76,7 +299,7 @@ def ensure_uploaded_file_storage_columns() -> None:
             ) THEN
                 ALTER TABLE uploaded_files
                 ADD CONSTRAINT uploaded_files_uploaded_by_id_fkey
-                FOREIGN KEY (uploaded_by_id) REFERENCES users(id) ON DELETE SET NULL;
+                FOREIGN KEY (uploaded_by_id) REFERENCES users(public_id) ON DELETE SET NULL;
             END IF;
         END $$;
         """,
@@ -155,6 +378,7 @@ def seed_initial_data_if_needed() -> None:
                 user = db.query(User).filter(User.email == udata["email"]).first()
                 if not user:
                     user = User(
+                        public_id=(db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1),
                         email=udata["email"],
                         password_hash=default_password_hash,
                         full_name=udata["full_name"],
@@ -165,6 +389,8 @@ def seed_initial_data_if_needed() -> None:
                     )
                     db.add(user)
                 else:
+                    if user.public_id is None:
+                        user.public_id = db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1
                     user.password_hash = default_password_hash
                     user.role_id = udata["role_id"]
                     user.full_name = udata["full_name"]
@@ -181,6 +407,7 @@ def seed_initial_data_if_needed() -> None:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     Base.metadata.create_all(bind=engine)
+    ensure_database_timezone()
     ensure_user_profile_columns()
     ensure_uploaded_file_storage_columns()
     seed_initial_data_if_needed()

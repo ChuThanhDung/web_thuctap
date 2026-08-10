@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai"
+    database_timezone: str = "Asia/Ho_Chi_Minh"
 
     # File storage
     storage_provider: Literal["local", "r2", "s3"] = "local"

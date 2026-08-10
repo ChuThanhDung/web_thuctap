@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+SET TIME ZONE 'Asia/Ho_Chi_Minh';
 
 CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    public_id INTEGER UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
@@ -43,6 +45,9 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE SEQUENCE IF NOT EXISTS users_public_id_seq;
+ALTER TABLE users ALTER COLUMN public_id SET DEFAULT nextval('users_public_id_seq');
 
 CREATE TABLE IF NOT EXISTS user_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -113,6 +118,7 @@ WHERE r.code = 'chief_accountant'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO users (
+    public_id,
     email,
     password_hash,
     full_name,
@@ -127,6 +133,7 @@ INSERT INTO users (
     status
 )
 SELECT
+    1,
     'accountant@docusync.ai',
     crypt('123456', gen_salt('bf')),
     'Nguyễn Thị Lan',
@@ -157,6 +164,7 @@ SET
     updated_at = NOW();
 
 INSERT INTO users (
+    public_id,
     email,
     password_hash,
     full_name,
@@ -171,6 +179,7 @@ INSERT INTO users (
     status
 )
 SELECT
+    2,
     'chief.accountant@docusync.ai',
     crypt('123456', gen_salt('bf')),
     'Trần Văn Minh',
@@ -202,6 +211,7 @@ SET
 
 -- Chu Thanh Dũng (Trưởng) - Kế toán trưởng
 INSERT INTO users (
+    public_id,
     email,
     password_hash,
     full_name,
@@ -216,6 +226,7 @@ INSERT INTO users (
     status
 )
 SELECT
+    3,
     'chuthanhdungtruong@gmail.com',
     crypt('123456', gen_salt('bf')),
     'Chu Thanh Dũng (Kế toán trưởng)',
@@ -239,6 +250,7 @@ SET
 
 -- Chu Thanh Dũng - Kế toán viên
 INSERT INTO users (
+    public_id,
     email,
     password_hash,
     full_name,
@@ -253,6 +265,7 @@ INSERT INTO users (
     status
 )
 SELECT
+    4,
     'chuthanhdung@gmail.com',
     crypt('123456', gen_salt('bf')),
     'Chu Thanh Dũng (Kế toán viên)',
@@ -273,4 +286,10 @@ SET
     full_name = EXCLUDED.full_name,
     role_id = EXCLUDED.role_id,
     updated_at = NOW();
+
+SELECT setval(
+    'users_public_id_seq',
+    GREATEST((SELECT COALESCE(MAX(public_id), 0) FROM users), 1),
+    (SELECT COALESCE(MAX(public_id), 0) FROM users) > 0
+);
 

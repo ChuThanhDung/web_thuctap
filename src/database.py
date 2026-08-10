@@ -6,7 +6,11 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from src.config import get_settings
 
 settings = get_settings()
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+engine_kwargs = {"pool_pre_ping": True}
+if settings.database_url.startswith("postgresql"):
+    engine_kwargs["connect_args"] = {"options": f"-c timezone={settings.database_timezone}"}
+
+engine = create_engine(settings.database_url, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

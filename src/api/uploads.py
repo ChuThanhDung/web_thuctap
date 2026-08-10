@@ -1,6 +1,5 @@
 import mimetypes
 import os
-import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -127,9 +126,10 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
     storage_path = Path(upload.storage_key)
     stored_filename = storage_path.name
     file_ext = storage_path.suffix.lower().lstrip(".")
+    created_at = upload.created_at.strftime("%Y-%m-%d %H:%M:%S")
     return UploadedFileOut(
-        id=str(upload.id),
-        uploaded_by_id=str(upload.uploaded_by_id) if upload.uploaded_by_id else None,
+        id=upload.id,
+        uploaded_by_id=upload.uploaded_by_id,
         uploaded_by_name=upload.uploaded_by.full_name if upload.uploaded_by else None,
         filename=stored_filename,
         original_filename=None,
@@ -144,7 +144,7 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         progress=100,
         error_message=None,
         case_id=None,
-        created_at=upload.created_at,
+        created_at=created_at,
     )
 
 
@@ -162,7 +162,7 @@ async def list_uploads(
 
 @router.get("/{upload_id}/file", response_model=None)
 async def view_uploaded_file(
-    upload_id: uuid.UUID,
+    upload_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
@@ -219,8 +219,7 @@ async def upload_document(
         ) from exc
 
     db_upload = UploadedFile(
-        id=uuid.uuid4(),
-        uploaded_by_id=current_user.id if current_user else None,
+        uploaded_by_id=current_user.public_id if current_user else None,
         storage_key=storage_key,
     )
     db.add(db_upload)

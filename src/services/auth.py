@@ -30,6 +30,10 @@ def hash_token(token: str) -> str:
     return sha256(token.encode("utf-8")).hexdigest()
 
 
+def next_public_user_id(db: Session) -> int:
+    return (db.scalar(select(func.max(User.public_id))) or 0) + 1
+
+
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
     stmt = (
         select(User)
@@ -116,6 +120,7 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
         raise ValueError(f"Vai trò '{payload.role_code}' không hợp lệ.")
 
     new_user = User(
+        public_id=next_public_user_id(db),
         email=email_clean,
         password_hash=hash_password(payload.password),
         full_name=payload.full_name.strip(),
