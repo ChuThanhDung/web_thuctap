@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,11 @@ from src.models.reconciliation import UploadedFile
 from src.models.schemas import UploadedFileListResponse, UploadedFileOut
 from src.models.user import User
 from src.services.auth import write_audit_log
-from src.services.s3_service import generate_presigned_url, upload_file_to_object_storage
+from src.services.s3_service import (
+    download_file_from_object_storage,
+    list_object_storage_keys,
+    upload_file_to_object_storage,
+)
 
 router = APIRouter(prefix="/uploads", tags=["Uploads & Ingestion"])
 ALLOWED_DOC_TYPES = {"invoice", "po", "grn"}
@@ -31,23 +35,39 @@ def normalize_selected_doc_type(doc_type: str | None) -> str:
     return storage_doc_type
 
 
-def build_sequential_stored_filename(target_dir: Path, selected_doc_type: str, file_ext: str) -> str:
-    date_part = datetime.now().strftime("%d_%m_%Y")
+def build_sequential_stored_filename_from_names(
+    existing_filenames: list[str],
+    selected_doc_type: str,
+    file_ext: str,
+    today: datetime | None = None,
+) -> str:
+    date_part = (today or datetime.now()).strftime("%d_%m_%Y")
     filename_prefix = f"{selected_doc_type}_{date_part}_"
     next_index = 1
 
-    if target_dir.exists():
-        for path in target_dir.iterdir():
-            if not path.is_file() or not path.name.startswith(filename_prefix):
-                continue
-            index_text = path.stem.removeprefix(filename_prefix)
-            if index_text.isdigit():
-                next_index = max(next_index, int(index_text) + 1)
+    for filename in existing_filenames:
+        stored_name = filename.rsplit("/", 1)[-1]
+        if not stored_name.startswith(filename_prefix):
+            continue
+        stem = Path(stored_name).stem
+        index_text = stem.removeprefix(filename_prefix)
+        if index_text.isdigit():
+            next_index = max(next_index, int(index_text) + 1)
 
     filename = f"{filename_prefix}{next_index}"
     if file_ext:
         filename = f"{filename}.{file_ext}"
     return filename
+
+
+def build_sequential_stored_filename(target_dir: Path, selected_doc_type: str, file_ext: str) -> str:
+    existing_filenames: list[str] = []
+    if target_dir.exists():
+        for path in target_dir.iterdir():
+            if path.is_file():
+                existing_filenames.append(path.name)
+
+    return build_sequential_stored_filename_from_names(existing_filenames, selected_doc_type, file_ext)
 
 
 def save_uploaded_file_to_local_storage(content: bytes, filename: str, selected_doc_type: str) -> str:
@@ -67,10 +87,11 @@ def build_cloud_storage_key(filename: str, selected_doc_type: str) -> str:
     original_filename = os.path.basename(filename)
     file_ext = Path(original_filename).suffix.lower().lstrip(".")
     today = datetime.now()
-    unique_name = uuid.uuid4().hex
-    if file_ext:
-        unique_name = f"{unique_name}.{file_ext}"
-    return f"uploads/{selected_doc_type}/{today.year}/{today.month:02d}/{today.day:02d}/{unique_name}"
+    cloud_dir = f"uploads/{selected_doc_type}/{today.year}/{today.month:02d}/{today.day:02d}"
+    date_part = today.strftime("%d_%m_%Y")
+    existing_keys = list_object_storage_keys(f"{cloud_dir}/{selected_doc_type}_{date_part}_")
+    stored_filename = build_sequential_stored_filename_from_names(existing_keys, selected_doc_type, file_ext, today)
+    return f"{cloud_dir}/{stored_filename}"
 
 
 def save_uploaded_file(content: bytes, filename: str, selected_doc_type: str, content_type: str) -> str:
@@ -152,13 +173,20 @@ async def view_uploaded_file(
     settings = get_settings()
     if settings.storage_provider in {"r2", "s3"}:
         try:
-            presigned_url = generate_presigned_url(upload.storage_key)
+            file_content, content_type = download_file_from_object_storage(upload.storage_key)
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Khong tao duoc link tam thoi de xem file: {exc}",
+                detail=f"Khong tai duoc file tu cloud storage: {exc}",
             ) from exc
-        return RedirectResponse(url=presigned_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+        stored_filename = Path(upload.storage_key).name
+        media_type = content_type or mimetypes.guess_type(stored_filename)[0] or "application/octet-stream"
+        return Response(
+            content=file_content,
+            media_type=media_type,
+            headers={"Content-Disposition": f'inline; filename="{stored_filename}"'},
+        )
 
     file_path = resolve_uploaded_file_path(upload.storage_key)
     media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"

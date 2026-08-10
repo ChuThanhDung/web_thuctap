@@ -29,6 +29,46 @@ def upload_file_to_object_storage(file_bytes: bytes, storage_key: str, content_t
     )
 
 
+def download_file_from_object_storage(storage_key: str) -> tuple[bytes, str | None]:
+    settings = get_settings()
+    if not settings.storage_bucket:
+        raise ValueError("STORAGE_BUCKET is required when using cloud storage.")
+
+    response = get_s3_client().get_object(Bucket=settings.storage_bucket, Key=storage_key)
+    body = response["Body"]
+    try:
+        return body.read(), response.get("ContentType")
+    finally:
+        body.close()
+
+
+def list_object_storage_keys(prefix: str) -> list[str]:
+    settings = get_settings()
+    if not settings.storage_bucket:
+        raise ValueError("STORAGE_BUCKET is required when using cloud storage.")
+
+    client = get_s3_client()
+    keys: list[str] = []
+    continuation_token = None
+
+    while True:
+        params = {
+            "Bucket": settings.storage_bucket,
+            "Prefix": prefix,
+        }
+        if continuation_token:
+            params["ContinuationToken"] = continuation_token
+
+        response = client.list_objects_v2(**params)
+        keys.extend(item["Key"] for item in response.get("Contents", []))
+
+        if not response.get("IsTruncated"):
+            break
+        continuation_token = response.get("NextContinuationToken")
+
+    return keys
+
+
 def generate_presigned_url(storage_key: str, expiration: int | None = None) -> str:
     settings = get_settings()
     if not settings.storage_bucket:
