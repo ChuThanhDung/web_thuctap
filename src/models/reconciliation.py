@@ -128,9 +128,13 @@ class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    batch_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("document_batches.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     uploaded_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
     )
+    doc_type: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
@@ -138,6 +142,33 @@ class UploadedFile(Base):
     )
 
     uploaded_by: Mapped[User | None] = relationship()
+    batch: Mapped["DocumentBatch | None"] = relationship(back_populates="files")
+
+
+class DocumentBatch(Base):
+    __tablename__ = "document_batches"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    batch_number: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
+    created_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="incomplete")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
+        onupdate=func.now(),
+    )
+
+    created_by: Mapped[User | None] = relationship()
+    files: Mapped[list["UploadedFile"]] = relationship(
+        back_populates="batch",
+        order_by="UploadedFile.created_at.desc()",
+    )
 
 
 class PurchaseOrder(Base):

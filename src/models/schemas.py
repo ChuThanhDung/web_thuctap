@@ -256,6 +256,8 @@ class ThresholdUpdateRequest(BaseModel):
 
 class UploadedFileOut(BaseModel):
     id: int
+    batch_id: int | None = None
+    doc_type: str | None = None
     uploaded_by_id: int | None = None
     uploaded_by_name: str | None = None
     filename: str
@@ -278,4 +280,24 @@ class UploadedFileOut(BaseModel):
 
 class UploadedFileListResponse(BaseModel):
     items: list[UploadedFileOut]
+    total: int
+
+
+class DocumentBatchOut(BaseModel):
+    id: int
+    batch_number: str
+    status: str
+    created_by_id: int | None = None
+    created_by_name: str | None = None
+    files: list[UploadedFileOut] = []
+    missing_doc_types: list[str] = []
+    uploaded_doc_types: list[str] = []
+    created_at: str
+    updated_at: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class DocumentBatchListResponse(BaseModel):
+    items: list[DocumentBatchOut]
     total: int

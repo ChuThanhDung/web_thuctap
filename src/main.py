@@ -309,6 +309,135 @@ def ensure_uploaded_file_storage_columns() -> None:
             connection.execute(text(statement))
 
 
+def ensure_document_batch_tables() -> None:
+    statements = [
+        "CREATE SEQUENCE IF NOT EXISTS document_batches_id_seq",
+        """
+        CREATE TABLE IF NOT EXISTS document_batches (
+            id INTEGER PRIMARY KEY DEFAULT nextval('document_batches_id_seq'),
+            batch_number VARCHAR(30) UNIQUE NOT NULL,
+            created_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'incomplete',
+            created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now())),
+            updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_document_batches_batch_number ON document_batches (batch_number)",
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS batch_id INTEGER",
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS doc_type VARCHAR(20)",
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'uploaded_files_batch_id_fkey'
+            ) THEN
+                ALTER TABLE uploaded_files
+                ADD CONSTRAINT uploaded_files_batch_id_fkey
+                FOREIGN KEY (batch_id) REFERENCES document_batches(id) ON DELETE SET NULL;
+            END IF;
+        END $$;
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_uploaded_files_batch_id ON uploaded_files (batch_id)",
+        "CREATE INDEX IF NOT EXISTS ix_uploaded_files_doc_type ON uploaded_files (doc_type)",
+        """
+        UPDATE uploaded_files
+        SET doc_type = CASE
+            WHEN storage_key LIKE '%/po/%' OR storage_key LIKE 'uploads/po/%' THEN 'po'
+            WHEN storage_key LIKE '%/grn/%' OR storage_key LIKE 'uploads/grn/%' THEN 'grn'
+            ELSE 'invoice'
+        END
+        WHERE doc_type IS NULL
+        """,
+        """
+        INSERT INTO document_batches (batch_number, created_by_id, status, created_at, updated_at)
+        SELECT
+            'BATCH_' || to_char(date_trunc('second', uploaded_files.created_at), 'DD_MM_YYYY') || '_' ||
+                lpad(row_number() OVER (
+                    PARTITION BY date_trunc('day', uploaded_files.created_at)
+                    ORDER BY uploaded_files.created_at, uploaded_files.id
+                )::text, 2, '0'),
+            uploaded_files.uploaded_by_id,
+            'incomplete',
+            uploaded_files.created_at,
+            uploaded_files.created_at
+        FROM uploaded_files
+        WHERE uploaded_files.batch_id IS NULL
+        """,
+        """
+        UPDATE uploaded_files
+        SET batch_id = document_batches.id
+        FROM document_batches
+        WHERE uploaded_files.batch_id IS NULL
+        AND document_batches.batch_number =
+            'BATCH_' || to_char(date_trunc('second', uploaded_files.created_at), 'DD_MM_YYYY') || '_' ||
+                lpad((
+                    SELECT seq_no
+                    FROM (
+                        SELECT
+                            id,
+                            row_number() OVER (
+                                PARTITION BY date_trunc('day', created_at)
+                                ORDER BY created_at, id
+                            ) AS seq_no
+                        FROM uploaded_files
+                        WHERE batch_id IS NULL
+                    ) AS numbered_uploads
+                    WHERE numbered_uploads.id = uploaded_files.id
+                )::text, 2, '0')
+        """,
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM document_batches) THEN
+                UPDATE document_batches
+                SET batch_number = 'MIGRATING_BATCH_' || id::text;
+
+                WITH numbered_batches AS (
+                    SELECT
+                        id,
+                        'BATCH_' || to_char(date_trunc('second', created_at), 'DD_MM_YYYY') || '_' ||
+                            lpad(row_number() OVER (
+                                PARTITION BY date_trunc('day', created_at)
+                                ORDER BY created_at, id
+                            )::text, 2, '0') AS next_batch_number
+                    FROM document_batches
+                )
+                UPDATE document_batches
+                SET batch_number = numbered_batches.next_batch_number
+                FROM numbered_batches
+                WHERE document_batches.id = numbered_batches.id;
+            END IF;
+        END $$;
+        """,
+        """
+        UPDATE document_batches
+        SET status = CASE
+            WHEN EXISTS (
+                SELECT 1 FROM uploaded_files WHERE uploaded_files.batch_id = document_batches.id AND doc_type = 'po'
+            )
+            AND EXISTS (
+                SELECT 1 FROM uploaded_files WHERE uploaded_files.batch_id = document_batches.id AND doc_type = 'invoice'
+            )
+            AND EXISTS (
+                SELECT 1 FROM uploaded_files WHERE uploaded_files.batch_id = document_batches.id AND doc_type = 'grn'
+            )
+            THEN 'ready'
+            ELSE 'incomplete'
+        END
+        """,
+        """
+        SELECT setval(
+            'document_batches_id_seq',
+            GREATEST((SELECT COALESCE(MAX(id), 0) FROM document_batches), 1),
+            (SELECT COALESCE(MAX(id), 0) FROM document_batches) > 0
+        )
+        """,
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
@@ -410,6 +539,7 @@ async def lifespan(app: FastAPI):
     ensure_database_timezone()
     ensure_user_profile_columns()
     ensure_uploaded_file_storage_columns()
+    ensure_document_batch_tables()
     seed_initial_data_if_needed()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield
