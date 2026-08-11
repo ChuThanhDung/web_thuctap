@@ -103,11 +103,14 @@ export async function changePassword(token, resetToken, newPassword, confirmPass
   return parseResponse(response);
 }
 
-export async function uploadDocument(token, file, docType = null) {
+export async function uploadDocument(token, file, docType = null, batchId = null) {
   const formData = new FormData();
   formData.append('file', file);
   if (docType) {
     formData.append('doc_type', docType);
+  }
+  if (batchId) {
+    formData.append('batch_id', String(batchId));
   }
 
   const response = await fetch(`${API_BASE_URL}/uploads`, {
@@ -123,6 +126,18 @@ export async function uploadDocument(token, file, docType = null) {
 
 export async function getUploadQueue(token) {
   const response = await authFetch('/uploads', token);
+  return parseResponse(response);
+}
+
+export async function createDocumentBatch(token) {
+  const response = await authFetch('/uploads/batches', token, {
+    method: 'POST',
+  });
+  return parseResponse(response);
+}
+
+export async function getDocumentBatches(token) {
+  const response = await authFetch('/uploads/batches', token);
   return parseResponse(response);
 }
 

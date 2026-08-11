@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from src.api.auth import get_current_user
 from src.config import get_settings
 from src.database import get_db
-from src.models.reconciliation import UploadedFile
-from src.models.schemas import UploadedFileListResponse, UploadedFileOut
+from src.models.reconciliation import DocumentBatch, UploadedFile
+from src.models.schemas import DocumentBatchListResponse, DocumentBatchOut, UploadedFileListResponse, UploadedFileOut
 from src.models.user import User
 from src.services.auth import write_audit_log
 from src.services.s3_service import (
@@ -23,8 +23,16 @@ from src.services.s3_service import (
 
 router = APIRouter(prefix="/uploads", tags=["Uploads & Ingestion"])
 ALLOWED_DOC_TYPES = {"invoice", "po", "grn"}
+REQUIRED_DOC_TYPES = ["po", "invoice", "grn"]
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_STORAGE_ROOT = PROJECT_ROOT / "storage" / "upload"
+INLINE_CONTENT_TYPES_BY_EXT = {
+    "pdf": "application/pdf",
+    "xml": "application/xml; charset=utf-8",
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+}
 
 
 def normalize_selected_doc_type(doc_type: str | None) -> str:
@@ -32,6 +40,58 @@ def normalize_selected_doc_type(doc_type: str | None) -> str:
     if storage_doc_type not in ALLOWED_DOC_TYPES:
         raise ValueError("Loai tai lieu khong hop le. Vui long chon invoice, po hoac grn.")
     return storage_doc_type
+
+
+def build_next_batch_number(db: Session) -> str:
+    today = datetime.now()
+    date_part = today.strftime("%d_%m_%Y")
+    batch_prefix = f"BATCH_{date_part}_"
+    existing_numbers = db.scalars(
+        select(DocumentBatch.batch_number).where(DocumentBatch.batch_number.like(f"{batch_prefix}%"))
+    ).all()
+    next_index = 1
+    for batch_number in existing_numbers:
+        index_text = batch_number.removeprefix(batch_prefix)
+        if index_text.isdigit():
+            next_index = max(next_index, int(index_text) + 1)
+    return f"{batch_prefix}{next_index:02d}"
+
+
+def create_document_batch(db: Session, current_user: User | None) -> DocumentBatch:
+    batch = DocumentBatch(
+        batch_number=build_next_batch_number(db),
+        created_by_id=current_user.public_id if current_user else None,
+        status="incomplete",
+    )
+    db.add(batch)
+    db.flush()
+    return batch
+
+
+def get_or_create_document_batch(
+    db: Session,
+    batch_id: int | None,
+    current_user: User | None,
+) -> DocumentBatch:
+    if batch_id is None:
+        return create_document_batch(db, current_user)
+
+    batch = db.get(DocumentBatch, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+    return batch
+
+
+def update_batch_status(db: Session, batch: DocumentBatch) -> None:
+    doc_types = {
+        doc_type
+        for (doc_type,) in db.query(UploadedFile.doc_type)
+        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.isnot(None))
+        .all()
+    }
+    batch.status = "ready" if all(doc_type in doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
+    batch.updated_at = datetime.now()
+    db.add(batch)
 
 
 def build_sequential_stored_filename_from_names(
@@ -53,7 +113,7 @@ def build_sequential_stored_filename_from_names(
         if index_text.isdigit():
             next_index = max(next_index, int(index_text) + 1)
 
-    filename = f"{filename_prefix}{next_index}"
+    filename = f"{filename_prefix}{next_index:02d}"
     if file_ext:
         filename = f"{filename}.{file_ext}"
     return filename
@@ -82,6 +142,21 @@ def save_uploaded_file_to_local_storage(content: bytes, filename: str, selected_
     return target_path.relative_to(PROJECT_ROOT).as_posix()
 
 
+def guess_inline_content_type(filename: str, provided_content_type: str | None = None) -> str:
+    file_ext = Path(filename).suffix.lower().lstrip(".")
+    if file_ext in INLINE_CONTENT_TYPES_BY_EXT:
+        return INLINE_CONTENT_TYPES_BY_EXT[file_ext]
+
+    guessed_content_type = mimetypes.guess_type(filename)[0]
+    if guessed_content_type:
+        return guessed_content_type
+
+    if provided_content_type and provided_content_type != "application/octet-stream":
+        return provided_content_type
+
+    return "application/octet-stream"
+
+
 def build_cloud_storage_key(filename: str, selected_doc_type: str) -> str:
     original_filename = os.path.basename(filename)
     file_ext = Path(original_filename).suffix.lower().lstrip(".")
@@ -97,7 +172,7 @@ def save_uploaded_file(content: bytes, filename: str, selected_doc_type: str, co
     settings = get_settings()
     if settings.storage_provider in {"r2", "s3"}:
         storage_key = build_cloud_storage_key(filename, selected_doc_type)
-        upload_file_to_object_storage(content, storage_key, content_type)
+        upload_file_to_object_storage(content, storage_key, guess_inline_content_type(filename, content_type))
         return storage_key
 
     return save_uploaded_file_to_local_storage(content, filename, selected_doc_type)
@@ -129,6 +204,8 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
     created_at = upload.created_at.strftime("%Y-%m-%d %H:%M:%S")
     return UploadedFileOut(
         id=upload.id,
+        batch_id=upload.batch_id,
+        doc_type=upload.doc_type,
         uploaded_by_id=upload.uploaded_by_id,
         uploaded_by_name=upload.uploaded_by.full_name if upload.uploaded_by else None,
         filename=stored_filename,
@@ -146,6 +223,46 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         case_id=None,
         created_at=created_at,
     )
+
+
+def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
+    files = [to_uploaded_file_out(upload) for upload in batch.files]
+    uploaded_doc_types = sorted({file.doc_type for file in files if file.doc_type})
+    missing_doc_types = [doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type not in uploaded_doc_types]
+    return DocumentBatchOut(
+        id=batch.id,
+        batch_number=batch.batch_number,
+        status=batch.status,
+        created_by_id=batch.created_by_id,
+        created_by_name=batch.created_by.full_name if batch.created_by else None,
+        files=files,
+        missing_doc_types=missing_doc_types,
+        uploaded_doc_types=uploaded_doc_types,
+        created_at=batch.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        updated_at=batch.updated_at.strftime("%Y-%m-%d %H:%M:%S") if batch.updated_at else None,
+    )
+
+
+@router.post("/batches", response_model=DocumentBatchOut)
+async def create_upload_batch(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DocumentBatchOut:
+    batch = create_document_batch(db, current_user)
+    db.commit()
+    db.refresh(batch)
+    return to_document_batch_out(batch)
+
+
+@router.get("/batches", response_model=DocumentBatchListResponse)
+async def list_upload_batches(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DocumentBatchListResponse:
+    stmt = select(DocumentBatch).order_by(DocumentBatch.updated_at.desc(), DocumentBatch.created_at.desc())
+    batches = db.scalars(stmt).all()
+    items = [to_document_batch_out(batch) for batch in batches]
+    return DocumentBatchListResponse(items=items, total=len(items))
 
 
 @router.get("", response_model=UploadedFileListResponse)
@@ -181,7 +298,7 @@ async def view_uploaded_file(
             ) from exc
 
         stored_filename = Path(upload.storage_key).name
-        media_type = content_type or mimetypes.guess_type(stored_filename)[0] or "application/octet-stream"
+        media_type = guess_inline_content_type(stored_filename, content_type)
         return Response(
             content=file_content,
             media_type=media_type,
@@ -189,7 +306,7 @@ async def view_uploaded_file(
         )
 
     file_path = resolve_uploaded_file_path(upload.storage_key)
-    media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    media_type = guess_inline_content_type(file_path.name)
     return FileResponse(
         path=file_path,
         filename=file_path.name,
@@ -202,11 +319,13 @@ async def view_uploaded_file(
 async def upload_document(
     file: UploadFile = File(...),
     doc_type: str | None = Form(None),
+    batch_id: int | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UploadedFileOut:
     filename = file.filename or "unknown_file"
     selected_doc_type = normalize_selected_doc_type(doc_type)
+    batch = get_or_create_document_batch(db, batch_id, current_user)
 
     content = await file.read()
     content_type = file.content_type or "application/octet-stream"
@@ -219,10 +338,14 @@ async def upload_document(
         ) from exc
 
     db_upload = UploadedFile(
+        batch_id=batch.id,
         uploaded_by_id=current_user.public_id if current_user else None,
+        doc_type=selected_doc_type,
         storage_key=storage_key,
     )
     db.add(db_upload)
+    db.flush()
+    update_batch_status(db, batch)
     db.commit()
     db.refresh(db_upload)
 
@@ -235,9 +358,11 @@ async def upload_document(
         details={
             "uploaded_filename": filename,
             "doc_type": selected_doc_type,
+            "batch_id": batch.id,
+            "batch_number": batch.batch_number,
             "storage_key": db_upload.storage_key,
             "storage_provider": get_settings().storage_provider,
-            "note": "File uploaded. Only uploader, storage key, and creation time are stored.",
+            "note": "File uploaded and linked to a document batch.",
         },
         ip_address=None,
         user_agent=None,

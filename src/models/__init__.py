@@ -1,6 +1,7 @@
 from src.models.audit_log import AuditLog
 from src.models.password_reset_otp import PasswordResetOtp
 from src.models.reconciliation import (
+    DocumentBatch,
     GoodsReceiptNote,
     GoodsReceiptNoteItem,
     LineItem,
@@ -16,6 +17,7 @@ from src.models.user_session import UserSession
 
 __all__ = [
     "AuditLog",
+    "DocumentBatch",
     "GoodsReceiptNote",
     "GoodsReceiptNoteItem",
     "LineItem",
