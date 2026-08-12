@@ -11,11 +11,20 @@ from sqlalchemy.orm import Session
 from src.api.auth import get_current_user
 from src.config import get_settings
 from src.database import get_db
-from src.models.reconciliation import DocumentBatch, UploadedFile
-from src.models.schemas import DocumentBatchListResponse, DocumentBatchOut, UploadedFileListResponse, UploadedFileOut
+from src.models.reconciliation import DocumentBatch, UploadedDocumentExtraction, UploadedFile
+from src.models.schemas import (
+    DocumentBatchListResponse,
+    DocumentBatchOut,
+    MessageResponse,
+    UploadedDocumentExtractionOut,
+    UploadedFileListResponse,
+    UploadedFileOut,
+)
 from src.models.user import User
 from src.services.auth import write_audit_log
+from src.services.document_ai_extractor import DocumentAiAnalysis, analyze_uploaded_document
 from src.services.s3_service import (
+    delete_file_from_object_storage,
     download_file_from_object_storage,
     list_object_storage_keys,
     upload_file_to_object_storage,
@@ -196,12 +205,26 @@ def resolve_uploaded_file_path(storage_key: str) -> Path:
     return file_path
 
 
+def delete_uploaded_file_from_storage(upload: UploadedFile) -> None:
+    settings = get_settings()
+    if settings.storage_provider in {"r2", "s3"}:
+        delete_file_from_object_storage(upload.storage_key)
+        return
+
+    file_path = (PROJECT_ROOT / upload.storage_key).resolve()
+    storage_root = UPLOAD_STORAGE_ROOT.resolve()
+    if not file_path.is_relative_to(storage_root):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
+    file_path.unlink(missing_ok=True)
+
+
 def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
     settings = get_settings()
     storage_path = Path(upload.storage_key)
     stored_filename = storage_path.name
     file_ext = storage_path.suffix.lower().lstrip(".")
     created_at = upload.created_at.strftime("%Y-%m-%d %H:%M:%S")
+    ai_extraction = to_ai_extraction_out(upload.ai_extraction) if upload.ai_extraction else None
     return UploadedFileOut(
         id=upload.id,
         batch_id=upload.batch_id,
@@ -221,8 +244,47 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         progress=100,
         error_message=None,
         case_id=None,
+        ai_extraction=ai_extraction,
         created_at=created_at,
     )
+
+
+def to_ai_extraction_out(extraction: UploadedDocumentExtraction) -> UploadedDocumentExtractionOut:
+    return UploadedDocumentExtractionOut(
+        id=extraction.id,
+        expected_doc_type=extraction.expected_doc_type,
+        detected_doc_type=extraction.detected_doc_type,
+        is_correct_type=extraction.is_correct_type,
+        confidence=extraction.confidence,
+        status=extraction.status,
+        validation_message=extraction.validation_message,
+        model_name=extraction.model_name,
+        extracted_data=extraction.extracted_data,
+        created_at=extraction.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        updated_at=extraction.updated_at.strftime("%Y-%m-%d %H:%M:%S") if extraction.updated_at else None,
+    )
+
+
+def create_ai_extraction_record(
+    db: Session,
+    upload: UploadedFile,
+    analysis: DocumentAiAnalysis,
+) -> UploadedDocumentExtraction:
+    extraction = UploadedDocumentExtraction(
+        upload_id=upload.id,
+        batch_id=upload.batch_id,
+        expected_doc_type=analysis.expected_doc_type,
+        detected_doc_type=analysis.detected_doc_type,
+        is_correct_type=analysis.is_correct_type,
+        confidence=analysis.confidence,
+        status=analysis.status,
+        validation_message=analysis.validation_message,
+        model_name=analysis.model_name,
+        extracted_data=analysis.extracted_data,
+        raw_response=analysis.raw_response,
+    )
+    db.add(extraction)
+    return extraction
 
 
 def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
@@ -315,6 +377,52 @@ async def view_uploaded_file(
     )
 
 
+@router.delete("/{upload_id}", response_model=MessageResponse)
+async def delete_uploaded_file(
+    upload_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    upload = db.get(UploadedFile, upload_id)
+    if upload is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
+
+    batch = db.get(DocumentBatch, upload.batch_id) if upload.batch_id else None
+    deleted_filename = Path(upload.storage_key).name
+    try:
+        delete_uploaded_file_from_storage(upload)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Khong xoa duoc file da tai len: {exc}",
+        ) from exc
+
+    db.delete(upload)
+    db.flush()
+    if batch is not None:
+        update_batch_status(db, batch)
+
+    write_audit_log(
+        db=db,
+        action="DOCUMENT_DELETED",
+        user=current_user,
+        target_type="UPLOAD",
+        target_id=str(upload_id),
+        details={
+            "deleted_filename": deleted_filename,
+            "batch_id": batch.id if batch else None,
+            "batch_number": batch.batch_number if batch else None,
+            "note": "Uploaded file deleted from storage and document batch.",
+        },
+        ip_address=None,
+        user_agent=None,
+    )
+    db.commit()
+    return MessageResponse(message="Đã xóa file đã tải lên.")
+
+
 @router.post("", response_model=UploadedFileOut)
 async def upload_document(
     file: UploadFile = File(...),
@@ -329,6 +437,15 @@ async def upload_document(
 
     content = await file.read()
     content_type = file.content_type or "application/octet-stream"
+
+    try:
+        ai_analysis = analyze_uploaded_document(content, filename, content_type, selected_doc_type)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
     try:
         storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type)
     except Exception as exc:
@@ -344,6 +461,8 @@ async def upload_document(
         storage_key=storage_key,
     )
     db.add(db_upload)
+    db.flush()
+    create_ai_extraction_record(db, db_upload, ai_analysis)
     db.flush()
     update_batch_status(db, batch)
     db.commit()

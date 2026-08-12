@@ -60,6 +60,78 @@ def detect_tool(data: dict) -> str:
     return "unknown"
 
 
+def scan_claude_transcript_tail(transcript_path: str, prompt_id: str = "") -> tuple[str, str]:
+    """Single-pass recovery of two things Claude Code's PostToolUse/Stop hook
+    payloads don't carry (unlike Codex, whose every logged event repeats
+    them):
+
+      - model: Claude Code hooks never include the model (only SessionStart
+        might, and it's not guaranteed) -- read it from the most recent
+        assistant turn's `message.model` instead.
+      - prompt: PostToolUse/Stop payloads don't repeat the human-typed text
+        that started the turn -- find it in the transcript's own "user" type
+        lines, preferring the one whose `promptId` matches this event's
+        `prompt_id` (falls back to the most recent human-typed turn if no
+        match, e.g. when prompt_id wasn't provided). A transcript "user" line
+        can also be a tool_result being fed back to the model; those have no
+        `text`-type content parts and are skipped.
+
+    Only reads the tail of the file (not the whole transcript, which can grow
+    to many MB over a long session) -- hooks must stay fast.
+    """
+    model = ""
+    prompt = ""
+    prompt_fallback = ""
+    if not transcript_path:
+        return model, prompt
+    try:
+        path = Path(transcript_path)
+        if not path.exists():
+            return model, prompt
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - 200_000))
+            chunk = f.read().decode("utf-8", errors="ignore")
+    except OSError:
+        return model, prompt
+
+    for line in reversed(chunk.splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        message = entry.get("message")
+        if not isinstance(message, dict):
+            continue
+
+        if not model and entry.get("type") == "assistant":
+            m = message.get("model")
+            if m:
+                model = m
+
+        if not prompt and entry.get("type") == "user":
+            texts = [
+                part.get("text", "")
+                for part in message.get("content", []) or []
+                if isinstance(part, dict) and part.get("type") == "text"
+            ]
+            text = "\n".join(t for t in texts if t).strip()
+            if text:
+                if prompt_id and entry.get("promptId") == prompt_id:
+                    prompt = text[:1000]
+                elif not prompt_fallback:
+                    prompt_fallback = text[:1000]
+
+        if model and prompt:
+            break
+
+    return model, (prompt or prompt_fallback)
+
+
 def normalize(data: dict, tool: str) -> dict | None:
     """Normalize tool-specific payload to common log entry."""
     event = data.get("hook_event_name") or data.get("event", "")
@@ -93,12 +165,24 @@ def normalize(data: dict, tool: str) -> dict | None:
         # UserPromptSubmit: prompt is at top level
         if event == "UserPromptSubmit":
             prompt = data.get("prompt", "")[:1000]
-        # PostToolUse: extract from tool_input
+        # PostToolUse: extract from tool_input (only set for Task/Write/Edit,
+        # which carry a "prompt"/"content" field -- most tools don't)
         elif isinstance(data.get("tool_input"), dict):
             prompt = data["tool_input"].get("prompt") or data["tool_input"].get("content") or ""
+
+        model, transcript_prompt = scan_claude_transcript_tail(
+            data.get("transcript_path", ""), data.get("prompt_id", "")
+        )
+        # PostToolUse/Stop don't repeat the user's prompt the way Codex's
+        # events do -- fall back to the turn's prompt recovered from the
+        # transcript so every logged row stays tied to a readable prompt.
+        if not prompt:
+            prompt = transcript_prompt
+
         base.update(
             {
                 "prompt": prompt,
+                "model": model,
                 "tool_name": data.get("tool_name", ""),
                 "tool_input": data.get("tool_input") if event != "UserPromptSubmit" else None,
                 "tool_response": str(data.get("tool_response", ""))[:500],

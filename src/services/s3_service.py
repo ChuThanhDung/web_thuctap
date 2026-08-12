@@ -42,6 +42,14 @@ def download_file_from_object_storage(storage_key: str) -> tuple[bytes, str | No
         body.close()
 
 
+def delete_file_from_object_storage(storage_key: str) -> None:
+    settings = get_settings()
+    if not settings.storage_bucket:
+        raise ValueError("STORAGE_BUCKET is required when using cloud storage.")
+
+    get_s3_client().delete_object(Bucket=settings.storage_bucket, Key=storage_key)
+
+
 def list_object_storage_keys(prefix: str) -> list[str]:
     settings = get_settings()
     if not settings.storage_bucket:

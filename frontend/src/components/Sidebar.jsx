@@ -19,13 +19,13 @@ import UserProfileModal from './UserProfileModal.jsx';
 const navItemsAccountant = [
   { to: '/accountant', icon: FileCheck, label: 'Đối soát' },
   { to: '/upload', icon: Upload, label: 'Tải lên' },
-  { to: '/audit-trail', icon: ClipboardList, label: 'Nhật ký' },
+  { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
 ];
 
 const navItemsManager = [
   { to: '/manager', icon: LayoutDashboard, label: 'Tổng quan' },
   { to: '/accountant', icon: FileCheck, label: 'Phê duyệt đối soát' },
-  { to: '/audit-trail', icon: ClipboardList, label: 'Nhật ký' },
+  { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
   { to: '/settings', icon: Settings, label: 'Cấu hình' },
 ];
 

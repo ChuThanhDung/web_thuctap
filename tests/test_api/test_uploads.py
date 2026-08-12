@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,7 @@ from src.database import get_db
 from src.main import app
 from src.models.reconciliation import UploadedFile
 from src.models.user import User
+from src.services.document_ai_extractor import DocumentAiAnalysis
 
 
 def assert_stored_filename(data, doc_type, file_ext):
@@ -50,8 +52,9 @@ def auth_override():
 
 @pytest.fixture(autouse=True)
 def clean_db_fixture(db_session):
-    from src.models.reconciliation import DocumentBatch, UploadedFile
+    from src.models.reconciliation import DocumentBatch, UploadedDocumentExtraction, UploadedFile
 
+    db_session.query(UploadedDocumentExtraction).delete()
     db_session.query(UploadedFile).delete()
     db_session.query(DocumentBatch).delete()
     db_session.commit()
@@ -145,6 +148,37 @@ async def test_uploaded_file_can_be_opened_from_file_url(client):
     assert file_response.content == pdf_content
     assert file_response.headers["content-type"].startswith("application/pdf")
     assert "inline" in file_response.headers["content-disposition"]
+
+
+@pytest.mark.asyncio
+async def test_uploaded_file_can_be_deleted_and_removed_from_batch(client):
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+    upload_response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po", "batch_id": str(batch["id"])},
+        files={"file": ("PO-DELETE.pdf", b"%PDF-1.4 delete me", "application/pdf")},
+    )
+
+    assert upload_response.status_code == 200
+    upload = upload_response.json()
+    file_path = PROJECT_ROOT / upload["storage_key"]
+    assert file_path.exists()
+
+    delete_response = await client.delete(f"/api/v1/uploads/{upload['id']}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json()["message"] == "Đã xóa file đã tải lên."
+    assert not file_path.exists()
+
+    file_response = await client.get(upload["file_url"])
+    assert file_response.status_code == 404
+
+    batches_response = await client.get("/api/v1/uploads/batches")
+    selected = next(item for item in batches_response.json()["items"] if item["id"] == batch["id"])
+    assert selected["status"] == "incomplete"
+    assert selected["uploaded_doc_types"] == []
+    assert selected["missing_doc_types"] == ["po", "invoice", "grn"]
+    assert selected["files"] == []
 
 
 @pytest.mark.asyncio
@@ -278,6 +312,38 @@ async def test_upload_selected_type_controls_storage_folder(client):
     assert_stored_filename(data, "po", "xml")
     assert data["storage_key"].startswith("storage/upload/po/")
     assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+
+
+@pytest.mark.asyncio
+async def test_upload_saves_file_when_ai_detects_different_doc_type(client, db_session, monkeypatch):
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type="invoice",
+            is_correct_type=False,
+            confidence=Decimal("0.9600"),
+            status="wrong_doc_type",
+            validation_message="File nay la Hoa don, khong phai Don dat hang.",
+            model_name="test-model",
+            extracted_data={"type": "invoice", "invoice_number": "INV-TEST"},
+            raw_response={"detected_doc_type": "invoice"},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+
+    response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po"},
+        files={"file": ("invoice-uploaded-as-po.pdf", b"%PDF-1.4 invoice", "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["doc_type"] == "po"
+    assert data["ai_extraction"]["expected_doc_type"] == "po"
+    assert data["ai_extraction"]["detected_doc_type"] == "invoice"
+    assert data["ai_extraction"]["is_correct_type"] is False
+    assert db_session.query(UploadedFile).count() == 1
 
 
 @pytest.mark.asyncio
