@@ -24,21 +24,112 @@ MISMATCH -> Create Exeption -> Payment Hold/Block -> Phân loại lỗi -> Xác 
 
 ## Các loại lỗi
 
-### Sai số lượng - Quantity Mismatch
+### 1. Sai số lượng - Quantity Mismatch
 
-Nếu kho nhận đủ nhưng chưa nhập đủ GRN thì phải liên hệ với kho -> xác thực thông tin -> Cập nhật GRN -> Kiểm tra lại -> Match.
+Ví dụ: 
+PO      = 100
+GRN     = 95
+Invoice = 100
 
-Nếu thực tế không nhận đủ hàng thì Invoice sẽ bị đưa vào trạng thái On Hold và cần phải phối hợp các bên để điều tra.
+Nguyên nhân có thể là:
 
-### Sai đơn giá - Price Mismatch
+- Kho thực sự chỉ nhận 95.
+- Kho đã nhận 100 nhưng chỉ ghi GRN 95.
+- Nhà cung cấp invoice nhầm 100.
+- Nhà cung cấp giao hàng nhiều lần.
+- Có hàng trả lại nhưng GRN chưa cập nhật.
+- Invoice đang tính cả phần hàng chưa giao.
+- Một phần hàng bị hỏng và chưa được chấp nhận.
 
-Nếu giá không đúng theo thoản thuận -> Liên hệ với nhà cung cấp -> Sửa hóa đơn -> Cập nhật -> Match.
+Khi đó kế toán cần kiểm tra:
+1. PO quantity
+2. Tổng quantity đã nhận
+3. Tổng quantity đã invoice trước đó
+4. Invoice hiện tại
+5. Có partial delivery không?
+6. Có hàng nào bị trả lại không?
+7. Có GRN nào chưa post không?
 
-### Chênh lệch - Tolerance
+Kế toán cần liên hệ tới các bộ phận: Đầu tiên là kho hàng nơi tiếp nhận hàng hóa, tiếp đến là người đặt hàng để xác nhận lại số lượng hàng hóa đã đặt, cuối cùng là nhà cung cấp để xác nhận số lượng trong hóa đơn.
 
-Nếu sai số trong phạm vi cho phép thì sẽ chuyển hoá đơn sang trạng thái Match_Within_Tolerance.
+Cách xử lý Quantity Mismatch
 
-### Không có GRN - Missing Receipt
+**Trường hợp 1 — GRN sai:**  
+Nếu hàng thực tế đã được nhận đầy đủ nhưng GRN ghi thiếu số lượng, bộ phận Kho hàng phải kiểm tra và cập nhật lại GRN. Sau đó hệ thống thực hiện đối chiếu lại.
+
+**Trường hợp 2 — Invoice sai:**  
+Nếu số lượng trên Invoice lớn hơn số lượng hàng thực tế đã nhận, nhà cung cấp phải điều chỉnh lại Invoice hoặc phát hành chứng từ điều chỉnh phù hợp. Sau đó hệ thống thực hiện đối chiếu lại.
+
+**Trường hợp 3 — Partial Delivery hợp lệ:**  
+Nếu đơn hàng được chia thành nhiều đợt giao, Invoice không cần bằng toàn bộ số lượng trên PO. Hệ thống phải kiểm tra số lượng hàng đã nhận nhưng chưa được Invoice trước đó.
+
+Hóa đơn được thông qua khi: Số lượng trên hóa đơn <= Số lượng theo thỏa thuận + Sai số(Theo như quy định đề ra). Hoặc được người có thẩm quyền phê duyệt.
+
+
+### 2. Sai đơn giá - Price Mismatch
+
+Ví dụ:
+PO price      = 30.000.000
+Invoice price = 31.000.000
+
+Nguyên nhân:
+
+- Nhà sản xuất xuất sai giá.
+- Người mua đã đàm phán giá mới nhưng chưa update PO.
+- Sử dụng ngoại tệ hoặc tỉ lệ chuyển đổi khác.
+- PO dùng giá theo đơn vị khác.
+- Contract price đã hết hiệu lực.
+
+Khi đó kế toán cần phải kiểm tra:
+- PO version hiện tại.
+- Các trích dẫn trong hợp đồng.
+- Discount.
+- Cước phí.
+- Loại tiền tệ.
+- Đơn vị tính.
+- Có PO sửa đổi chưa.
+- Giá invoice có bao gồm thuế hay chưa.
+
+Kế toán cần phải liên hệ tới người mua để xác nhận lại giá tiền và các điều khoản trong hợp đồng, tiếp đến cần phải liên hệ với Nhà cung cấp để xác nhận lại thông tin hóa đơn.
+
+Cách xử lý khi Price Mismatch
+
+**Trường hợp 1 — Invoice sai:**
+
+Nhà cung cấp cần xuất lại Invoice mới theo đúng đơn giá.
+
+**Trường hợp 2 — PO sai:**
+
+Bên mua phải cập nhật lại PO theo đúng quy trình.
+
+Điều kiện để hóa đơn được thông qua là: Invoice phải chính xác hoặc PO được thông qua hoặc sai số trông hóa đơn nằm trong quy định.
+
+
+### 3. Sai số vượt ngưỡng cho phép - Tolerance Exceeded
+
+Ví dụ: 
+Sai số cho phép là 0.5% trong khi đó sai số thực tế là 1.8%.
+
+Nguyên nhân có thể là do:
+- Giá.
+- Số lượng.
+- Cước phí.
+- Tổng tiền.
+- Tỉ lệ chuyển đổi.
+- Thuế.
+
+Kế toán cần kiểm tra:
+- Chính sách về sai số.
+- Sai số cự thể của nhà cung cấp.
+- Sai số cụ thể của hàng hóa.
+- Phần trăm sai số.
+
+Tùy thuộc thông tin nao bị sai mà kế toán cần phải liên hệ các bên khác nhau. Nếu sai số về giá cả có thể liên hệ với người mua, nếu sai về sô lượng hàng hóa thì liên hệ tới kho nhận hàng, nếu sai sót về thuế thì liên hệ tới cơ quan thuế, nếu sai số ở bên nhà cung cấp thì phải liên hệ với họ.
+
+Có 3 cách xử lý: Đầu tiên là chỉnh sửa lại số liệu, thứ hai là chấp nhận sai số, cuối cùng là từ chối hoặc phải yêu cầu sửa lại chính xác số liệu.
+
+
+### 4. Không có GRN - Missing Receipt
 
 Kế toán sẽ cần phải liên hệ với kho nhận hàng. Nếu hàng đã về thì kho sễ phải cập nhật GRN, còn nếu chưa thì Invoice sẽ tiếp tục bị Hold.
 

@@ -38,8 +38,10 @@ def auth_override():
 
 @pytest.fixture(autouse=True)
 def clean_db_fixture(db_session):
+    from src.main import ensure_uploaded_document_extraction_tables
     from src.models.reconciliation import UploadedDocumentExtraction, UploadedFile
 
+    ensure_uploaded_document_extraction_tables()
     db_session.query(UploadedDocumentExtraction).delete()
     db_session.query(UploadedFile).delete()
     db_session.commit()
