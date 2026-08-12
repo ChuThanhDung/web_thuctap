@@ -9,6 +9,7 @@ from src.models.reconciliation import (
     PurchaseOrderItem,
     ReconciliationCase,
     Threshold,
+    UploadedDocumentExtraction,
     UploadedFile,
 )
 from src.models.role import Role
@@ -27,6 +28,7 @@ __all__ = [
     "ReconciliationCase",
     "Role",
     "Threshold",
+    "UploadedDocumentExtraction",
     "UploadedFile",
     "User",
     "UserSession",

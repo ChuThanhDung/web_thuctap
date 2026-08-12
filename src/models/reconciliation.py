@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -143,6 +143,50 @@ class UploadedFile(Base):
 
     uploaded_by: Mapped[User | None] = relationship()
     batch: Mapped["DocumentBatch | None"] = relationship(back_populates="files")
+    ai_extraction: Mapped["UploadedDocumentExtraction | None"] = relationship(
+        back_populates="upload",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+
+class UploadedDocumentExtraction(Base):
+    __tablename__ = "uploaded_document_extractions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    upload_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("uploaded_files.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    batch_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("document_batches.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    expected_doc_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    detected_doc_type: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    is_correct_type: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="validated", index=True)
+    validation_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    extracted_data: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
+    raw_response: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
+        onupdate=func.now(),
+    )
+
+    upload: Mapped["UploadedFile"] = relationship(back_populates="ai_extraction")
 
 
 class DocumentBatch(Base):

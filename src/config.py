@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     model_name: str = "gpt-4o-mini"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    openai_document_model: str = "gpt-5.6-sol"
+    document_ai_validation_required: bool = False
 
     # Database
     database_url: str = "postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai"

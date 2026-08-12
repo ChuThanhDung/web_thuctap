@@ -1,30 +1,20 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   FileText,
-  FileImage,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
   Loader2,
   FileUp,
   ExternalLink,
   ShoppingCart,
   PackageCheck,
-  FileCode2,
+  X,
 } from 'lucide-react';
 import {
   createDocumentBatch,
+  deleteUploadedFile,
   fetchUploadFileBlob,
   getDocumentBatches,
   uploadDocument,
 } from '../api.js';
-
-const STATUS_STYLES = {
-  completed: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Hoàn tất' },
-  processing: { icon: Loader2, color: 'text-brand-600', bg: 'bg-brand-50', label: 'Đang xử lý', spin: true },
-  queued: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Chờ xử lý' },
-  error: { icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50', label: 'Lỗi' },
-};
 
 const DOC_TYPES = [
   { value: 'po', label: 'Đơn đặt hàng (PO)', desc: 'Lưu thông tin thô đơn đặt hàng làm cơ sở đối chiếu', icon: ShoppingCart },
@@ -375,6 +365,39 @@ export default function UploadQueue({ token }) {
     }
   };
 
+  const handleDeleteUploadedFile = async (file) => {
+    if (!file.id || file.status !== 'completed') return;
+
+    const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa file "${file.filename}" không?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteUploadedFile(token, file.id);
+      setBatches((prev) =>
+        prev.map((batch) => {
+          if (batch.id !== file.batch_id) return batch;
+
+          const nextFiles = (batch.files || []).filter((item) => item.id !== file.id);
+          const uploadedDocTypes = Array.from(new Set(nextFiles.map((item) => item.doc_type).filter(Boolean)));
+          const missingDocTypes = DOC_TYPES
+            .map((type) => type.value)
+            .filter((docType) => !uploadedDocTypes.includes(docType));
+
+          return {
+            ...batch,
+            files: nextFiles,
+            uploaded_doc_types: uploadedDocTypes,
+            missing_doc_types: missingDocTypes,
+            status: missingDocTypes.length === 0 ? 'ready' : 'incomplete',
+          };
+        })
+      );
+      await fetchBatches(false);
+    } catch (err) {
+      alert(err.message || 'Không thể xóa file này. Vui lòng thử lại.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -418,19 +441,55 @@ export default function UploadQueue({ token }) {
                 <div className="mt-3 w-full border-t border-slate-200/80 pt-2 dark:border-slate-700">
                   <div className="space-y-1">
                     {uploadedFiles.map((file, index) => (
-                      <button
+                      <div
                         key={`${file.id || file.filename}-${index}`}
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpenUploadedFile(file);
-                        }}
-                        className="flex w-full items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1 text-left text-[11px] font-medium text-slate-700 transition-colors hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                        title="Bấm để mở file"
+                        className="flex w-full flex-wrap items-center gap-1 rounded-md bg-slate-50 px-2 py-1 dark:bg-slate-900"
                       >
-                        <span className="truncate">{file.filename}</span>
-                        <ExternalLink size={12} className="shrink-0 text-slate-400" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenUploadedFile(file);
+                          }}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left text-[11px] font-medium text-slate-700 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-300"
+                          title="Bấm để mở file"
+                        >
+                          <span className="truncate">{file.filename}</span>
+                          {(file.status === 'queued' || file.status === 'processing') ? (
+                            <Loader2 size={12} className="shrink-0 animate-spin text-brand-600 dark:text-brand-300" />
+                          ) : (
+                            <ExternalLink size={12} className="shrink-0 text-slate-400" />
+                          )}
+                        </button>
+                        {file.status === 'completed' && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteUploadedFile(file);
+                            }}
+                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 dark:hover:bg-rose-950/40"
+                            title="Xóa file"
+                          >
+                            <X size={13} />
+                          </button>
+                        )}
+                        {(file.status === 'queued' || file.status === 'processing') && (
+                          <div className="hidden">
+                            <Loader2 size={12} className="animate-spin" />
+                            <span>
+                              {file.status === 'queued'
+                                ? 'Äang chá» táº£i lÃªn...'
+                                : 'Äang táº£i vÃ  AI Ä‘ang Ä‘á»c...'}
+                            </span>
+                          </div>
+                        )}
+                        {file.status === 'error' && (
+                          <p className="mt-1 basis-full text-[10px] font-semibold text-rose-600 dark:text-rose-300">
+                            {file.error_message || 'Táº£i lÃªn tháº¥t báº¡i'}
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>

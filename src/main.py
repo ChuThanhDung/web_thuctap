@@ -142,6 +142,15 @@ def ensure_uploaded_file_storage_columns() -> None:
             IF EXISTS (
                 SELECT 1
                 FROM pg_constraint
+                WHERE conname = 'uploaded_document_extractions_upload_id_fkey'
+            ) THEN
+                ALTER TABLE uploaded_document_extractions
+                DROP CONSTRAINT uploaded_document_extractions_upload_id_fkey;
+            END IF;
+
+            IF EXISTS (
+                SELECT 1
+                FROM pg_constraint
                 WHERE conname = 'uploaded_files_pkey'
             ) THEN
                 ALTER TABLE uploaded_files DROP CONSTRAINT uploaded_files_pkey;
@@ -438,6 +447,44 @@ def ensure_document_batch_tables() -> None:
             connection.execute(text(statement))
 
 
+def ensure_uploaded_document_extraction_tables() -> None:
+    statements = [
+        "CREATE SEQUENCE IF NOT EXISTS uploaded_document_extractions_id_seq",
+        """
+        CREATE TABLE IF NOT EXISTS uploaded_document_extractions (
+            id INTEGER PRIMARY KEY DEFAULT nextval('uploaded_document_extractions_id_seq'),
+            upload_id INTEGER NOT NULL UNIQUE REFERENCES uploaded_files(id) ON DELETE CASCADE,
+            batch_id INTEGER NULL REFERENCES document_batches(id) ON DELETE SET NULL,
+            expected_doc_type VARCHAR(20) NOT NULL,
+            detected_doc_type VARCHAR(20) NULL,
+            is_correct_type BOOLEAN NOT NULL DEFAULT false,
+            confidence NUMERIC(5, 4) NULL,
+            status VARCHAR(30) NOT NULL DEFAULT 'validated',
+            validation_message TEXT NULL,
+            model_name VARCHAR(100) NULL,
+            extracted_data JSONB NULL,
+            raw_response JSONB NULL,
+            created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now())),
+            updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_uploaded_document_extractions_upload_id ON uploaded_document_extractions (upload_id)",
+        "CREATE INDEX IF NOT EXISTS ix_uploaded_document_extractions_batch_id ON uploaded_document_extractions (batch_id)",
+        """
+        CREATE INDEX IF NOT EXISTS ix_uploaded_document_extractions_expected_doc_type
+        ON uploaded_document_extractions (expected_doc_type)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_uploaded_document_extractions_detected_doc_type
+        ON uploaded_document_extractions (detected_doc_type)
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_uploaded_document_extractions_status ON uploaded_document_extractions (status)",
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
@@ -540,6 +587,7 @@ async def lifespan(app: FastAPI):
     ensure_user_profile_columns()
     ensure_uploaded_file_storage_columns()
     ensure_document_batch_tables()
+    ensure_uploaded_document_extraction_tables()
     seed_initial_data_if_needed()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield

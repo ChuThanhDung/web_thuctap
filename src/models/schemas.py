@@ -254,6 +254,22 @@ class ThresholdUpdateRequest(BaseModel):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+class UploadedDocumentExtractionOut(BaseModel):
+    id: int
+    expected_doc_type: str
+    detected_doc_type: str | None = None
+    is_correct_type: bool
+    confidence: Decimal | None = None
+    status: str
+    validation_message: str | None = None
+    model_name: str | None = None
+    extracted_data: dict | None = None
+    created_at: str
+    updated_at: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class UploadedFileOut(BaseModel):
     id: int
     batch_id: int | None = None
@@ -273,6 +289,7 @@ class UploadedFileOut(BaseModel):
     progress: int
     error_message: str | None
     case_id: str | None
+    ai_extraction: UploadedDocumentExtractionOut | None = None
     created_at: str
 
     model_config = {"from_attributes": True}

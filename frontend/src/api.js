@@ -160,6 +160,13 @@ export async function fetchUploadFileBlob(token, file) {
   return response.blob();
 }
 
+export async function deleteUploadedFile(token, fileId) {
+  const response = await authFetch(`/uploads/${fileId}`, token, {
+    method: 'DELETE',
+  });
+  return parseResponse(response);
+}
+
 export async function createUserAccount(token, userData) {
   const response = await authFetch('/auth/users', token, {
     method: 'POST',
