@@ -10,6 +10,7 @@ from src.main import app
 
 @pytest.fixture(scope="session", autouse=True)
 def init_db():
+    from src.config import get_settings
     from src.database import Base, engine
     from src.main import (
         ensure_document_batch_tables,
@@ -19,6 +20,10 @@ def init_db():
         seed_initial_data_if_needed,
     )
     from src.models.reconciliation import ReconciliationCase
+
+    settings = get_settings()
+    settings.openai_api_key = ""
+    settings.document_ai_validation_required = False
 
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
