@@ -378,7 +378,7 @@ export default function UploadQueue({ token }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="min-w-0">
         <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải lên & Xử lý chứng từ</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Tải lên đơn đặt hàng PO, hóa đơn (.xml, .pdf, .png) hoặc phiếu nhập kho GRN để AI tự động bóc tách và đối soát.
@@ -425,7 +425,7 @@ export default function UploadQueue({ token }) {
                           event.stopPropagation();
                           handleOpenUploadedFile(file);
                         }}
-                        className="flex w-full items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1 text-left text-[11px] font-medium text-slate-700 transition-colors hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1 text-left text-[11px] font-medium text-slate-700 transition-colors hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                         title="Bấm để mở file"
                       >
                         <span className="truncate">{file.filename}</span>
@@ -457,14 +457,14 @@ export default function UploadQueue({ token }) {
         onClick={() => {
           if (!isDragOver) fileInputRef.current?.click();
         }}
-        className={`card flex min-h-[310px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 transition-all ${
+        className={`card flex min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition-all sm:min-h-[310px] sm:p-5 ${
           isDragOver
             ? 'border-brand-500 bg-brand-50/80 dark:bg-brand-950/40'
             : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50/50 dark:border-slate-700 dark:hover:border-brand-500 dark:hover:bg-slate-800/40'
         }`}
       >
         {isDragOver ? (
-          <div className="grid h-full min-h-[260px] w-full grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="grid h-full min-h-[220px] w-full grid-cols-1 gap-3 md:min-h-[260px] md:grid-cols-3">
             {DOC_TYPES.map((type) => {
               const Icon = type.icon;
               const isActive = activeDropType === type.value;
@@ -484,7 +484,7 @@ export default function UploadQueue({ token }) {
                     setActiveDropType(type.value);
                   }}
                   onDrop={(event) => handleDrop(event, type.value)}
-                  className={`flex min-h-[220px] flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-6 text-center transition-all ${
+                  className={`flex min-h-[180px] flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-5 text-center transition-all md:min-h-[220px] md:px-5 md:py-6 ${
                     isActive
                       ? 'border-brand-500 bg-white shadow-md ring-4 ring-brand-100 dark:bg-slate-900 dark:ring-brand-950'
                       : 'border-slate-300 bg-white/60 dark:border-slate-700 dark:bg-slate-900/60'
@@ -539,7 +539,7 @@ export default function UploadQueue({ token }) {
 
       {/* Batches */}
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
+          <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:px-5">
           <div>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
               Hàng đợi xử lý ({batches.length} bộ)
@@ -548,16 +548,16 @@ export default function UploadQueue({ token }) {
               Chọn một bộ để bổ sung PO, hóa đơn hoặc phiếu nhập kho còn thiếu.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
             <button
               onClick={() => fetchBatches(true)}
-              className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-semibold"
+                className="inline-flex min-h-11 items-center text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
             >
               Làm mới
             </button>
             <button
               onClick={handleCreateBatch}
-              className="rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="inline-flex min-h-11 items-center rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               Tạo bộ mới
             </button>
@@ -653,12 +653,12 @@ export default function UploadQueue({ token }) {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Hiển thị {batchStartIndex}-{batchEndIndex} / {batches.length} bộ
             </p>
-            <div className="flex items-center justify-end gap-2">
+              <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
               <button
                 type="button"
                 onClick={() => setBatchPage((page) => Math.max(1, page - 1))}
                 disabled={safeBatchPage === 1}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                  className="min-h-11 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
               >
                 Trước
               </button>
@@ -669,7 +669,7 @@ export default function UploadQueue({ token }) {
                 type="button"
                 onClick={() => setBatchPage((page) => Math.min(totalBatchPages, page + 1))}
                 disabled={safeBatchPage === totalBatchPages}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                  className="min-h-11 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
               >
                 Sau
               </button>

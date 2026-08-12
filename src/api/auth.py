@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile, status
+from fastapi import Path as ApiPath
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -27,6 +29,15 @@ from src.services.auth import (
     get_user_by_session_token,
     verify_password_reset_otp,
     write_audit_log,
+)
+from src.services.avatar import (
+    MAX_AVATAR_BYTES,
+    AvatarValidationError,
+    delete_avatar_by_url,
+    process_avatar,
+    resolve_avatar_file,
+    save_avatar,
+    validate_avatar_metadata,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -137,6 +148,68 @@ async def update_profile(
     )
 
     return to_auth_user(current_user)
+
+
+@router.put("/me/avatar", response_model=AuthUser)
+async def update_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthUser:
+    try:
+        validate_avatar_metadata(file.filename, file.content_type)
+        content = await file.read(MAX_AVATAR_BYTES + 1)
+        if len(content) > MAX_AVATAR_BYTES:
+            raise AvatarValidationError("Ảnh đại diện không được vượt quá 5 MB.")
+        webp_content = process_avatar(content, file.filename, file.content_type)
+    except AvatarValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    finally:
+        await file.close()
+
+    old_avatar_url = current_user.avatar_url
+    avatar_url, new_avatar_path = save_avatar(current_user.id, webp_content)
+    try:
+        current_user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(current_user)
+    except Exception:
+        db.rollback()
+        new_avatar_path.unlink(missing_ok=True)
+        raise
+
+    if old_avatar_url != avatar_url:
+        delete_avatar_by_url(old_avatar_url)
+
+    write_audit_log(
+        db=db,
+        action="AVATAR_UPDATED",
+        user=current_user,
+        details={"avatar_url": avatar_url},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return to_auth_user(current_user)
+
+
+@router.get("/avatars/{filename}", response_model=None)
+async def view_avatar(
+    filename: str = ApiPath(pattern=r"^[0-9a-f-]{36}_[0-9a-f]{32}\.webp$"),
+) -> FileResponse:
+    avatar_path = resolve_avatar_file(filename)
+    if avatar_path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy ảnh đại diện.")
+
+    return FileResponse(
+        avatar_path,
+        media_type="image/webp",
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.post("/password/otp", response_model=OtpRequestResponse)
@@ -253,4 +326,3 @@ async def list_users(
         items=[to_auth_user(u) for u in users],
         total=len(users),
     )
-

@@ -75,8 +75,8 @@ export default function AuditTrail({ token }) {
 
       {/* Filters */}
       <div className="card p-4">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[240px]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="relative min-w-0 w-full flex-1 sm:min-w-[240px]">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -91,18 +91,18 @@ export default function AuditTrail({ token }) {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-slate-400 hover:text-slate-600"
               >
                 <X size={14} />
               </button>
             )}
           </div>
 
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="input-field appearance-none pr-9 min-w-[160px]"
+              className="input-field w-full appearance-none pr-9 sm:min-w-[160px]"
             >
               <option value="">Tất cả hành động</option>
               {/* Could be hardcoded list of actions, but dynamic from current logs is also okay */}
@@ -128,8 +128,8 @@ export default function AuditTrail({ token }) {
         ) : error ? (
            <div className="py-12 text-center text-rose-600">{error}</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80">
                   <th className="px-4 py-3 text-left font-semibold text-slate-600 whitespace-nowrap">

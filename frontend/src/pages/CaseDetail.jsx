@@ -97,17 +97,17 @@ export default function CaseDetail({ token, role }) {
   const canMakeDecision = !caseData.decision;
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="space-y-4 pb-52 sm:pb-32">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+      <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start">
+        <div className="flex min-w-0 items-start gap-2 sm:gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="mt-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <ArrowLeft size={20} />
           </button>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 {caseData.invoice_number || caseData.case_number}
@@ -115,7 +115,7 @@ export default function CaseDetail({ token, role }) {
               <StatusBadge status={caseData.status} />
               <RiskBadge level={caseData.risk_level} />
             </div>
-            <div className="mt-1 flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
               <span>{caseData.partner_name}</span>
               <span>·</span>
               <span>{formatDate(caseData.case_date)}</span>
@@ -129,7 +129,7 @@ export default function CaseDetail({ token, role }) {
 
         {/* Overall confidence */}
         {caseData.confidence !== null && (
-          <div className="card-compact px-4 py-3 text-center shrink-0 border-2 border-brand-500/20 bg-white dark:bg-slate-900 dark:border-brand-500/30">
+          <div className="card-compact self-start px-4 py-3 text-center sm:shrink-0 border-2 border-brand-500/20 bg-white dark:bg-slate-900 dark:border-brand-500/30">
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Confidence tổng</p>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -162,7 +162,7 @@ export default function CaseDetail({ token, role }) {
       {caseData.line_items && caseData.line_items.length > 0 ? (
         <>
           {/* Column Headers */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="card-compact flex items-center gap-2 px-4 py-3 bg-blue-50/70 border-2 border-blue-300 dark:bg-blue-950/40 dark:border-blue-800">
               <FileText size={18} className="text-blue-600 dark:text-blue-400" />
               <div>
@@ -208,7 +208,7 @@ export default function CaseDetail({ token, role }) {
                 </div>
 
                 {/* 3-column data grid */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   {/* Invoice */}
                   <ComparisonCard
                     qty={item.inv_qty}
@@ -284,8 +284,8 @@ export default function CaseDetail({ token, role }) {
 
       {/* ── Sticky Action Bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_12px_rgba(0,0,0,0.08)] dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <div className="text-sm text-slate-500 dark:text-slate-400">
+        <div className="mx-auto flex max-h-[48dvh] max-w-5xl flex-col items-stretch justify-between gap-3 overflow-y-auto px-4 py-3 sm:max-h-none sm:flex-row sm:items-center sm:px-6">
+          <div className="min-w-0 text-sm text-slate-500 dark:text-slate-400">
             {approved ? (
               <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
                 <CheckCircle size={18} /> Đã duyệt bởi {caseData.processed_by_name}
@@ -302,7 +302,7 @@ export default function CaseDetail({ token, role }) {
           </div>
 
           {canMakeDecision && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
               {rejectMode ? (
                 <>
                   <input
@@ -310,7 +310,7 @@ export default function CaseDetail({ token, role }) {
                     placeholder="Nhập lý do từ chối..."
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="input-field w-72"
+                    className="input-field w-full sm:w-72"
                     autoFocus
                     disabled={actionLoading}
                   />

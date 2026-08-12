@@ -30,7 +30,9 @@ def ensure_database_timezone() -> None:
     safe_database_name = '"' + database_name.replace('"', '""') + '"'
     try:
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
-            connection.execute(text(f"ALTER DATABASE {safe_database_name} SET timezone TO '{settings.database_timezone}'"))
+            connection.execute(
+                text(f"ALTER DATABASE {safe_database_name} SET timezone TO '{settings.database_timezone}'")
+            )
     except Exception as exc:
         print(f"Could not persist database timezone setting: {exc}")
 
@@ -544,7 +546,6 @@ async def lifespan(app: FastAPI):
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield
     print("Shutting down...")
-
 
 
 app = FastAPI(

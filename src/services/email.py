@@ -13,7 +13,9 @@ def send_otp_email(to_email: str, otp: str) -> bool:
     settings = get_settings()
 
     if not settings.smtp_user or not settings.smtp_password:
-        print(f"[EmailService] WARNING: Chưa cấu hình SMTP_USER / SMTP_PASSWORD trong .env. Mã OTP cho {to_email} là: {otp}")
+        print(
+            f"[EmailService] WARNING: Chưa cấu hình SMTP_USER / SMTP_PASSWORD trong .env. Mã OTP cho {to_email} là: {otp}"
+        )
         return False
 
     msg = MIMEMultipart("alternative")

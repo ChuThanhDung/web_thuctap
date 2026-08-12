@@ -16,14 +16,14 @@ export default function FloatingActionBar({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 animate-slide-up">
-      <div className="mx-auto max-w-5xl px-4 pb-4">
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-6 py-4 shadow-xl ring-1 ring-black/5">
+      <div className="mx-auto max-w-5xl px-3 pb-3 sm:px-4 sm:pb-4">
+        <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xl ring-1 ring-black/5 sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-4">
           {/* Info */}
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-brand-700">
               <span className="text-sm font-bold">{selectedCount}</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900">
                 Đã chọn {selectedCount} hóa đơn
               </p>
@@ -36,7 +36,7 @@ export default function FloatingActionBar({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
             <button
               onClick={onClear}
               className="btn-ghost"

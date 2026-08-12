@@ -17,7 +17,6 @@ from src.services.email import send_otp_email
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-
 def verify_password(plain_password: str, password_hash: str) -> bool:
     return pwd_context.verify(plain_password, password_hash)
 
@@ -135,7 +134,6 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
 
     stmt = select(User).options(selectinload(User.role)).where(User.id == new_user.id)
     return db.scalars(stmt).first()
-
 
 
 def verify_password_reset_otp(db: Session, user: User, otp: str) -> str | None:

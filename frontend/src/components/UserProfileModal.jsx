@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Badge,
   Building2,
   CalendarDays,
+  Camera,
   CheckCircle2,
   CreditCard,
   Edit3,
@@ -23,6 +25,7 @@ import {
   getUserAccounts,
   requestPasswordOtp,
   updateProfile,
+  uploadAvatar,
   verifyPasswordOtp,
 } from '../api.js';
 import { repairVietnameseText } from '../text.js';
@@ -45,19 +48,24 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
-function ProfileAvatar({ user, fullName }) {
-  if (user.avatar_url) {
+function ProfileAvatar({ user, fullName, className = 'h-14 w-14' }) {
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => setImageError(false), [user.avatar_url]);
+
+  if (user.avatar_url && !imageError) {
     return (
       <img
         src={user.avatar_url}
         alt={fullName}
-        className="h-14 w-14 shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100"
+        onError={() => setImageError(true)}
+        className={`${className} shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100`}
       />
     );
   }
 
   return (
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-brand-100 via-white to-brand-200 text-base font-semibold text-brand-700 shadow-[0_8px_20px_rgba(83,58,253,0.18)] ring-1 ring-brand-100">
+    <div className={`flex ${className} shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-brand-100 via-white to-brand-200 text-base font-semibold text-brand-700 shadow-[0_8px_20px_rgba(83,58,253,0.18)] ring-1 ring-brand-100`}>
       {getInitials(fullName)}
     </div>
   );
@@ -264,18 +272,18 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-2 backdrop-blur-sm sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative flex w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10"
+        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 sm:max-h-[calc(100dvh-2rem)]"
         style={{ maxHeight: 'calc(100vh - 32px)' }}
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[#e3e8ee] bg-white px-5 py-4">
+        <div className="sticky top-0 z-10 border-b border-[#e3e8ee] bg-white px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.2px] text-[#0d253d]">
@@ -290,7 +298,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#d7dee8] bg-white text-2xl font-light leading-none text-[#64748d] shadow-sm transition-colors hover:bg-slate-100 hover:text-[#0d253d]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d7dee8] bg-white text-2xl font-light leading-none text-[#64748d] shadow-sm transition-colors hover:bg-slate-100 hover:text-[#0d253d]"
               aria-label="Đóng"
               title="Đóng"
             >
@@ -300,7 +308,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
           {/* Navigation Tabs for Chief Accountant */}
           {isChiefAccountant && (
-            <div className="mt-3 flex border-b border-[#e3e8ee] gap-4 text-sm font-medium">
+          <div className="mt-3 flex gap-4 overflow-x-auto border-b border-[#e3e8ee] text-sm font-medium">
               <button
                 type="button"
                 className={`pb-2.5 transition-colors ${
@@ -336,7 +344,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
         {/* Modal Body */}
         <div
-          className="min-h-0 overflow-y-auto overscroll-contain bg-[#f6f9fc] px-5 py-4"
+          className="min-h-0 overflow-y-auto overscroll-contain bg-[#f6f9fc] px-4 py-4 sm:px-5"
           style={{ maxHeight: 'calc(100vh - 128px)' }}
         >
           {message && (
@@ -401,6 +409,15 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
               {mode === 'edit' && (
                 <form onSubmit={handleSaveProfile} className="space-y-3">
+                  <AvatarEditor
+                    token={token}
+                    user={user}
+                    fullName={fullName}
+                    onUpdated={onUserUpdate}
+                    onError={setError}
+                    onMessage={setMessage}
+                  />
+
                   <div className="grid grid-cols-1 gap-2.5">
                     <Field icon={Mail} label="Email" value={user.email} />
                     <Field icon={Building2} label="Phòng ban" value={department} />
@@ -445,7 +462,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                     </label>
                   </div>
 
-                  <div className="sticky bottom-0 -mx-5 flex justify-end gap-2 border-t border-[#e3e8ee] bg-[#f6f9fc]/95 px-5 pt-3 backdrop-blur">
+                <div className="sticky bottom-0 -mx-4 flex flex-col-reverse justify-end gap-2 border-t border-[#e3e8ee] bg-[#f6f9fc]/95 px-4 pt-3 backdrop-blur sm:-mx-5 sm:flex-row sm:px-5">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
@@ -477,7 +494,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       required
                     />
                   </label>
-                  <div className="flex justify-end gap-2 pt-2">
+                <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
@@ -511,7 +528,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       required
                     />
                   </label>
-                  <div className="flex justify-end gap-2 pt-2">
+                <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
@@ -660,7 +677,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                   {userList.map((u) => (
                     <div
                       key={u.id}
-                      className="flex items-center justify-between rounded-lg border border-[#e3e8ee] bg-[#f8faff] p-3 text-sm transition-colors hover:bg-white hover:border-brand-200"
+                    className="flex flex-col items-start justify-between gap-2 rounded-lg border border-[#e3e8ee] bg-[#f8faff] p-3 text-sm transition-colors hover:border-brand-200 hover:bg-white sm:flex-row sm:items-center"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -692,6 +709,154 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
           )}
         </div>
       </div>
+    </div>,
+    document.body,
+  );
+}
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_AVATAR_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+function canvasToWebp(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Trình duyệt không thể xử lý ảnh này.'))),
+      'image/webp',
+      0.86,
+    );
+  });
+}
+
+function AvatarEditor({ token, user, fullName, onUpdated, onError, onMessage }) {
+  const imageRef = useRef(null);
+  const inputRef = useRef(null);
+  const [sourceFile, setSourceFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [zoom, setZoom] = useState(1);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function chooseFile(file) {
+    onError('');
+    onMessage('');
+    if (!file) return;
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!ALLOWED_AVATAR_EXTENSIONS.includes(extension) || !ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      onError('Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WebP.');
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      onError('Ảnh đại diện không được vượt quá 5 MB.');
+      return;
+    }
+
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSourceFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setZoom(1);
+  }
+
+  async function handleUpload() {
+    if (!sourceFile || !imageRef.current) return;
+    onError('');
+    onMessage('');
+    setUploading(true);
+
+    try {
+      const image = imageRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const context = canvas.getContext('2d');
+      const baseScale = Math.max(512 / image.naturalWidth, 512 / image.naturalHeight);
+      const scale = baseScale * zoom;
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      context.drawImage(image, (512 - width) / 2, (512 - height) / 2, width, height);
+
+      const blob = await canvasToWebp(canvas);
+      const croppedFile = new File([blob], 'avatar.webp', { type: 'image/webp' });
+      const updatedUser = await uploadAvatar(token, croppedFile);
+      onUpdated(updatedUser);
+      onMessage('Đã cập nhật ảnh đại diện.');
+      setSourceFile(null);
+      setPreviewUrl('');
+      if (inputRef.current) inputRef.current.value = '';
+    } catch (err) {
+      onError(err.message || 'Không thể cập nhật ảnh đại diện.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-[#e3e8ee] bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-4 ring-brand-50 sm:mx-0">
+          {previewUrl ? (
+            <img
+              ref={imageRef}
+              src={previewUrl}
+              alt="Xem trước vùng cắt ảnh đại diện"
+              className="h-full w-full object-cover transition-transform"
+              style={{ transform: `scale(${zoom})` }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <ProfileAvatar user={user} fullName={fullName} className="h-full w-full" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-[#0d253d]">Ảnh đại diện</p>
+            <p className="mt-1 text-xs leading-5 text-[#64748d]">JPG, PNG hoặc WebP · tối đa 5 MB · lưu thành WebP 512×512.</p>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(event) => chooseFile(event.target.files?.[0])}
+          />
+          <button type="button" className="btn-secondary w-full sm:w-auto" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            <Camera size={17} />
+            {sourceFile ? 'Chọn ảnh khác' : 'Chọn ảnh'}
+          </button>
+        </div>
+      </div>
+
+      {sourceFile && (
+        <div className="mt-4 space-y-3 border-t border-[#e3e8ee] pt-4">
+          <label className="block">
+            <span className="mb-2 flex items-center justify-between text-xs font-medium text-[#64748d]">
+              Phóng to để chọn vùng crop
+              <span>{Math.round(zoom * 100)}%</span>
+            </span>
+            <input
+              type="range"
+              min="1"
+              max="2.5"
+              step="0.05"
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              className="h-11 w-full accent-brand-600"
+            />
+          </label>
+          <button type="button" className="btn-primary w-full" onClick={handleUpload} disabled={uploading}>
+            {uploading ? <Loader2 className="animate-spin" size={17} /> : <Camera size={17} />}
+            {uploading ? 'Đang xử lý và tải lên...' : 'Crop và cập nhật ảnh'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

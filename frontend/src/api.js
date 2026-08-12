@@ -73,6 +73,21 @@ export async function updateProfile(token, profile) {
   return parseResponse(response);
 }
 
+export async function uploadAvatar(token, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/auth/me/avatar`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return parseResponse(response);
+}
+
 export async function requestPasswordOtp(token) {
   const response = await authFetch('/auth/password/otp', token, {
     method: 'POST',

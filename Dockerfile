@@ -8,6 +8,8 @@ COPY requirements.txt .
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install -r requirements.txt
+COPY requirements-avatar.txt .
+RUN pip install --timeout 180 --retries 5 --index-url https://pypi.org/simple -r requirements-avatar.txt
 
 FROM python:3.11-slim
 

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     storage_secret_access_key: str = ""
     storage_region: str = "auto"
     storage_presigned_url_expiration_seconds: int = Field(default=1800, ge=60, le=86400)
+    avatar_storage_dir: str = "./storage/avatars"
 
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
