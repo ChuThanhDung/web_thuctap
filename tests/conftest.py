@@ -13,8 +13,8 @@ def init_db():
     from src.database import Base, engine
     from src.main import (
         ensure_document_batch_tables,
-        ensure_uploaded_file_storage_columns,
         ensure_uploaded_document_extraction_tables,
+        ensure_uploaded_file_storage_columns,
         ensure_user_profile_columns,
         seed_initial_data_if_needed,
     )

@@ -13,7 +13,6 @@ from openai import OpenAI
 from src.config import get_settings
 from src.services.parser_strategies import LocalOcrParserStrategy
 
-
 DOC_TYPE_LABELS = {
     "po": "Don dat hang (PO)",
     "invoice": "Hoa don (Invoice)",
