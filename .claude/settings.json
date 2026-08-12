@@ -5,8 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=claude",
-            "shell": "bash"
+            "command": "scripts/_pyrun.cmd scripts/log_hook.py --tool=claude"
           }
         ]
       }
@@ -17,8 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=claude",
-            "shell": "bash"
+            "command": "scripts/_pyrun.cmd scripts/log_hook.py --tool=claude"
           }
         ]
       }
@@ -28,8 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=claude",
-            "shell": "bash"
+            "command": "scripts/_pyrun.cmd scripts/log_hook.py --tool=claude"
           }
         ]
       }
