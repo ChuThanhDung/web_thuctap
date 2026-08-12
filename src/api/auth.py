@@ -4,7 +4,6 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from src.config import get_settings
 from src.database import get_db
 from src.models.schemas import (
     AuthUser,
@@ -13,21 +12,20 @@ from src.models.schemas import (
     MessageResponse,
     OtpRequestResponse,
     OtpVerifyRequest,
-    OtpVerifyResponse,
-    PasswordChangeRequest,
+    PasswordChangeInitiateRequest,
     ProfileUpdateRequest,
     UserCreateRequest,
     UserListResponse,
 )
 from src.models.user import User
 from src.services.auth import (
+    PasswordChangeError,
     authenticate_user,
-    change_password_with_reset_token,
-    create_password_reset_otp,
     create_user_by_admin,
     create_user_session,
     get_user_by_session_token,
-    verify_password_reset_otp,
+    initiate_password_change,
+    verify_password_change_otp,
     write_audit_log,
 )
 from src.services.avatar import (
@@ -214,12 +212,26 @@ async def view_avatar(
 
 @router.post("/password/otp", response_model=OtpRequestResponse)
 async def request_password_otp(
+    payload: PasswordChangeInitiateRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OtpRequestResponse:
-    otp = create_password_reset_otp(db, current_user)
-    print(f"[password-reset-otp] user={current_user.email} otp={otp}")
+    try:
+        expires_in, resend_after = initiate_password_change(
+            db,
+            current_user,
+            payload.current_password,
+            payload.new_password,
+            payload.confirm_password,
+        )
+    except PasswordChangeError as exc:
+        headers = {"Retry-After": str(exc.retry_after)} if exc.retry_after else None
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS if exc.retry_after else status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+            headers=headers,
+        ) from exc
     write_audit_log(
         db=db,
         action="PASSWORD_OTP_REQUESTED",
@@ -229,39 +241,26 @@ async def request_password_otp(
         user_agent=request.headers.get("user-agent"),
     )
 
-    settings = get_settings()
     return OtpRequestResponse(
         message="Mã OTP đã được gửi tới email của bạn.",
-        dev_otp=otp if settings.app_env == "development" else None,
+        expires_in_seconds=expires_in,
+        resend_after_seconds=resend_after,
     )
 
 
-@router.post("/password/otp/verify", response_model=OtpVerifyResponse)
+@router.post("/password/otp/verify", response_model=MessageResponse)
 async def verify_password_otp(
     payload: OtpVerifyRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> OtpVerifyResponse:
-    reset_token = verify_password_reset_otp(db, current_user, payload.otp)
-    if reset_token is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã OTP không đúng hoặc đã hết hạn.")
-
-    return OtpVerifyResponse(reset_token=reset_token)
-
-
-@router.post("/password/change", response_model=MessageResponse)
-async def change_password(
-    payload: PasswordChangeRequest,
     request: Request,
+    authorization: str = Header(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    if payload.new_password != payload.confirm_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu nhập lại không khớp.")
-
-    changed = change_password_with_reset_token(db, current_user, payload.reset_token, payload.new_password)
-    if not changed:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phiên đổi mật khẩu không hợp lệ.")
+    access_token = authorization.removeprefix("Bearer ").strip()
+    try:
+        verify_password_change_otp(db, current_user, payload.otp, access_token)
+    except PasswordChangeError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     write_audit_log(
         db=db,
@@ -272,7 +271,7 @@ async def change_password(
         user_agent=request.headers.get("user-agent"),
     )
 
-    return MessageResponse(message="Đổi mật khẩu thành công.")
+    return MessageResponse(message="Đổi mật khẩu thành công. Các phiên đăng nhập khác đã được đăng xuất.")
 
 
 @router.post("/users", response_model=AuthUser, status_code=status.HTTP_201_CREATED)

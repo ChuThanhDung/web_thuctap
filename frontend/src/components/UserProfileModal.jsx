@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   CreditCard,
   Edit3,
+  Eye,
+  EyeOff,
   Image as ImageIcon,
   KeyRound,
   Loader2,
@@ -20,7 +22,6 @@ import {
   Users,
 } from 'lucide-react';
 import {
-  changePassword,
   createUserAccount,
   getUserAccounts,
   requestPasswordOtp,
@@ -89,6 +90,33 @@ function Field({ icon: Icon, label, value, numeric = false }) {
   );
 }
 
+function PasswordField({ label, value, onChange, visible, onToggle, error, helper }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <div className="relative">
+        <input
+          className={`input-field pr-12 ${error ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={label === 'Mật khẩu hiện tại' ? 'current-password' : 'new-password'}
+          required
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-brand-600"
+          aria-label={visible ? `Ẩn ${label.toLowerCase()}` : `Hiện ${label.toLowerCase()}`}
+        >
+          {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+        </button>
+      </div>
+      <p className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-slate-500'}`}>{error || helper}</p>
+    </label>
+  );
+}
+
 export default function UserProfileModal({ token, user, onClose, onUserUpdate }) {
   const isChiefAccountant = user.role === 'chief_accountant';
   const fullName = repairVietnameseText(user.full_name) || '';
@@ -103,10 +131,12 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     phone: user.phone || '',
   });
   const [otp, setOtp] = useState('');
-  const [devOtp, setDevOtp] = useState('');
-  const [resetToken, setResetToken] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState({ current: false, new: false, confirm: false });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [resendCountdown, setResendCountdown] = useState(0);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -129,6 +159,14 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
       loadUserList();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendCountdown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCountdown]);
 
   async function loadUserList() {
     setLoadingUsers(true);
@@ -177,14 +215,24 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     }
   }
 
-  async function handleRequestOtp() {
+  async function handleRequestOtp(event) {
+    event?.preventDefault();
     resetFeedback();
+    const nextErrors = {};
+    if (!currentPassword) nextErrors.current = 'Vui lòng nhập mật khẩu hiện tại.';
+    if (newPassword.length < 6) nextErrors.new = 'Mật khẩu mới phải có tối thiểu 6 ký tự.';
+    if (newPassword && newPassword === currentPassword) nextErrors.new = 'Mật khẩu mới phải khác mật khẩu hiện tại.';
+    if (confirmPassword !== newPassword) nextErrors.confirm = 'Xác nhận mật khẩu mới không khớp.';
+    setPasswordErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setLoading(true);
 
     try {
-      const response = await requestPasswordOtp(token);
-      setDevOtp(response.dev_otp || '');
+      const response = await requestPasswordOtp(token, currentPassword, newPassword, confirmPassword);
       setMode('otp');
+      setOtp('');
+      setResendCountdown(response.resend_after_seconds || 60);
       setMessage(response.message);
     } catch (err) {
       setError(err.message);
@@ -200,29 +248,13 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
     try {
       const response = await verifyPasswordOtp(token, otp);
-      setResetToken(response.reset_token);
-      setMode('password');
-      setMessage('OTP hợp lệ. Vui lòng nhập mật khẩu mới.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleChangePassword(event) {
-    event.preventDefault();
-    resetFeedback();
-    setLoading(true);
-
-    try {
-      const response = await changePassword(token, resetToken, newPassword, confirmPassword);
       setMode('view');
       setOtp('');
-      setDevOtp('');
-      setResetToken('');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setPasswordErrors({});
+      setResendCountdown(0);
       setMessage(response.message);
     } catch (err) {
       setError(err.message);
@@ -399,7 +431,15 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       <Edit3 size={16} />
                       Sửa thông tin cá nhân
                     </button>
-                    <button type="button" className="btn-secondary flex-1" onClick={handleRequestOtp} disabled={loading}>
+                    <button
+                      type="button"
+                      className="btn-secondary flex-1"
+                      onClick={() => {
+                        resetFeedback();
+                        setPasswordErrors({});
+                        setMode('password');
+                      }}
+                    >
                       {loading ? <Loader2 className="animate-spin" size={16} /> : <KeyRound size={16} />}
                       Đổi mật khẩu
                     </button>
@@ -481,7 +521,6 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       <ShieldCheck className="mt-0.5 shrink-0" size={16} />
                       <p>Mã OTP 6 số đã được gửi trực tiếp đến địa chỉ email: <strong>{user.email}</strong>. Vui lòng kiểm tra hộp thư.</p>
                     </div>
-                    {devOtp && <p className="mt-2 font-semibold text-xs text-brand-600">Mã OTP dev: {devOtp}</p>}
                   </div>
                   <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-slate-700">Mã OTP</span>
@@ -494,6 +533,17 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       required
                     />
                   </label>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-slate-500">Mã hết hạn sau 5 phút.</span>
+                    <button
+                      type="button"
+                      className="font-medium text-brand-600 disabled:cursor-not-allowed disabled:text-slate-400"
+                      onClick={() => handleRequestOtp()}
+                      disabled={loading || resendCountdown > 0}
+                    >
+                      {resendCountdown > 0 ? `Gửi lại sau ${resendCountdown}s` : 'Gửi lại mã OTP'}
+                    </button>
+                  </div>
                 <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
@@ -507,34 +557,44 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
               )}
 
               {mode === 'password' && (
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu mới</span>
-                    <input
-                      className="input-field"
-                      type="password"
-                      value={newPassword}
-                      onChange={(event) => setNewPassword(event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Nhập lại mật khẩu mới</span>
-                    <input
-                      className="input-field"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      required
-                    />
-                  </label>
+                <form onSubmit={handleRequestOtp} className="space-y-4">
+                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-3 text-sm text-brand-700">
+                    OTP sẽ được gửi tới email đăng nhập: <strong>{user.email}</strong>
+                  </div>
+                  <PasswordField
+                    label="Mật khẩu hiện tại"
+                    value={currentPassword}
+                    onChange={(value) => { setCurrentPassword(value); setPasswordErrors((items) => ({ ...items, current: '' })); }}
+                    visible={passwordVisible.current}
+                    onToggle={() => setPasswordVisible((items) => ({ ...items, current: !items.current }))}
+                    error={passwordErrors.current}
+                    helper="Nhập mật khẩu bạn đang sử dụng."
+                  />
+                  <PasswordField
+                    label="Mật khẩu mới"
+                    value={newPassword}
+                    onChange={(value) => { setNewPassword(value); setPasswordErrors((items) => ({ ...items, new: '' })); }}
+                    visible={passwordVisible.new}
+                    onToggle={() => setPasswordVisible((items) => ({ ...items, new: !items.new }))}
+                    error={passwordErrors.new}
+                    helper="Tối thiểu 6 ký tự và phải khác mật khẩu hiện tại."
+                  />
+                  <PasswordField
+                    label="Xác nhận mật khẩu mới"
+                    value={confirmPassword}
+                    onChange={(value) => { setConfirmPassword(value); setPasswordErrors((items) => ({ ...items, confirm: '' })); }}
+                    visible={passwordVisible.confirm}
+                    onToggle={() => setPasswordVisible((items) => ({ ...items, confirm: !items.confirm }))}
+                    error={passwordErrors.confirm}
+                    helper="Nhập lại chính xác mật khẩu mới."
+                  />
                 <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
                     <button type="submit" className="btn-primary" disabled={loading}>
                       {loading ? <Loader2 className="animate-spin" size={16} /> : null}
-                      Lưu mật khẩu mới
+                      Gửi mã OTP
                     </button>
                   </div>
                 </form>

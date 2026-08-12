@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     smtp_from: str = "chuthanhdungtruong@gmail.com"
     smtp_tls: bool = True
 
+    # Password change security
+    password_otp_ttl_seconds: int = Field(default=300, ge=60, le=1800)
+    password_otp_resend_seconds: int = Field(default=60, ge=10, le=600)
+    password_otp_max_attempts: int = Field(default=5, ge=1, le=10)
+    password_otp_max_requests: int = Field(default=3, ge=1, le=20)
+    password_otp_request_window_minutes: int = Field(default=15, ge=1, le=1440)
+
 
 @lru_cache
 def get_settings() -> Settings:

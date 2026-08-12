@@ -88,9 +88,14 @@ export async function uploadAvatar(token, file) {
   return parseResponse(response);
 }
 
-export async function requestPasswordOtp(token) {
+export async function requestPasswordOtp(token, currentPassword, newPassword, confirmPassword) {
   const response = await authFetch('/auth/password/otp', token, {
     method: 'POST',
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    }),
   });
 
   return parseResponse(response);
@@ -100,19 +105,6 @@ export async function verifyPasswordOtp(token, otp) {
   const response = await authFetch('/auth/password/otp/verify', token, {
     method: 'POST',
     body: JSON.stringify({ otp }),
-  });
-
-  return parseResponse(response);
-}
-
-export async function changePassword(token, resetToken, newPassword, confirmPassword) {
-  const response = await authFetch('/auth/password/change', token, {
-    method: 'POST',
-    body: JSON.stringify({
-      reset_token: resetToken,
-      new_password: newPassword,
-      confirm_password: confirmPassword,
-    }),
   });
 
   return parseResponse(response);

@@ -3,18 +3,25 @@ from hashlib import sha256
 from secrets import randbelow, token_urlsafe
 
 from passlib.context import CryptContext
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
+from src.config import get_settings
 from src.models.audit_log import AuditLog
 from src.models.password_reset_otp import PasswordResetOtp
 from src.models.role import Role
 from src.models.schemas import UserCreateRequest
 from src.models.user import User
 from src.models.user_session import UserSession
-from src.services.email import send_otp_email
+from src.services.email import send_otp_email, send_password_changed_email
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class PasswordChangeError(ValueError):
+    def __init__(self, message: str, *, retry_after: int | None = None):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
@@ -88,18 +95,82 @@ def get_user_by_session_token(db: Session, access_token: str) -> User | None:
     return db.scalars(stmt).first()
 
 
-def create_password_reset_otp(db: Session, user: User) -> str:
-    otp = f"{randbelow(1_000_000):06d}"
-    db.add(
-        PasswordResetOtp(
-            user_id=user.id,
-            otp_hash=hash_token(otp),
-            expires_at=datetime.now(UTC) + timedelta(minutes=10),
+def initiate_password_change(
+    db: Session,
+    user: User,
+    current_password: str,
+    new_password: str,
+    confirm_password: str,
+) -> tuple[int, int]:
+    """Validate passwords and email an OTP without persisting any plain-text password."""
+    if not verify_password(current_password, user.password_hash):
+        raise PasswordChangeError("Mật khẩu hiện tại không đúng.")
+    if len(new_password) < 6:
+        raise PasswordChangeError("Mật khẩu mới phải có tối thiểu 6 ký tự.")
+    if new_password != confirm_password:
+        raise PasswordChangeError("Xác nhận mật khẩu mới không khớp.")
+    # bcrypt hashes are salted, so compare by verifying the candidate against the stored hash.
+    if verify_password(new_password, user.password_hash):
+        raise PasswordChangeError("Mật khẩu mới phải khác mật khẩu hiện tại.")
+
+    settings = get_settings()
+    now = datetime.now(UTC)
+    window_start = now - timedelta(minutes=settings.password_otp_request_window_minutes)
+    db.execute(delete(PasswordResetOtp).where(PasswordResetOtp.expires_at < now - timedelta(days=1)))
+    latest = db.scalars(
+        select(PasswordResetOtp)
+        .where(PasswordResetOtp.user_id == user.id)
+        .order_by(PasswordResetOtp.created_at.desc())
+        .limit(1)
+    ).first()
+    if latest is not None:
+        elapsed = (now - latest.created_at).total_seconds()
+        if elapsed < settings.password_otp_resend_seconds:
+            retry_after = max(1, int(settings.password_otp_resend_seconds - elapsed + 0.999))
+            raise PasswordChangeError(
+                f"Vui lòng chờ {retry_after} giây trước khi gửi lại OTP.",
+                retry_after=retry_after,
+            )
+
+    request_count = db.scalar(
+        select(func.count(PasswordResetOtp.id)).where(
+            PasswordResetOtp.user_id == user.id,
+            PasswordResetOtp.created_at >= window_start,
         )
+    ) or 0
+    if request_count >= settings.password_otp_max_requests:
+        raise PasswordChangeError(
+            f"Bạn đã yêu cầu OTP quá nhiều lần. Vui lòng thử lại sau {settings.password_otp_request_window_minutes} phút.",
+            retry_after=settings.password_otp_request_window_minutes * 60,
+        )
+
+    db.execute(
+        update(PasswordResetOtp)
+        .where(
+            PasswordResetOtp.user_id == user.id,
+            PasswordResetOtp.used_at.is_(None),
+            PasswordResetOtp.invalidated_at.is_(None),
+        )
+        .values(invalidated_at=now, pending_password_hash=None)
     )
+
+    otp = f"{randbelow(1_000_000):06d}"
+    otp_record = PasswordResetOtp(
+        user_id=user.id,
+        otp_hash=hash_password(otp),
+        pending_password_hash=hash_password(new_password),
+        attempt_count=0,
+        expires_at=now + timedelta(seconds=settings.password_otp_ttl_seconds),
+    )
+    db.add(otp_record)
     db.commit()
-    send_otp_email(user.email, otp)
-    return otp
+
+    if not send_otp_email(user.email, otp):
+        db.delete(otp_record)
+        db.commit()
+        raise PasswordChangeError("Không thể gửi OTP qua email. Vui lòng kiểm tra cấu hình Gmail và thử lại.")
+
+    return settings.password_otp_ttl_seconds, settings.password_otp_resend_seconds
 
 
 def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
@@ -136,48 +207,68 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
     return db.scalars(stmt).first()
 
 
-def verify_password_reset_otp(db: Session, user: User, otp: str) -> str | None:
+def verify_password_change_otp(db: Session, user: User, otp: str, current_session_token: str) -> None:
+    settings = get_settings()
+    now = datetime.now(UTC)
     stmt = (
         select(PasswordResetOtp)
         .where(
             PasswordResetOtp.user_id == user.id,
-            PasswordResetOtp.otp_hash == hash_token(otp),
             PasswordResetOtp.used_at.is_(None),
-            PasswordResetOtp.expires_at > datetime.now(UTC),
+            PasswordResetOtp.invalidated_at.is_(None),
         )
         .order_by(PasswordResetOtp.created_at.desc())
+        .with_for_update()
     )
     otp_record = db.scalars(stmt).first()
     if otp_record is None:
-        return None
+        raise PasswordChangeError("Không có yêu cầu đổi mật khẩu đang hoạt động. Vui lòng gửi lại OTP.")
+    if otp_record.expires_at <= now:
+        otp_record.invalidated_at = now
+        otp_record.pending_password_hash = None
+        db.commit()
+        raise PasswordChangeError("Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.")
+    if otp_record.attempt_count >= settings.password_otp_max_attempts:
+        otp_record.invalidated_at = now
+        otp_record.pending_password_hash = None
+        db.commit()
+        raise PasswordChangeError(
+            f"Bạn đã nhập sai OTP quá {settings.password_otp_max_attempts} lần. Vui lòng gửi lại mã mới."
+        )
 
-    reset_token = token_urlsafe(32)
-    otp_record.reset_token_hash = hash_token(reset_token)
-    otp_record.verified_at = datetime.now(UTC)
-    db.commit()
-    return reset_token
+    if not verify_password(otp, otp_record.otp_hash):
+        otp_record.attempt_count += 1
+        remaining = settings.password_otp_max_attempts - otp_record.attempt_count
+        if remaining <= 0:
+            otp_record.invalidated_at = now
+            otp_record.pending_password_hash = None
+            db.commit()
+            raise PasswordChangeError(
+                f"Bạn đã nhập sai OTP quá {settings.password_otp_max_attempts} lần. Vui lòng gửi lại mã mới."
+            )
+        db.commit()
+        raise PasswordChangeError(f"Mã OTP không đúng. Bạn còn {remaining} lần thử.")
 
+    if not otp_record.pending_password_hash:
+        otp_record.invalidated_at = now
+        db.commit()
+        raise PasswordChangeError("Yêu cầu đổi mật khẩu không hợp lệ. Vui lòng thực hiện lại.")
 
-def change_password_with_reset_token(db: Session, user: User, reset_token: str, new_password: str) -> bool:
-    stmt = (
-        select(PasswordResetOtp)
+    user.password_hash = otp_record.pending_password_hash
+    otp_record.pending_password_hash = None
+    otp_record.verified_at = now
+    otp_record.used_at = now
+    db.execute(
+        update(UserSession)
         .where(
-            PasswordResetOtp.user_id == user.id,
-            PasswordResetOtp.reset_token_hash == hash_token(reset_token),
-            PasswordResetOtp.verified_at.is_not(None),
-            PasswordResetOtp.used_at.is_(None),
-            PasswordResetOtp.expires_at > datetime.now(UTC),
+            UserSession.user_id == user.id,
+            UserSession.session_token_hash != hash_token(current_session_token),
+            UserSession.revoked_at.is_(None),
         )
-        .order_by(PasswordResetOtp.created_at.desc())
+        .values(revoked_at=now)
     )
-    otp_record = db.scalars(stmt).first()
-    if otp_record is None:
-        return False
-
-    user.password_hash = hash_password(new_password)
-    otp_record.used_at = datetime.now(UTC)
     db.commit()
-    return True
+    send_password_changed_email(user.email)
 
 
 def write_audit_log(
