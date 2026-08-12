@@ -68,34 +68,60 @@ Hệ thống báo không tìm thấy PO, cần kế toán kiểm tra và xác nh
 
 # Workflow đầy đủ
 
+## Quy trình xử lý sau 3-Way Matching
+
+```text
 3-WAY MATCH
        ↓
-┌─────────────────────────────────┐
-│                                 │
-MATCH                   VARIANCE DETECTED
-│                                 │
-▼                                 ▼
-Check tolerance              Create Exception
-│                                 │
-├─ exact                           ▼
-│                            Payment Block/Hold
-├─ within tolerance                │
-│                                 ▼
-▼                           Determine Root Cause
-READY FOR APPROVAL                  │
-                                   ▼
-                           Assign Responsible Party
+┌─────────────────────────────────────────────┐
+│                                             │
+▼                                             ▼
+MATCH                                  VARIANCE DETECTED
+│                                             │
+▼                                             ▼
+CHECK TOLERANCE                        CREATE EXCEPTION
+│                                             │
+├── EXACT MATCH                               ▼
+│                                      PAYMENT BLOCK / HOLD
+├── WITHIN TOLERANCE                          │
+│                                             ▼
+▼                                     DETERMINE ROOT CAUSE
+READY FOR APPROVAL                            │
+                                              ▼
+                                  ASSIGN RESPONSIBLE PARTY
+                                              │
+                         ┌────────────────────┼────────────────────┐
+                         │                    │                    │
+                         ▼                    ▼                    ▼
+                    WAREHOUSE           PROCUREMENT            SUPPLIER
+                         │                    │                    │
+                         └────────────────────┼────────────────────┘
+                                              │
+                                              ▼
+                                           RESOLVE
+                                              │
+                                              ▼
+                                         RE-VALIDATE
+                                              │
+                                              ▼
+                                         RE-MATCHING
+                                              │
+                                   ┌──────────┴──────────┐
+                                   │                     │
+                                   ▼                     ▼
+                                 MATCH             STILL MISMATCH
+                                   │                     │
+                                   ▼                     └──→ Continue Review
+                              RELEASE HOLD
                                    │
-                 ┌─────────────────┼─────────────────┐
-                 │                 │                 │
-              Warehouse        Procurement        Supplier
-                 │                 │                 │
-                 └─────────────────┼─────────────────┘
                                    ▼
-                                Resolve
-                                   ↓
-                              Re-validate
-                                   ↓
-                              Release hold
-                                   ↓
-                                Approve
+                            READY FOR APPROVAL
+                                   │
+                                   ▼
+                                APPROVE
+                                   │
+                                   ▼
+                                 POSTED
+                                   │
+                                   ▼
+                          READY FOR PAYMENT
