@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Bot, Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import Login from './pages/Login.jsx';
-import ReconciliationList from './pages/ReconciliationList.jsx';
+import AccountantOverview from './pages/AccountantOverview.jsx';
 import CaseDetail from './pages/CaseDetail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import UploadQueue from './pages/UploadQueue.jsx';
@@ -141,7 +141,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path="/login" element={<Navigate to={homePath} replace />} />
-            <Route path="/accountant" element={<ReconciliationList token={auth.access_token} />} />
+            <Route path="/accountant" element={<AccountantOverview token={auth.access_token} />} />
             <Route
               path="/manager"
               element={

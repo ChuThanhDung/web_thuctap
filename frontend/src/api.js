@@ -4,7 +4,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? 'http://127.0.0.1:8000/api/v1' : '/api/v1');
 
-function buildApiUrl(pathOrUrl) {
+export function buildApiUrl(pathOrUrl) {
   if (!pathOrUrl) return null;
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
 
@@ -20,6 +20,10 @@ function buildApiUrl(pathOrUrl) {
 
 export function getUploadFileViewUrl(file) {
   return buildApiUrl(file?.file_url || (file?.id ? `/uploads/${file.id}/file` : null));
+}
+
+export function getAvatarViewUrl(user) {
+  return buildApiUrl(user?.avatar_url);
 }
 
 export async function parseResponse(response) {

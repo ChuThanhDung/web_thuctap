@@ -517,6 +517,9 @@ def seed_initial_data_if_needed() -> None:
                     description="Thực hiện đối soát hóa đơn, tải chứng từ và theo dõi nhật ký nghiệp vụ.",
                 )
                 db.add(acc_role)
+            else:
+                acc_role.name = "Kế toán viên"
+                acc_role.description = "Thực hiện đối soát hóa đơn, tải chứng từ và theo dõi nhật ký nghiệp vụ."
 
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
             if not chief_role:
@@ -526,6 +529,9 @@ def seed_initial_data_if_needed() -> None:
                     description="Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình.",
                 )
                 db.add(chief_role)
+            else:
+                chief_role.name = "Kế toán trưởng"
+                chief_role.description = "Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình."
 
             db.commit()
 
