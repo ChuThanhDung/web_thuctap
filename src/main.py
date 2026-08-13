@@ -504,6 +504,7 @@ def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
     from src.models.role import Role
+    from src.models.reconciliation import Threshold
     from src.models.user import User
     from src.services.auth import hash_password
 
@@ -537,6 +538,24 @@ def seed_initial_data_if_needed() -> None:
 
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
+
+            default_thresholds = [
+                {
+                    "category": "Đơn giá & Tổng tiền",
+                    "percent_threshold": "1.0",
+                    "absolute_threshold": "100000",
+                },
+                {
+                    "category": "Số lượng",
+                    "percent_threshold": "2.0",
+                    "absolute_threshold": "5",
+                },
+            ]
+
+            for threshold_data in default_thresholds:
+                threshold = db.query(Threshold).filter(Threshold.category == threshold_data["category"]).first()
+                if not threshold:
+                    db.add(Threshold(**threshold_data))
 
             default_password_hash = hash_password("123456")
 
