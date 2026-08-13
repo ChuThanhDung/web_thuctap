@@ -1,0 +1,2 @@
+# Image validation, crop, resize and WebP encoding for user avatars.
+Pillow==11.3.0

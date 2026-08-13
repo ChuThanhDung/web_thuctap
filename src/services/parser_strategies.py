@@ -19,7 +19,6 @@ class BaseParserStrategy(ABC):
         """
 
 
-
 class XmlParserStrategy(BaseParserStrategy):
     """Chiến lược parse file XML bằng parser có sẵn."""
 

@@ -7,7 +7,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.database import SessionLocal
-from src.models.role import Role
 from src.models.user import User
 from src.services.auth import authenticate_user, verify_password
 
@@ -19,7 +18,9 @@ def inspect_login():
         users = db.scalars(select(User).options(selectinload(User.role))).all()
         print(f"Tổng số tài khoản: {len(users)}")
         for u in users:
-            print(f" - Email: '{u.email}' | Name: '{u.full_name}' | Role: '{u.role.code}' ({u.role.name}) | Status: '{u.status}' | Hash len: {len(u.password_hash)}")
+            print(
+                f" - Email: '{u.email}' | Name: '{u.full_name}' | Role: '{u.role.code}' ({u.role.name}) | Status: '{u.status}' | Hash len: {len(u.password_hash)}"
+            )
 
         print("\n=== 2. THỬ AUTHENTICATE 'chuthanhdung@gmail.com' VỚI MẬT KHẨU '123456' ===")
         user = authenticate_user(db, "chuthanhdung@gmail.com", "123456")

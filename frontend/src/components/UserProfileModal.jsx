@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Badge,
   Building2,
   CalendarDays,
+  Camera,
   CheckCircle2,
   CreditCard,
   Edit3,
+  Eye,
+  EyeOff,
   Image as ImageIcon,
   KeyRound,
   Loader2,
@@ -18,11 +22,11 @@ import {
   Users,
 } from 'lucide-react';
 import {
-  changePassword,
   createUserAccount,
   getUserAccounts,
   requestPasswordOtp,
   updateProfile,
+  uploadAvatar,
   verifyPasswordOtp,
 } from '../api.js';
 import { repairVietnameseText } from '../text.js';
@@ -45,19 +49,24 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
-function ProfileAvatar({ user, fullName }) {
-  if (user.avatar_url) {
+function ProfileAvatar({ user, fullName, className = 'h-14 w-14' }) {
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => setImageError(false), [user.avatar_url]);
+
+  if (user.avatar_url && !imageError) {
     return (
       <img
         src={user.avatar_url}
         alt={fullName}
-        className="h-14 w-14 shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100"
+        onError={() => setImageError(true)}
+        className={`${className} shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100`}
       />
     );
   }
 
   return (
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-brand-100 via-white to-brand-200 text-base font-semibold text-brand-700 shadow-[0_8px_20px_rgba(83,58,253,0.18)] ring-1 ring-brand-100">
+    <div className={`flex ${className} shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-brand-100 via-white to-brand-200 text-base font-semibold text-brand-700 shadow-[0_8px_20px_rgba(83,58,253,0.18)] ring-1 ring-brand-100`}>
       {getInitials(fullName)}
     </div>
   );
@@ -81,6 +90,33 @@ function Field({ icon: Icon, label, value, numeric = false }) {
   );
 }
 
+function PasswordField({ label, value, onChange, visible, onToggle, error, helper }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <div className="relative">
+        <input
+          className={`input-field pr-12 ${error ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={label === 'Mật khẩu hiện tại' ? 'current-password' : 'new-password'}
+          required
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-brand-600"
+          aria-label={visible ? `Ẩn ${label.toLowerCase()}` : `Hiện ${label.toLowerCase()}`}
+        >
+          {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+        </button>
+      </div>
+      <p className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-slate-500'}`}>{error || helper}</p>
+    </label>
+  );
+}
+
 export default function UserProfileModal({ token, user, onClose, onUserUpdate }) {
   const isChiefAccountant = user.role === 'chief_accountant';
   const fullName = repairVietnameseText(user.full_name) || '';
@@ -95,10 +131,12 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     phone: user.phone || '',
   });
   const [otp, setOtp] = useState('');
-  const [devOtp, setDevOtp] = useState('');
-  const [resetToken, setResetToken] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState({ current: false, new: false, confirm: false });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [resendCountdown, setResendCountdown] = useState(0);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -121,6 +159,14 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
       loadUserList();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendCountdown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCountdown]);
 
   async function loadUserList() {
     setLoadingUsers(true);
@@ -169,14 +215,24 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     }
   }
 
-  async function handleRequestOtp() {
+  async function handleRequestOtp(event) {
+    event?.preventDefault();
     resetFeedback();
+    const nextErrors = {};
+    if (!currentPassword) nextErrors.current = 'Vui lòng nhập mật khẩu hiện tại.';
+    if (newPassword.length < 6) nextErrors.new = 'Mật khẩu mới phải có tối thiểu 6 ký tự.';
+    if (newPassword && newPassword === currentPassword) nextErrors.new = 'Mật khẩu mới phải khác mật khẩu hiện tại.';
+    if (confirmPassword !== newPassword) nextErrors.confirm = 'Xác nhận mật khẩu mới không khớp.';
+    setPasswordErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setLoading(true);
 
     try {
-      const response = await requestPasswordOtp(token);
-      setDevOtp(response.dev_otp || '');
+      const response = await requestPasswordOtp(token, currentPassword, newPassword, confirmPassword);
       setMode('otp');
+      setOtp('');
+      setResendCountdown(response.resend_after_seconds || 60);
       setMessage(response.message);
     } catch (err) {
       setError(err.message);
@@ -192,29 +248,13 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
     try {
       const response = await verifyPasswordOtp(token, otp);
-      setResetToken(response.reset_token);
-      setMode('password');
-      setMessage('OTP hợp lệ. Vui lòng nhập mật khẩu mới.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleChangePassword(event) {
-    event.preventDefault();
-    resetFeedback();
-    setLoading(true);
-
-    try {
-      const response = await changePassword(token, resetToken, newPassword, confirmPassword);
       setMode('view');
       setOtp('');
-      setDevOtp('');
-      setResetToken('');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setPasswordErrors({});
+      setResendCountdown(0);
       setMessage(response.message);
     } catch (err) {
       setError(err.message);
@@ -264,18 +304,18 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-2 backdrop-blur-sm sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative flex w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10"
+        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 sm:max-h-[calc(100dvh-2rem)]"
         style={{ maxHeight: 'calc(100vh - 32px)' }}
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[#e3e8ee] bg-white px-5 py-4">
+        <div className="sticky top-0 z-10 border-b border-[#e3e8ee] bg-white px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.2px] text-[#0d253d]">
@@ -290,7 +330,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#d7dee8] bg-white text-2xl font-light leading-none text-[#64748d] shadow-sm transition-colors hover:bg-slate-100 hover:text-[#0d253d]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d7dee8] bg-white text-2xl font-light leading-none text-[#64748d] shadow-sm transition-colors hover:bg-slate-100 hover:text-[#0d253d]"
               aria-label="Đóng"
               title="Đóng"
             >
@@ -300,7 +340,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
           {/* Navigation Tabs for Chief Accountant */}
           {isChiefAccountant && (
-            <div className="mt-3 flex border-b border-[#e3e8ee] gap-4 text-sm font-medium">
+          <div className="mt-3 flex gap-4 overflow-x-auto border-b border-[#e3e8ee] text-sm font-medium">
               <button
                 type="button"
                 className={`pb-2.5 transition-colors ${
@@ -336,7 +376,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
         {/* Modal Body */}
         <div
-          className="min-h-0 overflow-y-auto overscroll-contain bg-[#f6f9fc] px-5 py-4"
+          className="min-h-0 overflow-y-auto overscroll-contain bg-[#f6f9fc] px-4 py-4 sm:px-5"
           style={{ maxHeight: 'calc(100vh - 128px)' }}
         >
           {message && (
@@ -391,7 +431,15 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       <Edit3 size={16} />
                       Sửa thông tin cá nhân
                     </button>
-                    <button type="button" className="btn-secondary flex-1" onClick={handleRequestOtp} disabled={loading}>
+                    <button
+                      type="button"
+                      className="btn-secondary flex-1"
+                      onClick={() => {
+                        resetFeedback();
+                        setPasswordErrors({});
+                        setMode('password');
+                      }}
+                    >
                       {loading ? <Loader2 className="animate-spin" size={16} /> : <KeyRound size={16} />}
                       Đổi mật khẩu
                     </button>
@@ -401,6 +449,15 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
               {mode === 'edit' && (
                 <form onSubmit={handleSaveProfile} className="space-y-3">
+                  <AvatarEditor
+                    token={token}
+                    user={user}
+                    fullName={fullName}
+                    onUpdated={onUserUpdate}
+                    onError={setError}
+                    onMessage={setMessage}
+                  />
+
                   <div className="grid grid-cols-1 gap-2.5">
                     <Field icon={Mail} label="Email" value={user.email} />
                     <Field icon={Building2} label="Phòng ban" value={department} />
@@ -445,7 +502,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                     </label>
                   </div>
 
-                  <div className="sticky bottom-0 -mx-5 flex justify-end gap-2 border-t border-[#e3e8ee] bg-[#f6f9fc]/95 px-5 pt-3 backdrop-blur">
+                <div className="sticky bottom-0 -mx-4 flex flex-col-reverse justify-end gap-2 border-t border-[#e3e8ee] bg-[#f6f9fc]/95 px-4 pt-3 backdrop-blur sm:-mx-5 sm:flex-row sm:px-5">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
@@ -464,7 +521,6 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       <ShieldCheck className="mt-0.5 shrink-0" size={16} />
                       <p>Mã OTP 6 số đã được gửi trực tiếp đến địa chỉ email: <strong>{user.email}</strong>. Vui lòng kiểm tra hộp thư.</p>
                     </div>
-                    {devOtp && <p className="mt-2 font-semibold text-xs text-brand-600">Mã OTP dev: {devOtp}</p>}
                   </div>
                   <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-slate-700">Mã OTP</span>
@@ -477,7 +533,18 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       required
                     />
                   </label>
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-slate-500">Mã hết hạn sau 5 phút.</span>
+                    <button
+                      type="button"
+                      className="font-medium text-brand-600 disabled:cursor-not-allowed disabled:text-slate-400"
+                      onClick={() => handleRequestOtp()}
+                      disabled={loading || resendCountdown > 0}
+                    >
+                      {resendCountdown > 0 ? `Gửi lại sau ${resendCountdown}s` : 'Gửi lại mã OTP'}
+                    </button>
+                  </div>
+                <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
@@ -490,34 +557,44 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
               )}
 
               {mode === 'password' && (
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu mới</span>
-                    <input
-                      className="input-field"
-                      type="password"
-                      value={newPassword}
-                      onChange={(event) => setNewPassword(event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Nhập lại mật khẩu mới</span>
-                    <input
-                      className="input-field"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      required
-                    />
-                  </label>
-                  <div className="flex justify-end gap-2 pt-2">
+                <form onSubmit={handleRequestOtp} className="space-y-4">
+                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-3 text-sm text-brand-700">
+                    OTP sẽ được gửi tới email đăng nhập: <strong>{user.email}</strong>
+                  </div>
+                  <PasswordField
+                    label="Mật khẩu hiện tại"
+                    value={currentPassword}
+                    onChange={(value) => { setCurrentPassword(value); setPasswordErrors((items) => ({ ...items, current: '' })); }}
+                    visible={passwordVisible.current}
+                    onToggle={() => setPasswordVisible((items) => ({ ...items, current: !items.current }))}
+                    error={passwordErrors.current}
+                    helper="Nhập mật khẩu bạn đang sử dụng."
+                  />
+                  <PasswordField
+                    label="Mật khẩu mới"
+                    value={newPassword}
+                    onChange={(value) => { setNewPassword(value); setPasswordErrors((items) => ({ ...items, new: '' })); }}
+                    visible={passwordVisible.new}
+                    onToggle={() => setPasswordVisible((items) => ({ ...items, new: !items.new }))}
+                    error={passwordErrors.new}
+                    helper="Tối thiểu 6 ký tự và phải khác mật khẩu hiện tại."
+                  />
+                  <PasswordField
+                    label="Xác nhận mật khẩu mới"
+                    value={confirmPassword}
+                    onChange={(value) => { setConfirmPassword(value); setPasswordErrors((items) => ({ ...items, confirm: '' })); }}
+                    visible={passwordVisible.confirm}
+                    onToggle={() => setPasswordVisible((items) => ({ ...items, confirm: !items.confirm }))}
+                    error={passwordErrors.confirm}
+                    helper="Nhập lại chính xác mật khẩu mới."
+                  />
+                <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
                     <button type="submit" className="btn-primary" disabled={loading}>
                       {loading ? <Loader2 className="animate-spin" size={16} /> : null}
-                      Lưu mật khẩu mới
+                      Gửi mã OTP
                     </button>
                   </div>
                 </form>
@@ -660,7 +737,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                   {userList.map((u) => (
                     <div
                       key={u.id}
-                      className="flex items-center justify-between rounded-lg border border-[#e3e8ee] bg-[#f8faff] p-3 text-sm transition-colors hover:bg-white hover:border-brand-200"
+                    className="flex flex-col items-start justify-between gap-2 rounded-lg border border-[#e3e8ee] bg-[#f8faff] p-3 text-sm transition-colors hover:border-brand-200 hover:bg-white sm:flex-row sm:items-center"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -692,6 +769,154 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
           )}
         </div>
       </div>
+    </div>,
+    document.body,
+  );
+}
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_AVATAR_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+function canvasToWebp(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Trình duyệt không thể xử lý ảnh này.'))),
+      'image/webp',
+      0.86,
+    );
+  });
+}
+
+function AvatarEditor({ token, user, fullName, onUpdated, onError, onMessage }) {
+  const imageRef = useRef(null);
+  const inputRef = useRef(null);
+  const [sourceFile, setSourceFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [zoom, setZoom] = useState(1);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function chooseFile(file) {
+    onError('');
+    onMessage('');
+    if (!file) return;
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!ALLOWED_AVATAR_EXTENSIONS.includes(extension) || !ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      onError('Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc WebP.');
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      onError('Ảnh đại diện không được vượt quá 5 MB.');
+      return;
+    }
+
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSourceFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setZoom(1);
+  }
+
+  async function handleUpload() {
+    if (!sourceFile || !imageRef.current) return;
+    onError('');
+    onMessage('');
+    setUploading(true);
+
+    try {
+      const image = imageRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const context = canvas.getContext('2d');
+      const baseScale = Math.max(512 / image.naturalWidth, 512 / image.naturalHeight);
+      const scale = baseScale * zoom;
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      context.drawImage(image, (512 - width) / 2, (512 - height) / 2, width, height);
+
+      const blob = await canvasToWebp(canvas);
+      const croppedFile = new File([blob], 'avatar.webp', { type: 'image/webp' });
+      const updatedUser = await uploadAvatar(token, croppedFile);
+      onUpdated(updatedUser);
+      onMessage('Đã cập nhật ảnh đại diện.');
+      setSourceFile(null);
+      setPreviewUrl('');
+      if (inputRef.current) inputRef.current.value = '';
+    } catch (err) {
+      onError(err.message || 'Không thể cập nhật ảnh đại diện.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-[#e3e8ee] bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-4 ring-brand-50 sm:mx-0">
+          {previewUrl ? (
+            <img
+              ref={imageRef}
+              src={previewUrl}
+              alt="Xem trước vùng cắt ảnh đại diện"
+              className="h-full w-full object-cover transition-transform"
+              style={{ transform: `scale(${zoom})` }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <ProfileAvatar user={user} fullName={fullName} className="h-full w-full" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-[#0d253d]">Ảnh đại diện</p>
+            <p className="mt-1 text-xs leading-5 text-[#64748d]">JPG, PNG hoặc WebP · tối đa 5 MB · lưu thành WebP 512×512.</p>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(event) => chooseFile(event.target.files?.[0])}
+          />
+          <button type="button" className="btn-secondary w-full sm:w-auto" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            <Camera size={17} />
+            {sourceFile ? 'Chọn ảnh khác' : 'Chọn ảnh'}
+          </button>
+        </div>
+      </div>
+
+      {sourceFile && (
+        <div className="mt-4 space-y-3 border-t border-[#e3e8ee] pt-4">
+          <label className="block">
+            <span className="mb-2 flex items-center justify-between text-xs font-medium text-[#64748d]">
+              Phóng to để chọn vùng crop
+              <span>{Math.round(zoom * 100)}%</span>
+            </span>
+            <input
+              type="range"
+              min="1"
+              max="2.5"
+              step="0.05"
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              className="h-11 w-full accent-brand-600"
+            />
+          </label>
+          <button type="button" className="btn-primary w-full" onClick={handleUpload} disabled={uploading}>
+            {uploading ? <Loader2 className="animate-spin" size={17} /> : <Camera size={17} />}
+            {uploading ? 'Đang xử lý và tải lên...' : 'Crop và cập nhật ảnh'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,6 +31,8 @@ Thumbs.db
 # Data (never commit large data)
 data/
 storage/uploads/**/*
+storage/avatars/*
+!storage/avatars/.gitkeep
 *.db
 *.sqlite3
 

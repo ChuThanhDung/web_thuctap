@@ -78,7 +78,7 @@ export default function ThresholdConfig({ token }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Cấu hình ngưỡng chênh lệch</h1>
           <p className="mt-0.5 text-sm text-slate-500">
@@ -115,8 +115,8 @@ export default function ThresholdConfig({ token }) {
 
       {/* Config table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80">
                 <th className="px-5 py-3 text-left font-semibold text-slate-600">
@@ -183,14 +183,14 @@ export default function ThresholdConfig({ token }) {
                         <div className="flex gap-1">
                           <button
                             onClick={() => saveEdit(item.id)}
-                            className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50"
+                            className="flex h-11 w-11 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50"
                             title="Lưu"
                           >
                             <Check size={16} />
                           </button>
                           <button
                             onClick={cancelEdit}
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
+                            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
                             title="Hủy"
                           >
                             <X size={16} />
@@ -199,7 +199,7 @@ export default function ThresholdConfig({ token }) {
                       ) : (
                         <button
                           onClick={() => startEdit(item)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                           title="Chỉnh sửa"
                         >
                           <Edit2 size={16} />
