@@ -503,8 +503,8 @@ def ensure_uploaded_document_extraction_tables() -> None:
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
-    from src.models.role import Role
     from src.models.reconciliation import Threshold
+    from src.models.role import Role
     from src.models.user import User
     from src.services.auth import hash_password
 
