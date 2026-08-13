@@ -901,9 +901,6 @@ export default function AuditTrail({ token }) {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Batch đối soát</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Theo dõi từng bộ PO, Invoice, GRN và xem hệ thống đã so khớp trường nào, lệch ở đâu.
-          </p>
         </div>
         <button type="button" className="btn-primary self-start lg:self-auto">
           <FileSearch size={16} />

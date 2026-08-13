@@ -88,7 +88,7 @@ export default function Dashboard({ token }) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <KPICard
           icon={CheckCircle2}
           iconColor="text-emerald-600"
@@ -128,7 +128,7 @@ export default function Dashboard({ token }) {
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Automation Trend */}
-        <div className="card p-5">
+        <div className="card p-4 sm:p-5">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">
             Tỷ lệ tự động hóa theo thời gian
           </h3>
@@ -172,7 +172,7 @@ export default function Dashboard({ token }) {
         </div>
 
         {/* Override Rate */}
-        <div className="card p-5">
+        <div className="card p-4 sm:p-5">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">
             Sự can thiệp của con người
           </h3>
@@ -234,7 +234,7 @@ export default function Dashboard({ token }) {
           {escalatedCases.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="flex flex-col items-stretch justify-between gap-3 px-4 py-4 transition-colors cursor-pointer hover:bg-slate-50 sm:flex-row sm:items-center sm:px-5"
               onClick={() => navigate(`/case/${c.case_number}`)}
             >
               <div className="min-w-0 flex-1">
@@ -256,7 +256,7 @@ export default function Dashboard({ token }) {
                 </p>
               </div>
 
-              <div className="text-right shrink-0">
+              <div className="flex shrink-0 items-center justify-between gap-3 text-left sm:block sm:text-right">
                 <p className="text-sm font-semibold text-slate-900">
                   {formatVND(c.total_amount)}
                 </p>
@@ -279,15 +279,15 @@ export default function Dashboard({ token }) {
 
 function KPICard({ icon: Icon, iconColor, iconBg, label, value, subtext, highlight }) {
   return (
-    <div className={`card p-5 ${highlight ? 'ring-1 ring-amber-200' : ''}`}>
+    <div className={`card min-w-0 p-3 sm:p-4 lg:p-5 ${highlight ? 'ring-1 ring-amber-200' : ''}`}>
       <div className="flex items-start justify-between">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon size={20} className={iconColor} />
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${iconBg}`}>
+          <Icon size={18} className={iconColor} />
         </div>
       </div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
-      <p className="text-xs font-medium text-slate-500 mt-0.5">{label}</p>
-      {subtext && <p className="text-[11px] text-slate-400 mt-1">{subtext}</p>}
+      <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
+      <p className="mt-0.5 break-words text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">{label}</p>
+      {subtext && <p className="mt-1 break-words text-[10px] leading-4 text-slate-400 sm:text-[11px]">{subtext}</p>}
     </div>
   );
 }

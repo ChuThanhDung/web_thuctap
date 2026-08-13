@@ -1,17 +1,19 @@
 import traceback
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from src.database import SessionLocal, engine
-from src.models.role import Role
+from src.database import SessionLocal
 from src.models.user import User
 from src.services.auth import authenticate_user, create_user_session, write_audit_log
 
 output = []
 
+
 def log(msg):
     output.append(str(msg))
     print(msg)
+
 
 log("=== STARTING DIAGNOSTIC FOR LOGIN ===")
 db = SessionLocal()
@@ -40,6 +42,7 @@ try:
         u_check = db.scalars(select(User).where(User.email == "chuthanhdung@gmail.com")).first()
         if u_check:
             from src.services.auth import verify_password
+
             is_valid = verify_password("123456", u_check.password_hash)
             log(f"  - User found. Status: {u_check.status}, verify_password('123456'): {is_valid}")
             log(f"  - Password Hash: {u_check.password_hash}")

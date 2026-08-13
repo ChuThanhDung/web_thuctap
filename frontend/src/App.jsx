@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Bot, Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import Login from './pages/Login.jsx';
 import ReconciliationList from './pages/ReconciliationList.jsx';
@@ -40,6 +41,7 @@ function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
 
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [auth, setAuth] = useState(getInitialAuth);
   const [theme, setTheme] = useState(getInitialTheme);
 
@@ -93,9 +95,35 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 sm:hidden">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+            <Bot size={20} />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">Docusyncai</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">AI Đối soát chứng từ</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSidebarCollapsed(false);
+            setMobileMenuOpen(true);
+          }}
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          aria-label="Mở menu điều hướng"
+          aria-expanded={mobileMenuOpen}
+        >
+          <Menu size={24} />
+        </button>
+      </header>
+
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
         token={auth.access_token}
         user={auth.user}
         onLogout={handleLogout}
@@ -105,11 +133,11 @@ export default function App() {
       />
 
       <main
-        className={`flex-1 transition-all duration-200 ${
-          sidebarCollapsed ? 'ml-[68px]' : 'ml-[260px]'
+        className={`min-w-0 flex-1 pt-16 transition-all duration-200 sm:ml-[68px] sm:pt-0 ${
+          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'
         }`}
       >
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path="/login" element={<Navigate to={homePath} replace />} />
