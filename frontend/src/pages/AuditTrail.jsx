@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -14,12 +15,14 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
+import { fetchUploadFileBlob, getDocumentBatches } from '../api.js';
+import { repairTextDeep } from '../text.js';
 
 const STATUS_META = {
   missing: {
-    label: 'Thiếu chứng từ',
-    tone: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
-    rail: 'bg-slate-400',
+    label: 'Thiếu dữ liệu',
+    tone: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+    rail: 'bg-amber-500',
   },
   matching: {
     label: 'Đang đối soát',
@@ -32,7 +35,7 @@ const STATUS_META = {
     rail: 'bg-emerald-500',
   },
   mismatch: {
-    label: 'Có chênh lệch',
+    label: 'Lệch',
     tone: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300',
     rail: 'bg-rose-500',
   },
@@ -44,13 +47,48 @@ const DOC_TYPES = [
   { key: 'grn', short: 'GRN', label: 'Phiếu nhập kho', icon: PackageCheck },
 ];
 
+function getFileExt(filename = '') {
+  return filename.split('.').pop()?.toLowerCase() || '';
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function buildXmlPreviewHtml(filename, xmlText) {
+  return `<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(filename)}</title>
+  <style>
+    body { margin: 0; background: #f6f9fc; color: #0d253d; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    header { position: sticky; top: 0; border-bottom: 1px solid #e3e8ee; background: rgba(255,255,255,.94); padding: 14px 20px; backdrop-filter: blur(12px); }
+    h1 { margin: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 700; }
+    main { padding: 20px; }
+    pre { margin: 0; overflow: auto; border: 1px solid #e3e8ee; border-radius: 8px; background: #fff; padding: 18px; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <header><h1>${escapeHtml(filename)}</h1></header>
+  <main><pre>${escapeHtml(xmlText)}</pre></main>
+</body>
+</html>`;
+}
+
 const SAMPLE_BATCHES = [
   {
     id: 'batch-08',
     batchNumber: 'BATCH_11_08_2026_08',
     status: 'matched',
     updatedAt: '2026-08-11 12:21:18',
-    owner: 'Chu Thanh Dũng',
+    owner: 'Chu Thanh DÅ©ng',
     matchRate: 100,
     checkedFields: 18,
     matchedFields: 18,
@@ -405,6 +443,18 @@ function getCompletion(batch) {
   return DOC_TYPES.filter((docType) => !batch.docs[docType.key]?.missing).length;
 }
 
+function isSameBatchId(left, right) {
+  return left != null && right != null && String(left) === String(right);
+}
+
+function isApiBatchReady(batch) {
+  if (Array.isArray(batch?.missing_doc_types)) return batch.missing_doc_types.length === 0;
+  if (batch?.status === 'ready') return true;
+
+  const uploadedTypes = new Set((batch?.files || []).map((file) => file.doc_type).filter(Boolean));
+  return DOC_TYPES.every((type) => uploadedTypes.has(type.key));
+}
+
 function getStatusIcon(status) {
   if (status === 'matched') return CheckCircle2;
   if (status === 'mismatch') return AlertTriangle;
@@ -430,18 +480,21 @@ function MatchMeter({ value }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Tỉ lệ khớp</span>
+        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tỉ lệ khớp</span>
         <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{value}%</span>
       </div>
-      <div className="mt-2 h-2 rounded-full bg-slate-100 dark:bg-slate-800">
-        <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${value}%` }} />
+      <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
+        <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${value}%` }} />
       </div>
     </div>
   );
 }
 
-function DocumentCard({ type, doc }) {
+function DocumentCard({ type, doc, onOpenFile }) {
   const Icon = type.icon;
+  const normalizedVisibleFields = Object.entries(doc?.fields || {})
+    .map(([label, value]) => [repairTextDeep(label), value])
+    .filter(([label]) => ['Số chứng từ', 'Ngày chứng từ'].includes(label));
   const visibleFields = Object.entries(doc?.fields || {}).filter(([label]) =>
     ['Số chứng từ', 'Ngày chứng từ'].includes(label)
   );
@@ -461,7 +514,13 @@ function DocumentCard({ type, doc }) {
           </div>
         </div>
         {!doc?.missing && (
-          <button type="button" className="btn-ghost h-8 w-8 rounded-lg p-0" title="Xem chứng từ gốc">
+          <button
+            type="button"
+            onClick={() => onOpenFile?.(doc.file)}
+            className="btn-ghost h-8 w-8 rounded-lg p-0"
+            title="Xem chứng từ gốc"
+            aria-label={`Xem chứng từ gốc ${doc.filename}`}
+          >
             <Eye size={16} />
           </button>
         )}
@@ -474,7 +533,7 @@ function DocumentCard({ type, doc }) {
             <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">{doc.extractedAt}</span>
           </div>
           <div className="mt-4 space-y-2.5">
-            {visibleFields.map(([label, value]) => (
+            {normalizedVisibleFields.map(([label, value]) => (
               <div key={label} className="flex items-start justify-between gap-3 text-xs">
                 <span className="text-slate-500 dark:text-slate-400">{label}</span>
                 <span className="max-w-[58%] text-right font-semibold text-slate-800 dark:text-slate-200">{value}</span>
@@ -503,15 +562,259 @@ function isLineItemComparison(item) {
   return LINE_ITEM_FIELDS.some((fieldName) => item.field.includes(fieldName));
 }
 
-export default function AuditTrail() {
-  const [selectedId, setSelectedId] = useState(SAMPLE_BATCHES[0].id);
+function formatDisplayValue(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  if (typeof value === 'number') return value.toLocaleString('vi-VN');
+  return String(repairTextDeep(value));
+}
+
+function formatPercent(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+  return Math.round(numericValue <= 1 ? numericValue * 100 : numericValue);
+}
+
+function getExtractionData(file) {
+  return file?.ai_extraction?.extracted_data || {};
+}
+
+function getDocumentNumber(data, docType) {
+  if (data.document_number) return data.document_number;
+  if (docType === 'po') return data.po_number;
+  if (docType === 'invoice') return data.invoice_number;
+  if (docType === 'grn') return data.grn_number;
+  return null;
+}
+
+function getDocumentDate(data, docType) {
+  if (data.document_date) return data.document_date;
+  if (docType === 'po') return data.po_date;
+  if (docType === 'invoice') return data.invoice_date;
+  if (docType === 'grn') return data.grn_date;
+  return null;
+}
+
+function getEmptyDocs() {
+  return DOC_TYPES.reduce((acc, type) => {
+    acc[type.key] = { filename: '', missing: true, fields: {} };
+    return acc;
+  }, {});
+}
+
+function mapFileToDocument(file, docType) {
+  const extractedData = getExtractionData(file);
+  const confidence = formatPercent(file?.ai_extraction?.confidence);
+  const extractedAt = file?.ai_extraction?.created_at?.split(' ')[1] || file?.created_at?.split(' ')[1] || '-';
+
+  return {
+    filename: file.filename,
+    extractedAt,
+    confidence,
+    fields: {
+      'Số chứng từ': formatDisplayValue(getDocumentNumber(extractedData, docType)),
+      'Nhà cung cấp': formatDisplayValue(extractedData.supplier_name),
+      'Mã số thuế': formatDisplayValue(extractedData.supplier_tax_id),
+      'Ngày chứng từ': formatDisplayValue(getDocumentDate(extractedData, docType)),
+      'Tổng tiền': formatDisplayValue(extractedData.total_amount),
+    },
+    extractedData,
+    file,
+  };
+}
+
+function getComparableValue(doc, key) {
+  if (!doc || doc.missing) return '-';
+  const value = doc.extractedData?.[key];
+  return formatDisplayValue(value);
+}
+
+function compareValues(values) {
+  const presentValues = values.filter((value) => value !== '-');
+  if (presentValues.length === 0) return { result: 'Chưa có dữ liệu', severity: 'warning' };
+  if (presentValues.length < values.length) return { result: 'Thiếu dữ liệu', severity: 'warning' };
+  const normalizedValues = presentValues.map((value) => String(value).trim().toLowerCase());
+  const isMatched = normalizedValues.every((value) => value === normalizedValues[0]);
+  return isMatched
+    ? { result: 'Khớp', severity: 'ok' }
+    : { result: 'Có chênh lệch', severity: 'danger' };
+}
+
+function buildComparisons(docs) {
+  const rows = [
+    ['Nhà cung cấp', 'supplier_name'],
+    ['Mã số thuế', 'supplier_tax_id'],
+    ['Thuế suất VAT', 'vat_rate_pct'],
+    ['Tổng tiền', 'total_amount'],
+  ];
+
+  return rows.map(([field, key]) => {
+    const values = [
+      getComparableValue(docs.po, key),
+      getComparableValue(docs.invoice, key),
+      getComparableValue(docs.grn, key),
+    ];
+    const result = compareValues(values);
+    return {
+      field,
+      po: values[0],
+      invoice: values[1],
+      grn: values[2],
+      ...result,
+    };
+  });
+}
+
+function findItemByIdentity(items, sourceItem, index) {
+  const sku = sourceItem?.sku;
+  if (sku) {
+    const foundBySku = items.find((item) => item?.sku && item.sku === sku);
+    if (foundBySku) return foundBySku;
+  }
+  return items[index] || {};
+}
+
+function buildLineItems(docs) {
+  const poItems = docs.po?.extractedData?.line_items || [];
+  const invoiceItems = docs.invoice?.extractedData?.line_items || [];
+  const grnItems = docs.grn?.extractedData?.line_items || [];
+  const maxLength = Math.max(poItems.length, invoiceItems.length, grnItems.length);
+
+  return Array.from({ length: maxLength }).map((_, index) => {
+    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
+    const poItem = findItemByIdentity(poItems, baseItem, index);
+    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
+    const grnItem = findItemByIdentity(grnItems, baseItem, index);
+    const qtyResult = compareValues([
+      formatDisplayValue(poItem.qty),
+      formatDisplayValue(invoiceItem.qty),
+      formatDisplayValue(grnItem.qty),
+    ]);
+    const priceResult = compareValues([
+      formatDisplayValue(poItem.price),
+      formatDisplayValue(invoiceItem.price),
+      formatDisplayValue(grnItem.price),
+    ]);
+    const severity = qtyResult.severity === 'danger' || priceResult.severity === 'danger' ? 'danger' : qtyResult.severity;
+
+    return {
+      sku: formatDisplayValue(baseItem.sku || `Dòng ${index + 1}`),
+      name: formatDisplayValue(baseItem.item_name),
+      unit: formatDisplayValue(baseItem.unit),
+      poQty: formatDisplayValue(poItem.qty),
+      invoiceQty: formatDisplayValue(invoiceItem.qty),
+      grnQty: formatDisplayValue(grnItem.qty),
+      poPrice: formatDisplayValue(poItem.price),
+      invoicePrice: formatDisplayValue(invoiceItem.price),
+      grnPrice: formatDisplayValue(grnItem.price),
+      vat: formatDisplayValue(invoiceItem.vat_rate_pct ?? baseItem.vat_rate_pct),
+      amount: formatDisplayValue(invoiceItem.amount ?? baseItem.amount),
+      result: severity === 'danger' ? 'Có chênh lệch' : qtyResult.result,
+      severity,
+    };
+  });
+}
+
+function mapApiBatchToAuditBatch(batch) {
+  const docs = getEmptyDocs();
+  (batch.files || []).forEach((file) => {
+    if (!file.doc_type || !docs[file.doc_type]) return;
+    docs[file.doc_type] = mapFileToDocument(file, file.doc_type);
+  });
+
+  const missingCount = DOC_TYPES.filter((type) => docs[type.key]?.missing).length;
+  const comparisons = buildComparisons(docs);
+  const lineItems = buildLineItems(docs);
+  const mismatchFields = comparisons.filter((item) => item.severity === 'danger').length
+    + lineItems.filter((item) => item.severity === 'danger').length;
+  const warningFields = comparisons.filter((item) => item.severity === 'warning').length
+    + lineItems.filter((item) => item.severity === 'warning').length;
+  const checkedFields = comparisons.length + lineItems.length;
+  const matchedFields = Math.max(0, checkedFields - mismatchFields - warningFields);
+  const matchRate = checkedFields === 0 ? 0 : Math.round((matchedFields / checkedFields) * 100);
+  const missingDataFields = missingCount + warningFields;
+  const status = matchRate === 100
+    ? 'matched'
+    : mismatchFields > 0
+      ? 'mismatch'
+      : 'missing';
+
+  return {
+    id: batch.id,
+    batchNumber: batch.batch_number,
+    status,
+    updatedAt: batch.updated_at || batch.created_at,
+    owner: batch.created_by_name || 'Hệ thống AI',
+    matchRate,
+    checkedFields,
+    matchedFields,
+    mismatchFields,
+    missingFields: missingDataFields,
+    decision:
+      mismatchFields > 0
+          ? 'Có chênh lệch trong dữ liệu AI đã trích xuất. Cần kiểm tra lại chứng từ.'
+        : missingDataFields > 0
+          ? 'Batch còn thiếu dữ liệu trích xuất. Cần kiểm tra lại chứng từ hoặc chờ AI đọc đầy đủ.'
+          : 'Các trường AI đã trích xuất đang khớp theo dữ liệu hiện có.',
+    docs,
+    comparisons,
+    lineItems,
+    issues: comparisons
+      .filter((item) => item.severity !== 'ok')
+      .map((item) => `${item.field}: ${item.result}`),
+  };
+}
+
+export default function AuditTrail({ token }) {
+  const [searchParams] = useSearchParams();
+  const requestedBatchId = searchParams.get('batchId');
+  const [batches, setBatches] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [modalBatchId, setModalBatchId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchBatches() {
+      try {
+        setLoading(true);
+        setError('');
+        const data = repairTextDeep(await getDocumentBatches(token));
+        const mappedBatches = (data.items || []).filter(isApiBatchReady).map(mapApiBatchToAuditBatch);
+        if (!isMounted) return;
+        setBatches(mappedBatches);
+        if (requestedBatchId) {
+          const requestedBatch = mappedBatches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+          if (requestedBatch) setModalBatchId(requestedBatch.id);
+        }
+        setSelectedId((currentId) => {
+          const requestedBatch = mappedBatches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+          if (requestedBatch) return requestedBatch.id;
+          if (currentId && mappedBatches.some((batch) => isSameBatchId(batch.id, currentId))) return currentId;
+          return mappedBatches[0]?.id || null;
+        });
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err.message || 'Không thể tải danh sách batch.');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    fetchBatches();
+    return () => {
+      isMounted = false;
+    };
+  }, [token, requestedBatchId]);
 
   const filteredBatches = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    return SAMPLE_BATCHES.filter((batch) => {
+    return batches.filter((batch) => {
       const matchesStatus = statusFilter === 'all' || batch.status === statusFilter;
       const haystack = [
         batch.batchNumber,
@@ -521,18 +824,77 @@ export default function AuditTrail() {
 
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [searchQuery, statusFilter]);
+  }, [batches, searchQuery, statusFilter]);
 
-  const selectedBatch = filteredBatches.find((batch) => batch.id === selectedId) || filteredBatches[0] || SAMPLE_BATCHES[0];
+  const selectedBatch = filteredBatches.find((batch) => isSameBatchId(batch.id, selectedId)) || filteredBatches[0] || batches[0] || null;
   const summary = {
-    total: SAMPLE_BATCHES.length,
-    missing: SAMPLE_BATCHES.filter((batch) => batch.status === 'missing').length,
-    matching: SAMPLE_BATCHES.filter((batch) => batch.status === 'matching').length,
-    mismatch: SAMPLE_BATCHES.filter((batch) => batch.status === 'mismatch').length,
-    matched: SAMPLE_BATCHES.filter((batch) => batch.status === 'matched').length,
+    total: batches.length,
+    missing: batches.filter((batch) => batch.status === 'missing').length,
+    matching: batches.filter((batch) => batch.status === 'matching').length,
+    mismatch: batches.filter((batch) => batch.status === 'mismatch').length,
+    matched: batches.filter((batch) => batch.status === 'matched').length,
   };
-  const documentComparisons = selectedBatch.comparisons.filter((item) => !isLineItemComparison(item));
-  const lineItems = selectedBatch.lineItems || [];
+  const documentComparisons = selectedBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
+  const lineItems = selectedBatch?.lineItems || [];
+  const modalBatch = batches.find((batch) => isSameBatchId(batch.id, modalBatchId)) || null;
+  const modalComparisons = modalBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
+  const modalLineItems = modalBatch?.lineItems || [];
+
+  const handleOpenUploadedFile = async (file) => {
+    if (!file?.file_url || file.status !== 'completed') return;
+
+    const previewTab = window.open('', '_blank');
+    if (!previewTab) {
+      alert('Trình duyệt đang chặn tab mới. Vui lòng cho phép pop-up để xem file.');
+      return;
+    }
+
+    try {
+      previewTab.document.title = file.filename;
+      previewTab.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 24px;">Đang mở file...</p>';
+      const blob = await fetchUploadFileBlob(token, file);
+      const ext = getFileExt(file.filename);
+
+      if (ext === 'xml') {
+        const xmlText = await blob.text();
+        previewTab.document.open();
+        previewTab.document.write(buildXmlPreviewHtml(file.filename, xmlText));
+        previewTab.document.close();
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      previewTab.location.href = objectUrl;
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (err) {
+      previewTab.close();
+      alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+        Đang tải dữ liệu batch...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        {error}
+      </div>
+    );
+  }
+
+  if (!selectedBatch) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+        Chưa có batch nào đã đủ PO, Invoice và GRN. Các batch còn thiếu chứng từ vẫn nằm ở Hàng đợi xử lý.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -549,13 +911,12 @@ export default function AuditTrail() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ['Tổng batch', summary.total, 'text-slate-900 dark:text-slate-100'],
-          ['Thiếu chứng từ', summary.missing, 'text-slate-700 dark:text-slate-200'],
-          ['Đang đối soát', summary.matching, 'text-brand-700 dark:text-brand-300'],
+          ['Thiếu dữ liệu', summary.missing, 'text-amber-700 dark:text-amber-300'],
           ['Khớp hoàn toàn', summary.matched, 'text-emerald-700 dark:text-emerald-300'],
-          ['Có chênh lệch', summary.mismatch, 'text-rose-700 dark:text-rose-300'],
+          ['Lệch', summary.mismatch, 'text-rose-700 dark:text-rose-300'],
         ].map(([label, value, color]) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
@@ -594,17 +955,16 @@ export default function AuditTrail() {
               className="input-field appearance-none pl-9 pr-9"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="missing">Thiếu chứng từ</option>
-              <option value="matching">Đang đối soát</option>
+              <option value="missing">Thiếu dữ liệu</option>
               <option value="matched">Khớp hoàn toàn</option>
-              <option value="mismatch">Có chênh lệch</option>
+              <option value="mismatch">Lệch</option>
             </select>
             <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(420px,0.95fr)_minmax(0,1.45fr)]">
+      <div className="grid gap-5">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3">
             <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Danh sách batch ({filteredBatches.length})</h2>
@@ -613,17 +973,23 @@ export default function AuditTrail() {
 
           <div className="space-y-3">
             {filteredBatches.map((batch) => {
-              const isSelected = batch.id === selectedBatch.id;
+              const isSelected = isSameBatchId(batch.id, selectedBatch.id);
               const completion = getCompletion(batch);
               const meta = STATUS_META[batch.status];
+              const hasMissingData = batch.status === 'missing';
 
               return (
                 <button
                   key={batch.id}
                   type="button"
-                  onClick={() => setSelectedId(batch.id)}
+                  onClick={() => {
+                    setSelectedId(batch.id);
+                    setModalBatchId(batch.id);
+                  }}
                   className={`relative block w-full rounded-xl border bg-white p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 ${
-                    isSelected
+                    hasMissingData
+                      ? 'z-10 border-amber-300 bg-amber-50/60 shadow-[0_14px_36px_rgba(146,64,14,0.16)] ring-1 ring-amber-100 dark:border-amber-700 dark:bg-amber-950/15 dark:ring-amber-900/60'
+                      : isSelected
                       ? 'z-10 border-brand-300 shadow-[0_12px_30px_rgba(0,55,112,0.14)] ring-1 ring-brand-100 dark:border-brand-700 dark:ring-brand-900'
                       : 'border-slate-200 shadow-sm hover:z-10 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_18px_42px_rgba(0,55,112,0.18)] dark:border-slate-800 dark:hover:border-brand-800'
                   }`}
@@ -680,7 +1046,7 @@ export default function AuditTrail() {
           </div>
         </div>
 
-        <div className="space-y-5">
+        <div className="hidden">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -725,7 +1091,7 @@ export default function AuditTrail() {
 
           <div className="grid gap-3 lg:grid-cols-3">
             {DOC_TYPES.map((type) => (
-              <DocumentCard key={type.key} type={type} doc={selectedBatch.docs[type.key]} />
+              <DocumentCard key={type.key} type={type} doc={selectedBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
             ))}
           </div>
 
@@ -845,6 +1211,169 @@ export default function AuditTrail() {
           </div>
         </div>
       </div>
+
+      {modalBatch && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="batch-detail-title"
+          onClick={() => setModalBatchId(null)}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(0,55,112,0.24)] dark:border-slate-800 dark:bg-slate-950"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 id="batch-detail-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {modalBatch.batchNumber}
+                  </h2>
+                  <StatusBadge status={modalBatch.status} />
+                </div>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Xử lý bởi {modalBatch.owner} · Cập nhật {modalBatch.updatedAt}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalBatchId(null)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                title="Đóng"
+                aria-label="Đóng chi tiết batch"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+                  {[
+                    ['Đã đối chiếu', modalBatch.checkedFields, 'text-slate-900 dark:text-slate-100'],
+                    ['Khớp', modalBatch.matchedFields, 'text-emerald-700 dark:text-emerald-300'],
+                    ['Lệch', modalBatch.mismatchFields, 'text-rose-700 dark:text-rose-300'],
+                    ['Thiếu dữ liệu', modalBatch.missingFields, 'text-amber-700 dark:text-amber-300'],
+                  ].map(([label, value, color]) => (
+                    <div key={label} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
+                      <p className={`mt-0.5 text-lg font-bold tabular-nums ${color}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
+                  <MatchMeter value={modalBatch.matchRate} />
+                </div>
+              </div>
+
+              {modalBatch.issues.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/20">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Điểm cần kiểm tra</p>
+                  <div className="mt-2 grid gap-2 lg:grid-cols-2">
+                    {modalBatch.issues.map((issue) => (
+                      <p key={issue} className="rounded-lg bg-white/80 px-3 py-2 text-sm text-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
+                        {issue}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid gap-3 lg:grid-cols-3">
+                {DOC_TYPES.map((type) => (
+                  <DocumentCard key={type.key} type={type} doc={modalBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1120px] text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Mã hàng / Tên hàng</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
+                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">SL PO</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
+                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
+                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">VAT</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Thành tiền</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {modalLineItems.length > 0 ? (
+                        modalLineItems.map((item) => (
+                          <tr key={`${modalBatch.id}-modal-${item.sku}`} className="table-row-hover">
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{item.sku}</p>
+                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.name}</p>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
+                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
+                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poPrice}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnPrice}</td>
+                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.vat}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.amount}</td>
+                            <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                            Chưa có dữ liệu hàng hóa.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Trường</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">PO</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Invoice</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">GRN</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {modalComparisons.map((item) => (
+                        <tr key={`${modalBatch.id}-modal-${item.field}`} className="table-row-hover">
+                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
+                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
+                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
+                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
+                          <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+

@@ -327,6 +327,47 @@ async def list_upload_batches(
     return DocumentBatchListResponse(items=items, total=len(items))
 
 
+@router.delete("/batches/{batch_id}", response_model=MessageResponse)
+async def delete_upload_batch(
+    batch_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    batch = db.get(DocumentBatch, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+
+    has_uploaded_files = (
+        db.query(UploadedFile.id)
+        .filter(UploadedFile.batch_id == batch.id)
+        .first()
+        is not None
+    )
+    if has_uploaded_files:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Chi co the xoa batch chua co chung tu nao.",
+        )
+
+    deleted_batch_number = batch.batch_number
+    db.delete(batch)
+    write_audit_log(
+        db=db,
+        action="DOCUMENT_BATCH_DELETED",
+        user=current_user,
+        target_type="DOCUMENT_BATCH",
+        target_id=str(batch_id),
+        details={
+            "batch_number": deleted_batch_number,
+            "note": "Empty document batch deleted.",
+        },
+        ip_address=None,
+        user_agent=None,
+    )
+    db.commit()
+    return MessageResponse(message="Da xoa batch chua co chung tu.")
+
+
 @router.get("", response_model=UploadedFileListResponse)
 async def list_uploads(
     current_user: User = Depends(get_current_user),

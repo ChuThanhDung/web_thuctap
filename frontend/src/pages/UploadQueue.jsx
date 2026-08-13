@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  CheckCircle2,
+  Eye,
   FileText,
   Loader2,
-  FileUp,
   ExternalLink,
   ShoppingCart,
   PackageCheck,
@@ -10,6 +12,7 @@ import {
 } from 'lucide-react';
 import {
   createDocumentBatch,
+  deleteDocumentBatch,
   deleteUploadedFile,
   fetchUploadFileBlob,
   getDocumentBatches,
@@ -22,6 +25,14 @@ const DOC_TYPES = [
   { value: 'grn', label: 'Phiếu nhập kho (GRN)', desc: 'Lưu thông tin thực nhận làm cơ sở đối chiếu', icon: PackageCheck },
 ];
 const BATCHES_PER_PAGE = 5;
+
+function isBatchReady(batch) {
+  if (Array.isArray(batch?.missing_doc_types)) return batch.missing_doc_types.length === 0;
+  if (batch?.status === 'ready') return true;
+
+  const uploadedTypes = new Set((batch?.files || []).map((file) => file.doc_type).filter(Boolean));
+  return DOC_TYPES.every((type) => uploadedTypes.has(type.value));
+}
 
 function getFileExt(filename = '') {
   return filename.split('.').pop()?.toLowerCase() || '';
@@ -88,26 +99,29 @@ function buildXmlPreviewHtml(filename, xmlText) {
 }
 
 export default function UploadQueue({ token }) {
+  const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [activeDropType, setActiveDropType] = useState(null);
   const [selectedDocType, setSelectedDocType] = useState('po');
   const [selectedBatchId, setSelectedBatchId] = useState(null);
   const [batchPage, setBatchPage] = useState(1);
+  const [deletingBatchIds, setDeletingBatchIds] = useState([]);
+  const [readyBatchNotice, setReadyBatchNotice] = useState(null);
   const documentTypesRef = useRef(null);
   const fileInputRef = useRef(null);
-  const dragDepthRef = useRef(0);
+  const filePickerDocTypeRef = useRef('po');
 
-  const totalBatchPages = Math.max(1, Math.ceil(batches.length / BATCHES_PER_PAGE));
+  const pendingBatches = batches.filter((batch) => !isBatchReady(batch));
+  const totalBatchPages = Math.max(1, Math.ceil(pendingBatches.length / BATCHES_PER_PAGE));
   const safeBatchPage = Math.min(batchPage, totalBatchPages);
-  const paginatedBatches = batches.slice(
+  const paginatedBatches = pendingBatches.slice(
     (safeBatchPage - 1) * BATCHES_PER_PAGE,
     safeBatchPage * BATCHES_PER_PAGE
   );
-  const batchStartIndex = batches.length === 0 ? 0 : (safeBatchPage - 1) * BATCHES_PER_PAGE + 1;
-  const batchEndIndex = Math.min(safeBatchPage * BATCHES_PER_PAGE, batches.length);
-  const selectedBatch = batches.find((batch) => batch.id === selectedBatchId) || batches[0] || null;
+  const batchStartIndex = pendingBatches.length === 0 ? 0 : (safeBatchPage - 1) * BATCHES_PER_PAGE + 1;
+  const batchEndIndex = Math.min(safeBatchPage * BATCHES_PER_PAGE, pendingBatches.length);
+  const selectedBatch = pendingBatches.find((batch) => batch.id === selectedBatchId) || pendingBatches[0] || null;
   const selectedBatchFiles = selectedBatch?.files || [];
   const uploadedFilesByType = selectedBatchFiles.reduce((acc, file) => {
     if (!file.doc_type) return acc;
@@ -124,8 +138,9 @@ export default function UploadQueue({ token }) {
       const items = data.items || [];
       setBatches(items);
       setSelectedBatchId((currentId) => {
-        if (currentId && items.some((batch) => batch.id === currentId)) return currentId;
-        return items[0]?.id || null;
+        const pendingItems = items.filter((batch) => !isBatchReady(batch));
+        if (currentId && pendingItems.some((batch) => batch.id === currentId)) return currentId;
+        return pendingItems[0]?.id || null;
       });
     } catch (err) {
       console.error('Không thể lấy danh sách bộ đối soát:', err);
@@ -161,29 +176,33 @@ export default function UploadQueue({ token }) {
   }, [batches, fetchBatches]);
 
   const resetDragState = () => {
-    dragDepthRef.current = 0;
-    setIsDragOver(false);
     setActiveDropType(null);
   };
 
-  const handleDragEnter = (e) => {
+  const handleTypeDragEnter = (e, docType) => {
     e.preventDefault();
-    dragDepthRef.current += 1;
-    setIsDragOver(true);
+    e.stopPropagation();
+    setSelectedDocType(docType);
+    setActiveDropType(docType);
   };
 
-  const handleDragOver = (e) => {
+  const handleTypeDragOver = (e, docType) => {
     e.preventDefault();
+    e.stopPropagation();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-    setIsDragOver(true);
+    setActiveDropType(docType);
   };
 
-  const handleDragLeave = (e) => {
+  const handleTypeDragLeave = (e) => {
     e.preventDefault();
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-    if (dragDepthRef.current === 0) {
-      resetDragState();
-    }
+    e.stopPropagation();
+    if (!e.currentTarget.contains(e.relatedTarget)) resetDragState();
+  };
+
+  const handleChooseFiles = (docType) => {
+    filePickerDocTypeRef.current = docType;
+    setSelectedDocType(docType);
+    fileInputRef.current?.click();
   };
 
   const handleCreateBatch = async () => {
@@ -209,6 +228,7 @@ export default function UploadQueue({ token }) {
     setBatches((prev) =>
       prev.map((batch) => {
         if (batch.id !== uploadedFile.batch_id) return batch;
+        const wasReady = isBatchReady(batch);
 
         const nextFiles = [
           uploadedFile,
@@ -218,13 +238,21 @@ export default function UploadQueue({ token }) {
         const missingDocTypes = DOC_TYPES
           .map((type) => type.value)
           .filter((docType) => !uploadedDocTypes.includes(docType));
+        const isReady = missingDocTypes.length === 0;
+
+        if (!wasReady && isReady) {
+          setReadyBatchNotice({
+            id: batch.id,
+            batchNumber: batch.batch_number,
+          });
+        }
 
         return {
           ...batch,
           files: nextFiles,
           uploaded_doc_types: uploadedDocTypes,
           missing_doc_types: missingDocTypes,
-          status: missingDocTypes.length === 0 ? 'ready' : 'incomplete',
+          status: isReady ? 'ready' : 'incomplete',
         };
       })
     );
@@ -328,7 +356,7 @@ export default function UploadQueue({ token }) {
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      uploadFiles(e.target.files);
+      uploadFiles(e.target.files, filePickerDocTypeRef.current);
       e.target.value = '';
     }
   };
@@ -398,6 +426,40 @@ export default function UploadQueue({ token }) {
     }
   };
 
+  const handleDeleteBatch = async (batch) => {
+    if (!batch?.id || (batch.files || []).length > 0 || deletingBatchIds.includes(batch.id)) return;
+
+    const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa batch "${batch.batch_number}" không?`);
+    if (!confirmed) return;
+
+    setDeletingBatchIds((prev) => [...prev, batch.id]);
+    try {
+      await deleteDocumentBatch(token, batch.id);
+      const remainingBatches = batches.filter((item) => item.id !== batch.id && !isBatchReady(item));
+      setBatches((prev) => {
+        const filteredBatches = prev.filter((item) => item.id !== batch.id);
+        return filteredBatches;
+      });
+      setSelectedBatchId((currentId) => (
+        currentId === batch.id ? remainingBatches[0]?.id || null : currentId
+      ));
+    } catch (err) {
+      alert(err.message || 'Không thể xóa batch này. Vui lòng thử lại.');
+    } finally {
+      setDeletingBatchIds((prev) => prev.filter((id) => id !== batch.id));
+    }
+  };
+
+  const handleViewReconciliation = (batch) => {
+    if (!batch?.id) return;
+    navigate(`/audit-trail?batchId=${batch.id}`);
+  };
+
+  const handleOpenReadyBatch = () => {
+    if (!readyBatchNotice?.id) return;
+    navigate(`/audit-trail?batchId=${readyBatchNotice.id}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -412,6 +474,7 @@ export default function UploadQueue({ token }) {
       <div ref={documentTypesRef} className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3 scroll-mt-6">
         {DOC_TYPES.map((type) => {
           const isSelected = selectedDocType === type.value;
+          const isDropActive = activeDropType === type.value;
           const Icon = type.icon;
           const uploadedFiles = uploadedFilesByType[type.value] || [];
           return (
@@ -419,20 +482,27 @@ export default function UploadQueue({ token }) {
               key={type.value}
               role="button"
               tabIndex={0}
-              onClick={() => setSelectedDocType(type.value)}
+              data-testid={`drop-zone-${type.value}`}
+              onClick={() => handleChooseFiles(type.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  setSelectedDocType(type.value);
+                  handleChooseFiles(type.value);
                 }
               }}
+              onDragEnter={(event) => handleTypeDragEnter(event, type.value)}
+              onDragOver={(event) => handleTypeDragOver(event, type.value)}
+              onDragLeave={handleTypeDragLeave}
+              onDrop={(event) => handleDrop(event, type.value)}
               className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all ${
-                isSelected
+                isDropActive
+                  ? 'border-brand-500 bg-brand-50 shadow-md ring-4 ring-brand-100 dark:border-brand-400 dark:bg-brand-950/30 dark:ring-brand-950'
+                  : isSelected
                   ? 'border-brand-500 bg-white shadow-md dark:bg-slate-800 dark:border-brand-400'
                   : 'border-slate-200/80 bg-white/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
               }`}
             >
-              <div className={`p-2 rounded-lg ${isSelected ? 'bg-brand-600 text-white dark:bg-brand-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+              <div className={`p-2 rounded-lg ${isSelected || isDropActive ? 'bg-brand-600 text-white dark:bg-brand-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                 <Icon size={18} />
               </div>
               <span className="mt-3 font-bold text-sm text-slate-900 dark:text-slate-100">{type.label}</span>
@@ -479,14 +549,14 @@ export default function UploadQueue({ token }) {
                             <Loader2 size={12} className="animate-spin" />
                             <span>
                               {file.status === 'queued'
-                                ? 'Äang chá» táº£i lÃªn...'
-                                : 'Äang táº£i vÃ  AI Ä‘ang Ä‘á»c...'}
+                                ? 'Đang chờ tải lên...'
+                                : 'Đang tải và AI đang đọc...' }
                             </span>
                           </div>
                         )}
                         {file.status === 'error' && (
                           <p className="mt-1 basis-full text-[10px] font-semibold text-rose-600 dark:text-rose-300">
-                            {file.error_message || 'Táº£i lÃªn tháº¥t báº¡i'}
+                            {file.error_message || 'Tải lên thất bại'}
                           </p>
                         )}
                       </div>
@@ -504,88 +574,6 @@ export default function UploadQueue({ token }) {
             </div>
           );
         })}
-      </div>
-
-      {/* Dropzone */}
-      <div
-        data-testid="document-dropzone"
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={(event) => handleDrop(event, activeDropType || selectedDocType)}
-        onClick={() => {
-          if (!isDragOver) fileInputRef.current?.click();
-        }}
-        className={`card flex min-h-[310px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 transition-all ${
-          isDragOver
-            ? 'border-brand-500 bg-brand-50/80 dark:bg-brand-950/40'
-            : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50/50 dark:border-slate-700 dark:hover:border-brand-500 dark:hover:bg-slate-800/40'
-        }`}
-      >
-        {isDragOver ? (
-          <div className="grid h-full min-h-[260px] w-full grid-cols-1 gap-3 md:grid-cols-3">
-            {DOC_TYPES.map((type) => {
-              const Icon = type.icon;
-              const isActive = activeDropType === type.value;
-              const isMuted = activeDropType && !isActive;
-
-              return (
-                <div
-                  key={type.value}
-                  data-testid={`drop-zone-${type.value}`}
-                  onDragEnter={(event) => {
-                    event.preventDefault();
-                    setActiveDropType(type.value);
-                  }}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-                    setActiveDropType(type.value);
-                  }}
-                  onDrop={(event) => handleDrop(event, type.value)}
-                  className={`flex min-h-[220px] flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-6 text-center transition-all ${
-                    isActive
-                      ? 'border-brand-500 bg-white shadow-md ring-4 ring-brand-100 dark:bg-slate-900 dark:ring-brand-950'
-                      : 'border-slate-300 bg-white/60 dark:border-slate-700 dark:bg-slate-900/60'
-                  } ${isMuted ? 'opacity-45' : 'opacity-100'}`}
-                >
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-colors ${
-                      isActive
-                        ? 'bg-brand-600 text-white dark:bg-brand-500'
-                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                    }`}
-                  >
-                    <Icon size={24} />
-                  </div>
-                  <p className="mt-4 text-sm font-bold text-slate-900 dark:text-slate-100">{type.label}</p>
-                  <p className="mt-1 max-w-[260px] text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                    Thả file vào đây để tải lên đúng loại chứng từ này
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 transition-colors dark:bg-slate-800">
-              <FileUp size={28} className="text-slate-400 dark:text-slate-500" />
-            </div>
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Kéo thả file vào đây
-            </p>
-            <p className="mt-1 text-center text-xs text-slate-500 dark:text-slate-400">
-              hoặc <span className="font-semibold text-brand-600 dark:text-brand-400">bấm để chọn file từ máy tính</span>
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
-              <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.XML</span>
-              <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.PDF</span>
-              <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono font-bold text-slate-700 dark:text-slate-300">.PNG / .JPG</span>
-              <span>·</span>
-              <span>Dung lượng tối đa 25 MB</span>
-            </div>
-          </>
-        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -596,12 +584,48 @@ export default function UploadQueue({ token }) {
         />
       </div>
 
+      {readyBatchNotice && (
+        <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-emerald-900 dark:bg-emerald-950/25 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              <CheckCircle2 size={17} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                {readyBatchNotice.batchNumber} đã đủ chứng từ
+              </p>
+              <p className="mt-0.5 text-sm text-emerald-800 dark:text-emerald-200">
+                Sang Tab Batch đối soát để xem kết quả
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 sm:self-center">
+            <button
+              type="button"
+              onClick={handleOpenReadyBatch}
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              Xem ngay
+            </button>
+            <button
+              type="button"
+              onClick={() => setReadyBatchNotice(null)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-200 dark:hover:bg-emerald-950"
+              title="Đóng thông báo"
+              aria-label="Đóng thông báo"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Batches */}
       <div className="card overflow-hidden">
         <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-              Hàng đợi xử lý ({batches.length} bộ)
+              Hàng đợi xử lý ({pendingBatches.length} bộ)
             </h3>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               Chọn một bộ để bổ sung PO, hóa đơn hoặc phiếu nhập kho còn thiếu.
@@ -627,9 +651,9 @@ export default function UploadQueue({ token }) {
             <Loader2 className="animate-spin text-brand-600 dark:text-brand-400" size={24} />
             <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">Đang tải danh sách...</span>
           </div>
-        ) : batches.length === 0 ? (
+        ) : pendingBatches.length === 0 ? (
           <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
-            Chưa có bộ đối soát nào. Hãy kéo file vào vùng upload để tạo bộ đầu tiên.
+            Chưa có bộ đối soát nào. Hãy kéo file vào ô PO, Invoice hoặc GRN để tạo bộ đầu tiên.
           </div>
         ) : (
           <div className="divide-y divide-slate-100 max-h-[460px] overflow-y-auto dark:divide-slate-800">
@@ -640,13 +664,16 @@ export default function UploadQueue({ token }) {
                 acc[file.doc_type] = file;
                 return acc;
               }, {});
+              const canDeleteBatch = (batch.files || []).length === 0;
+              const isDeletingBatch = deletingBatchIds.includes(batch.id);
               const missingCount = batch.missing_doc_types?.length ?? 3;
               const isReady = missingCount === 0 || batch.status === 'ready';
 
               return (
-                <button
+                <div
                   key={batch.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleSelectBatch(batch.id)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -656,9 +683,9 @@ export default function UploadQueue({ token }) {
                   }}
                   className={`block w-full px-5 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset ${
                     isSelectedBatch
-                      ? 'bg-brand-50/70 dark:bg-brand-950/30'
+                      ? 'bg-brand-50/80 ring-1 ring-inset ring-brand-300 shadow-[inset_4px_0_0_#4f46e5] dark:bg-brand-950/30 dark:ring-brand-700/80 dark:shadow-[inset_4px_0_0_#818cf8]'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
-                  }`}
+                  } group relative cursor-pointer pr-14`}
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
@@ -675,6 +702,21 @@ export default function UploadQueue({ token }) {
                         >
                           {isReady ? 'Đủ chứng từ' : `Cần bổ sung ${missingCount} chứng từ`}
                         </span>
+                        {isReady && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleViewReconciliation(batch);
+                            }}
+                            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-brand-200 bg-white px-2.5 text-[11px] font-semibold text-brand-700 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-950/40"
+                            title="Xem đối soát"
+                            aria-label={`Xem đối soát ${batch.batch_number}`}
+                          >
+                            <Eye size={13} />
+                            Xem đối soát
+                          </button>
+                        )}
                       </div>
                       <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                         Cập nhật: {batch.updated_at || batch.created_at}
@@ -702,15 +744,30 @@ export default function UploadQueue({ token }) {
                       })}
                     </div>
                   </div>
-                </button>
+                  {canDeleteBatch && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeleteBatch(batch);
+                      }}
+                      disabled={isDeletingBatch}
+                      className="absolute right-4 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 opacity-0 transition-all hover:bg-rose-50 hover:text-rose-600 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-50 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                      title="Xóa batch"
+                      aria-label={`Xóa batch ${batch.batch_number}`}
+                    >
+                      {isDeletingBatch ? <Loader2 size={14} className="animate-spin" /> : <X size={15} />}
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
         )}
-        {batches.length > BATCHES_PER_PAGE && (
+        {pendingBatches.length > BATCHES_PER_PAGE && (
           <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Hiển thị {batchStartIndex}-{batchEndIndex} / {batches.length} bộ
+              Hiển thị {batchStartIndex}-{batchEndIndex} / {pendingBatches.length} bộ
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
