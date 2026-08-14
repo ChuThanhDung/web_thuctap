@@ -242,6 +242,13 @@ class ThresholdOut(BaseModel):
 
 
 class ThresholdUpdateRequest(BaseModel):
+    category: str | None = Field(default=None, min_length=2, max_length=100)
+    percent_threshold: Decimal = Field(..., ge=0, le=100)
+    absolute_threshold: Decimal = Field(..., ge=0)
+
+
+class ThresholdCreateRequest(BaseModel):
+    category: str = Field(..., min_length=2, max_length=100)
     percent_threshold: Decimal = Field(..., ge=0, le=100)
     absolute_threshold: Decimal = Field(..., ge=0)
 

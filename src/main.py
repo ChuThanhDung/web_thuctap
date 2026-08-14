@@ -503,6 +503,7 @@ def ensure_uploaded_document_extraction_tables() -> None:
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
+    from src.models.reconciliation import Threshold
     from src.models.role import Role
     from src.models.user import User
     from src.services.auth import hash_password
@@ -517,6 +518,9 @@ def seed_initial_data_if_needed() -> None:
                     description="Thực hiện đối soát hóa đơn, tải chứng từ và theo dõi nhật ký nghiệp vụ.",
                 )
                 db.add(acc_role)
+            else:
+                acc_role.name = "Kế toán viên"
+                acc_role.description = "Thực hiện đối soát hóa đơn, tải chứng từ và theo dõi nhật ký nghiệp vụ."
 
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
             if not chief_role:
@@ -526,11 +530,32 @@ def seed_initial_data_if_needed() -> None:
                     description="Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình.",
                 )
                 db.add(chief_role)
+            else:
+                chief_role.name = "Kế toán trưởng"
+                chief_role.description = "Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình."
 
             db.commit()
 
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
+
+            default_thresholds = [
+                {
+                    "category": "Đơn giá & Tổng tiền",
+                    "percent_threshold": "1.0",
+                    "absolute_threshold": "100000",
+                },
+                {
+                    "category": "Số lượng",
+                    "percent_threshold": "2.0",
+                    "absolute_threshold": "5",
+                },
+            ]
+
+            for threshold_data in default_thresholds:
+                threshold = db.query(Threshold).filter(Threshold.category == threshold_data["category"]).first()
+                if not threshold:
+                    db.add(Threshold(**threshold_data))
 
             default_password_hash = hash_password("123456")
 

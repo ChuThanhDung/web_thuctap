@@ -14,11 +14,12 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import { getAvatarViewUrl } from '../api.js';
 import { repairVietnameseText } from '../text.js';
 import UserProfileModal from './UserProfileModal.jsx';
 
 const navItemsAccountant = [
-  { to: '/accountant', icon: FileCheck, label: 'Đối soát' },
+  { to: '/accountant', icon: LayoutDashboard, label: 'Tổng Quan' },
   { to: '/upload', icon: Upload, label: 'Tải lên' },
   { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
 ];
@@ -42,13 +43,14 @@ function getInitials(fullName) {
 
 function SidebarAvatar({ user, fullName }) {
   const [imageError, setImageError] = useState(false);
+  const avatarUrl = getAvatarViewUrl(user);
 
-  React.useEffect(() => setImageError(false), [user.avatar_url]);
+  React.useEffect(() => setImageError(false), [avatarUrl]);
 
-  if (user.avatar_url && !imageError) {
+  if (avatarUrl && !imageError) {
     return (
       <img
-        src={user.avatar_url}
+        src={avatarUrl}
         alt={fullName}
         onError={() => setImageError(true)}
         className="h-8 w-8 shrink-0 rounded-full bg-brand-50 object-cover ring-1 ring-brand-200"

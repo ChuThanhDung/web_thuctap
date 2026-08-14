@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import {
   createUserAccount,
+  getAvatarViewUrl,
   getUserAccounts,
   requestPasswordOtp,
   updateProfile,
@@ -51,13 +52,14 @@ function formatDate(value) {
 
 function ProfileAvatar({ user, fullName, className = 'h-14 w-14' }) {
   const [imageError, setImageError] = useState(false);
+  const avatarUrl = getAvatarViewUrl(user);
 
-  useEffect(() => setImageError(false), [user.avatar_url]);
+  useEffect(() => setImageError(false), [avatarUrl]);
 
-  if (user.avatar_url && !imageError) {
+  if (avatarUrl && !imageError) {
     return (
       <img
-        src={user.avatar_url}
+        src={avatarUrl}
         alt={fullName}
         onError={() => setImageError(true)}
         className={`${className} shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100`}
