@@ -30,7 +30,9 @@ def ensure_database_timezone() -> None:
     safe_database_name = '"' + database_name.replace('"', '""') + '"'
     try:
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
-            connection.execute(text(f"ALTER DATABASE {safe_database_name} SET timezone TO '{settings.database_timezone}'"))
+            connection.execute(
+                text(f"ALTER DATABASE {safe_database_name} SET timezone TO '{settings.database_timezone}'")
+            )
     except Exception as exc:
         print(f"Could not persist database timezone setting: {exc}")
 
@@ -68,6 +70,19 @@ def ensure_user_profile_columns() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_citizen_id_unique ON users (citizen_id) WHERE citizen_id IS NOT NULL",
+    ]
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
+def ensure_password_change_columns() -> None:
+    statements = [
+        "ALTER TABLE password_reset_otps ADD COLUMN IF NOT EXISTS pending_password_hash VARCHAR(255)",
+        "ALTER TABLE password_reset_otps ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE password_reset_otps ADD COLUMN IF NOT EXISTS invalidated_at TIMESTAMPTZ",
+        "UPDATE password_reset_otps SET invalidated_at = now() WHERE pending_password_hash IS NULL AND used_at IS NULL AND invalidated_at IS NULL",
+        "CREATE INDEX IF NOT EXISTS ix_password_reset_otps_user_created ON password_reset_otps (user_id, created_at DESC)",
     ]
     with engine.begin() as connection:
         for statement in statements:
@@ -488,6 +503,7 @@ def ensure_uploaded_document_extraction_tables() -> None:
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
+    from src.models.reconciliation import Threshold
     from src.models.role import Role
     from src.models.user import User
     from src.services.auth import hash_password
@@ -502,6 +518,9 @@ def seed_initial_data_if_needed() -> None:
                     description="Thực hiện đối soát hóa đơn, tải chứng từ và theo dõi nhật ký nghiệp vụ.",
                 )
                 db.add(acc_role)
+            else:
+                acc_role.name = "Kế toán viên"
+                acc_role.description = "Thực hiện đối soát hóa đơn, tải chứng từ và theo dõi nhật ký nghiệp vụ."
 
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
             if not chief_role:
@@ -511,11 +530,32 @@ def seed_initial_data_if_needed() -> None:
                     description="Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình.",
                 )
                 db.add(chief_role)
+            else:
+                chief_role.name = "Kế toán trưởng"
+                chief_role.description = "Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình."
 
             db.commit()
 
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
+
+            default_thresholds = [
+                {
+                    "category": "Đơn giá & Tổng tiền",
+                    "percent_threshold": "1.0",
+                    "absolute_threshold": "100000",
+                },
+                {
+                    "category": "Số lượng",
+                    "percent_threshold": "2.0",
+                    "absolute_threshold": "5",
+                },
+            ]
+
+            for threshold_data in default_thresholds:
+                threshold = db.query(Threshold).filter(Threshold.category == threshold_data["category"]).first()
+                if not threshold:
+                    db.add(Threshold(**threshold_data))
 
             default_password_hash = hash_password("123456")
 
@@ -567,7 +607,6 @@ def seed_initial_data_if_needed() -> None:
                 else:
                     if user.public_id is None:
                         user.public_id = db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1
-                    user.password_hash = default_password_hash
                     user.role_id = udata["role_id"]
                     user.full_name = udata["full_name"]
                     user.status = "ACTIVE"
@@ -585,6 +624,7 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     ensure_database_timezone()
     ensure_user_profile_columns()
+    ensure_password_change_columns()
     ensure_uploaded_file_storage_columns()
     ensure_document_batch_tables()
     ensure_uploaded_document_extraction_tables()
@@ -592,7 +632,6 @@ async def lifespan(app: FastAPI):
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield
     print("Shutting down...")
-
 
 
 app = FastAPI(

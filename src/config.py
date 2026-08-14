@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     storage_secret_access_key: str = ""
     storage_region: str = "auto"
     storage_presigned_url_expiration_seconds: int = Field(default=1800, ge=60, le=86400)
+    avatar_storage_dir: str = "./storage/avatars"
 
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
@@ -50,6 +51,13 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "chuthanhdungtruong@gmail.com"
     smtp_tls: bool = True
+
+    # Password change security
+    password_otp_ttl_seconds: int = Field(default=300, ge=60, le=1800)
+    password_otp_resend_seconds: int = Field(default=60, ge=10, le=600)
+    password_otp_max_attempts: int = Field(default=5, ge=1, le=10)
+    password_otp_max_requests: int = Field(default=3, ge=1, le=20)
+    password_otp_request_window_minutes: int = Field(default=15, ge=1, le=1440)
 
 
 @lru_cache

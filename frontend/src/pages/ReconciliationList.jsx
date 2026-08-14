@@ -35,24 +35,24 @@ function SummaryCard({ icon: Icon, label, value, detail, tone = 'slate', loading
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">{label}</p>
           {loading ? (
              <div className="mt-2 h-8 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
           ) : (
-            <p className="mt-2 text-2xl font-light tracking-[-0.2px] text-slate-950 dark:text-slate-100">{value}</p>
+            <p className="mt-2 text-xl font-light tracking-[-0.2px] text-slate-950 dark:text-slate-100 sm:text-2xl">{value}</p>
           )}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-full ring-1 ${tones[tone]}`}>
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1 sm:h-10 sm:w-10 ${tones[tone]}`}>
           <Icon size={18} />
         </div>
       </div>
       {loading ? (
         <div className="mt-4 h-4 w-2/3 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
       ) : (
-        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+        <p className="mt-2 break-words text-xs leading-4 text-slate-500 dark:text-slate-400 sm:mt-3 sm:text-sm">{detail}</p>
       )}
     </div>
   );
@@ -159,14 +159,14 @@ export default function ReconciliationList({ token }) {
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-brand-600">
             Không gian kế toán viên
           </p>
-          <h1 className="mt-2 text-3xl font-light tracking-[-0.4px] text-slate-950">
+          <h1 className="mt-2 text-[clamp(1.75rem,6vw,2.25rem)] font-light tracking-[-0.4px] text-slate-950">
             Danh sách đối soát
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Ưu tiên hóa đơn rủi ro cao, lọc nhanh theo trạng thái và xử lý hàng loạt.
           </p>
         </div>
-        <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-[0_1px_3px_rgba(0,55,112,0.08)]">
+        <div className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm text-slate-500 shadow-[0_1px_3px_rgba(0,55,112,0.08)] sm:w-auto">
           {data.total} hóa đơn · {pendingCases.length} chờ xử lý
         </div>
       </header>
@@ -177,7 +177,7 @@ export default function ReconciliationList({ token }) {
         </div>
       )}
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <SummaryCard
           icon={FileCheck2}
           label="Tổng hồ sơ"
@@ -214,7 +214,7 @@ export default function ReconciliationList({ token }) {
 
       <section className="card p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[280px] flex-1">
+          <div className="relative min-w-0 w-full flex-1 sm:min-w-[280px]">
             <Search
               size={17}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -229,7 +229,7 @@ export default function ReconciliationList({ token }) {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 title="Xóa tìm kiếm"
               >
                 <X size={14} />
@@ -237,11 +237,11 @@ export default function ReconciliationList({ token }) {
             )}
           </div>
 
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="input-field h-11 min-w-[190px] appearance-none rounded-md pr-10"
+              className="input-field h-11 w-full appearance-none rounded-md pr-10 sm:min-w-[190px]"
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -255,7 +255,7 @@ export default function ReconciliationList({ token }) {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             <button
               onClick={() => setStatusFilter('matched')}
               className={`inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-all ${
@@ -292,8 +292,8 @@ export default function ReconciliationList({ token }) {
       </section>
 
       <section className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-sm">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80">
                 <th className="w-12 px-5 py-4">
@@ -388,7 +388,7 @@ export default function ReconciliationList({ token }) {
                       </td>
                       <td className="px-5 py-4">
                         <button
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                          className="flex h-11 w-11 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                           title="Xem chi tiết"
                         >
                           <Eye size={16} />

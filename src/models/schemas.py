@@ -56,21 +56,18 @@ class ProfileUpdateRequest(BaseModel):
 
 class OtpRequestResponse(BaseModel):
     message: str
-    dev_otp: str | None = None
+    expires_in_seconds: int
+    resend_after_seconds: int
+
+
+class PasswordChangeInitiateRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., min_length=6, max_length=128)
+    confirm_password: str = Field(..., min_length=6, max_length=128)
 
 
 class OtpVerifyRequest(BaseModel):
-    otp: str = Field(..., min_length=6, max_length=6)
-
-
-class OtpVerifyResponse(BaseModel):
-    reset_token: str
-
-
-class PasswordChangeRequest(BaseModel):
-    reset_token: str = Field(..., min_length=16, max_length=255)
-    new_password: str = Field(..., min_length=6, max_length=128)
-    confirm_password: str = Field(..., min_length=6, max_length=128)
+    otp: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
 class UserCreateRequest(BaseModel):
@@ -245,6 +242,13 @@ class ThresholdOut(BaseModel):
 
 
 class ThresholdUpdateRequest(BaseModel):
+    category: str | None = Field(default=None, min_length=2, max_length=100)
+    percent_threshold: Decimal = Field(..., ge=0, le=100)
+    absolute_threshold: Decimal = Field(..., ge=0)
+
+
+class ThresholdCreateRequest(BaseModel):
+    category: str = Field(..., min_length=2, max_length=100)
     percent_threshold: Decimal = Field(..., ge=0, le=100)
     absolute_threshold: Decimal = Field(..., ge=0)
 

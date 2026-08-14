@@ -64,9 +64,7 @@ class ReconciliationCase(Base):
     line_items: Mapped[list["LineItem"]] = relationship(
         back_populates="case", cascade="all, delete-orphan", order_by="LineItem.row_index"
     )
-    processed_by: Mapped[User | None] = relationship(
-        foreign_keys=[processed_by_id]
-    )
+    processed_by: Mapped[User | None] = relationship(foreign_keys=[processed_by_id])
 
 
 class LineItem(Base):

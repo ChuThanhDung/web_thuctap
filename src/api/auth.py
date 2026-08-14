@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile, status
+from fastapi import Path as ApiPath
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from src.config import get_settings
 from src.database import get_db
 from src.models.schemas import (
     AuthUser,
@@ -11,22 +12,30 @@ from src.models.schemas import (
     MessageResponse,
     OtpRequestResponse,
     OtpVerifyRequest,
-    OtpVerifyResponse,
-    PasswordChangeRequest,
+    PasswordChangeInitiateRequest,
     ProfileUpdateRequest,
     UserCreateRequest,
     UserListResponse,
 )
 from src.models.user import User
 from src.services.auth import (
+    PasswordChangeError,
     authenticate_user,
-    change_password_with_reset_token,
-    create_password_reset_otp,
     create_user_by_admin,
     create_user_session,
     get_user_by_session_token,
-    verify_password_reset_otp,
+    initiate_password_change,
+    verify_password_change_otp,
     write_audit_log,
+)
+from src.services.avatar import (
+    MAX_AVATAR_BYTES,
+    AvatarValidationError,
+    delete_avatar_by_url,
+    process_avatar,
+    resolve_avatar_file,
+    save_avatar,
+    validate_avatar_metadata,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -139,14 +148,90 @@ async def update_profile(
     return to_auth_user(current_user)
 
 
+@router.put("/me/avatar", response_model=AuthUser)
+async def update_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthUser:
+    try:
+        validate_avatar_metadata(file.filename, file.content_type)
+        content = await file.read(MAX_AVATAR_BYTES + 1)
+        if len(content) > MAX_AVATAR_BYTES:
+            raise AvatarValidationError("Ảnh đại diện không được vượt quá 5 MB.")
+        webp_content = process_avatar(content, file.filename, file.content_type)
+    except AvatarValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    finally:
+        await file.close()
+
+    old_avatar_url = current_user.avatar_url
+    avatar_url, new_avatar_path = save_avatar(current_user.id, webp_content)
+    try:
+        current_user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(current_user)
+    except Exception:
+        db.rollback()
+        new_avatar_path.unlink(missing_ok=True)
+        raise
+
+    if old_avatar_url != avatar_url:
+        delete_avatar_by_url(old_avatar_url)
+
+    write_audit_log(
+        db=db,
+        action="AVATAR_UPDATED",
+        user=current_user,
+        details={"avatar_url": avatar_url},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return to_auth_user(current_user)
+
+
+@router.get("/avatars/{filename}", response_model=None)
+async def view_avatar(
+    filename: str = ApiPath(pattern=r"^[0-9a-f-]{36}_[0-9a-f]{32}\.webp$"),
+) -> FileResponse:
+    avatar_path = resolve_avatar_file(filename)
+    if avatar_path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy ảnh đại diện.")
+
+    return FileResponse(
+        avatar_path,
+        media_type="image/webp",
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.post("/password/otp", response_model=OtpRequestResponse)
 async def request_password_otp(
+    payload: PasswordChangeInitiateRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OtpRequestResponse:
-    otp = create_password_reset_otp(db, current_user)
-    print(f"[password-reset-otp] user={current_user.email} otp={otp}")
+    try:
+        expires_in, resend_after = initiate_password_change(
+            db,
+            current_user,
+            payload.current_password,
+            payload.new_password,
+            payload.confirm_password,
+        )
+    except PasswordChangeError as exc:
+        headers = {"Retry-After": str(exc.retry_after)} if exc.retry_after else None
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS if exc.retry_after else status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+            headers=headers,
+        ) from exc
     write_audit_log(
         db=db,
         action="PASSWORD_OTP_REQUESTED",
@@ -156,39 +241,26 @@ async def request_password_otp(
         user_agent=request.headers.get("user-agent"),
     )
 
-    settings = get_settings()
     return OtpRequestResponse(
         message="Mã OTP đã được gửi tới email của bạn.",
-        dev_otp=otp if settings.app_env == "development" else None,
+        expires_in_seconds=expires_in,
+        resend_after_seconds=resend_after,
     )
 
 
-@router.post("/password/otp/verify", response_model=OtpVerifyResponse)
+@router.post("/password/otp/verify", response_model=MessageResponse)
 async def verify_password_otp(
     payload: OtpVerifyRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> OtpVerifyResponse:
-    reset_token = verify_password_reset_otp(db, current_user, payload.otp)
-    if reset_token is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã OTP không đúng hoặc đã hết hạn.")
-
-    return OtpVerifyResponse(reset_token=reset_token)
-
-
-@router.post("/password/change", response_model=MessageResponse)
-async def change_password(
-    payload: PasswordChangeRequest,
     request: Request,
+    authorization: str = Header(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    if payload.new_password != payload.confirm_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu nhập lại không khớp.")
-
-    changed = change_password_with_reset_token(db, current_user, payload.reset_token, payload.new_password)
-    if not changed:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phiên đổi mật khẩu không hợp lệ.")
+    access_token = authorization.removeprefix("Bearer ").strip()
+    try:
+        verify_password_change_otp(db, current_user, payload.otp, access_token)
+    except PasswordChangeError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     write_audit_log(
         db=db,
@@ -199,7 +271,7 @@ async def change_password(
         user_agent=request.headers.get("user-agent"),
     )
 
-    return MessageResponse(message="Đổi mật khẩu thành công.")
+    return MessageResponse(message="Đổi mật khẩu thành công. Các phiên đăng nhập khác đã được đăng xuất.")
 
 
 @router.post("/users", response_model=AuthUser, status_code=status.HTTP_201_CREATED)
@@ -253,4 +325,3 @@ async def list_users(
         items=[to_auth_user(u) for u in users],
         total=len(users),
     )
-

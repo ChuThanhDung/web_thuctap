@@ -11,7 +11,7 @@ from src.api.uploads import PROJECT_ROOT, build_cloud_storage_key
 from src.config import get_settings
 from src.database import get_db
 from src.main import app
-from src.models.reconciliation import UploadedFile
+from src.models.reconciliation import DocumentBatch, UploadedFile
 from src.models.user import User
 from src.services.document_ai_extractor import DocumentAiAnalysis
 
@@ -181,6 +181,32 @@ async def test_uploaded_file_can_be_deleted_and_removed_from_batch(client):
     assert selected["uploaded_doc_types"] == []
     assert selected["missing_doc_types"] == ["po", "invoice", "grn"]
     assert selected["files"] == []
+
+
+@pytest.mark.asyncio
+async def test_empty_upload_batch_can_be_deleted(client, db_session):
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    delete_response = await client.delete(f"/api/v1/uploads/batches/{batch['id']}")
+
+    assert delete_response.status_code == 200
+    assert db_session.get(DocumentBatch, batch["id"]) is None
+
+
+@pytest.mark.asyncio
+async def test_upload_batch_with_files_cannot_be_deleted(client, db_session):
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+    upload_response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po", "batch_id": str(batch["id"])},
+        files={"file": ("PO-KEEP.pdf", b"%PDF-1.4 keep me", "application/pdf")},
+    )
+    assert upload_response.status_code == 200
+
+    delete_response = await client.delete(f"/api/v1/uploads/batches/{batch['id']}")
+
+    assert delete_response.status_code == 409
+    assert db_session.get(DocumentBatch, batch["id"]) is not None
 
 
 @pytest.mark.asyncio

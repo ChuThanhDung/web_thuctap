@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   lint-and-test:
@@ -17,10 +18,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade --no-cache-dir pip setuptools wheel
+          for attempt in 1 2 3 4 5; do
+            python -m pip install --no-cache-dir --retries 20 --timeout 240 --prefer-binary --progress-bar off -r requirements.txt && break
+            if [ "$attempt" = "5" ]; then
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
 
       - name: Lint with ruff
         run: ruff check src/ tests/

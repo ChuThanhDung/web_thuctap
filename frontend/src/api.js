@@ -4,7 +4,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? 'http://127.0.0.1:8000/api/v1' : '/api/v1');
 
-function buildApiUrl(pathOrUrl) {
+export function buildApiUrl(pathOrUrl) {
   if (!pathOrUrl) return null;
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
 
@@ -20,6 +20,10 @@ function buildApiUrl(pathOrUrl) {
 
 export function getUploadFileViewUrl(file) {
   return buildApiUrl(file?.file_url || (file?.id ? `/uploads/${file.id}/file` : null));
+}
+
+export function getAvatarViewUrl(user) {
+  return buildApiUrl(user?.avatar_url);
 }
 
 export async function parseResponse(response) {
@@ -73,9 +77,29 @@ export async function updateProfile(token, profile) {
   return parseResponse(response);
 }
 
-export async function requestPasswordOtp(token) {
+export async function uploadAvatar(token, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/auth/me/avatar`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return parseResponse(response);
+}
+
+export async function requestPasswordOtp(token, currentPassword, newPassword, confirmPassword) {
   const response = await authFetch('/auth/password/otp', token, {
     method: 'POST',
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    }),
   });
 
   return parseResponse(response);
@@ -85,19 +109,6 @@ export async function verifyPasswordOtp(token, otp) {
   const response = await authFetch('/auth/password/otp/verify', token, {
     method: 'POST',
     body: JSON.stringify({ otp }),
-  });
-
-  return parseResponse(response);
-}
-
-export async function changePassword(token, resetToken, newPassword, confirmPassword) {
-  const response = await authFetch('/auth/password/change', token, {
-    method: 'POST',
-    body: JSON.stringify({
-      reset_token: resetToken,
-      new_password: newPassword,
-      confirm_password: confirmPassword,
-    }),
   });
 
   return parseResponse(response);
@@ -138,6 +149,13 @@ export async function createDocumentBatch(token) {
 
 export async function getDocumentBatches(token) {
   const response = await authFetch('/uploads/batches', token);
+  return parseResponse(response);
+}
+
+export async function deleteDocumentBatch(token, batchId) {
+  const response = await authFetch(`/uploads/batches/${batchId}`, token, {
+    method: 'DELETE',
+  });
   return parseResponse(response);
 }
 

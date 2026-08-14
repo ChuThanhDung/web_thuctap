@@ -7,6 +7,25 @@ from sqlalchemy.orm import Session
 from src.models.reconciliation import Threshold
 
 
+def get_threshold_by_category(db: Session, keywords: tuple[str, ...], default: tuple[str, str]) -> tuple[Decimal, Decimal]:
+    try:
+        thresholds = db.scalars(select(Threshold)).all()
+        for threshold in thresholds:
+            category = threshold.category.lower()
+            if any(keyword.lower() in category for keyword in keywords):
+                return Decimal(str(threshold.percent_threshold)), Decimal(str(threshold.absolute_threshold))
+    except Exception:
+        pass
+
+    return Decimal(default[0]), Decimal(default[1])
+
+
+def percent_diff(diff: Decimal, base: Decimal) -> Decimal:
+    if base <= 0:
+        return Decimal("0.0")
+    return (diff / base) * 100
+
+
 def get_threshold_for_item(db: Session, item_name: str) -> tuple[Decimal, Decimal]:
     """Tìm ngưỡng sai số từ DB cho mặt hàng dựa trên tên hàng (category)."""
     try:
@@ -84,8 +103,19 @@ def reconcile_documents(
 
     reconciled_lines = []
     all_matched = True
+    threshold_exceeded = False
     primary_diff_type = "MATCH"
     discrepancy_details = []
+    amount_pct_limit, amount_abs_limit = get_threshold_by_category(
+        db,
+        ("đơn giá", "tổng tiền", "số tiền", "amount", "price", "mặc định", "khác"),
+        ("1.0", "100000.0"),
+    )
+    qty_pct_limit, qty_abs_limit = get_threshold_by_category(
+        db,
+        ("số lượng", "quantity", "qty"),
+        ("2.0", "5.0"),
+    )
 
     # Đối soát từng dòng hàng của hóa đơn
     for inv_item in invoice_items:
@@ -123,6 +153,14 @@ def reconcile_documents(
         # Kiểm tra chênh lệch dòng hàng
         qty_diff = (inv_qty != po_qty) or (inv_qty != grn_qty) or (po_qty != grn_qty)
         price_diff = inv_price != po_price
+        max_qty_diff = max(abs(inv_qty - po_qty), abs(inv_qty - grn_qty), abs(po_qty - grn_qty))
+        qty_base = max(inv_qty, po_qty, grn_qty, Decimal("1"))
+        qty_diff_pct = percent_diff(max_qty_diff, qty_base)
+        qty_exceeded = (max_qty_diff > qty_abs_limit) or (qty_diff_pct > qty_pct_limit)
+
+        unit_price_diff = abs(inv_price - po_price)
+        unit_price_pct = percent_diff(unit_price_diff, po_price)
+        price_exceeded = (unit_price_diff > amount_abs_limit) or (unit_price_pct > amount_pct_limit)
 
         diff_type = "MATCH"
         diff_notes = []
@@ -130,15 +168,21 @@ def reconcile_documents(
         if qty_diff:
             diff_type = "QTY_DIFF"
             all_matched = False
+            threshold_exceeded = threshold_exceeded or qty_exceeded
             primary_diff_type = "MISMATCH_QTY"
-            diff_notes.append(f"Số lượng lệch: Hóa đơn ({inv_qty}) vs PO ({po_qty}) vs Thực nhận ({grn_qty})")
+            qty_level = "vượt ngưỡng" if qty_exceeded else "trong ngưỡng"
+            diff_notes.append(
+                f"Số lượng lệch: Hóa đơn ({inv_qty}) vs PO ({po_qty}) vs Thực nhận ({grn_qty}) - {qty_level}"
+            )
 
         if price_diff:
             diff_type = "PRICE_DIFF"
             all_matched = False
+            threshold_exceeded = threshold_exceeded or price_exceeded
             if primary_diff_type == "MATCH" or primary_diff_type == "MISMATCH_QTY":
                 primary_diff_type = "MISMATCH_PRICE"
-            diff_notes.append(f"Đơn giá lệch: Hóa đơn ({inv_price}) vs PO ({po_price})")
+            price_level = "vượt ngưỡng" if price_exceeded else "trong ngưỡng"
+            diff_notes.append(f"Đơn giá lệch: Hóa đơn ({inv_price}) vs PO ({po_price}) - {price_level}")
 
         diff_note = " · ".join(diff_notes) if diff_notes else "Khớp hoàn toàn"
         if diff_notes:
@@ -172,20 +216,17 @@ def reconcile_documents(
         risk_level = "low"
         confidence = Decimal("1.00")
         ai_summary = "Dữ liệu hóa đơn khớp hoàn toàn với Đơn đặt hàng (PO) và Phiếu nhập kho (GRN)."
-        ai_recommendation = "Hồ sơ hoàn toàn hợp lệ, có thể duyệt tự động."
+        ai_recommendation = "Hồ sơ khớp 100%, chuyển kế toán viên duyệt trước khi thanh toán."
         ai_note = "Khớp 3 bên thành công."
     else:
-        # Lấy ngưỡng sai số của sản phẩm đầu tiên bị lệch (hoặc mặc định)
-        sample_item_name = invoice_items[0].get("item_name", "") if invoice_items else ""
-        pct_limit, abs_limit = get_threshold_for_item(db, sample_item_name)
-
         # Tính tỷ lệ lệch %
         pct_diff = Decimal("0.0")
         if po_total > 0:
             pct_diff = (diff_amount / po_total) * 100
 
         # Kiểm tra vượt ngưỡng
-        is_exceeded = (pct_diff > pct_limit) or (diff_amount > abs_limit)
+        is_amount_exceeded = (pct_diff > amount_pct_limit) or (diff_amount > amount_abs_limit)
+        is_exceeded = is_amount_exceeded or threshold_exceeded
 
         if is_exceeded:
             status = "major_diff"
@@ -198,7 +239,11 @@ def reconcile_documents(
 
         confidence = Decimal("0.85")
         ai_summary = f"Phát hiện chênh lệch giữa các chứng từ. Chi tiết: {', '.join(discrepancy_details)}"
-        ai_note = f"Chênh lệch số tiền: {diff_amount:,} VND ({pct_diff:.2f}%). Ngưỡng cho phép: {pct_limit}% hoặc {abs_limit:,} VND."
+        ai_note = (
+            f"Chênh lệch số tiền: {diff_amount:,} VND ({pct_diff:.2f}%). "
+            f"Ngưỡng tiền: {amount_pct_limit}% và {amount_abs_limit:,} VND. "
+            f"Ngưỡng số lượng: {qty_pct_limit}% và {qty_abs_limit} đơn vị."
+        )
 
     return {
         "invoice_number": invoice_data.get("invoice_number"),
