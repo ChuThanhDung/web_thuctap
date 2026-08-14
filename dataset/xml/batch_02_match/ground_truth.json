@@ -1,0 +1,15 @@
+{
+  "batch_id": "xml_02",
+  "format": "xml",
+  "expected_result": "MATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0187",
+    "goods_receipt": "PNK-0203",
+    "invoice": "1C26TSV-00003327"
+  },
+  "buyer": "CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE",
+  "seller": "CÔNG TY CỔ PHẦN THIẾT BỊ CÔNG NGHỆ SAO VIỆT",
+  "po_total": 120945000,
+  "invoice_total": 120945000,
+  "discrepancies": []
+}

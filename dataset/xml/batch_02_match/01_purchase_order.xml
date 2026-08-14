@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0187</SoDon>
+  <NgayLap>2026-06-10</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE</Ten>
+    <MST>0312945768</MST>
+    <DiaChi>Số 88 Nguyễn Văn Trỗi, Phường 8, Quận Phú Nhuận, TP. Hồ Chí Minh</DiaChi>
+    <NguoiDaiDien>Lê Thị Minh Hằng</NguoiDaiDien>
+    <DienThoai>028 3844 7799</DienThoai>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ CÔNG NGHỆ SAO VIỆT</Ten>
+    <MST>0106678234</MST>
+    <DiaChi>Số 45 Thái Hà, Phường Trung Liệt, Quận Đống Đa, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>GD-DT11</MaHang>
+      <TenHang>Giá đỡ điện thoại gắn ghi đông xe máy</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>400</SoLuong>
+      <DonGia>58000</DonGia>
+      <ThanhTien>23200000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>SDP-20K</MaHang>
+      <TenHang>Sạc dự phòng 20.000mAh</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>150</SoLuong>
+      <DonGia>385000</DonGia>
+      <ThanhTien>57750000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>TN-C39A</MaHang>
+      <TenHang>Tai nghe Bluetooth một bên GT-C39</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>200</SoLuong>
+      <DonGia>145000</DonGia>
+      <ThanhTien>29000000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>109950000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>10995000</TienThueGTGT>
+  <TongTienThanhToan>120945000</TongTienThanhToan>
+  <BangChu>Một trăm hai mươi triệu chín trăm bốn mươi lăm nghìn đồng chẵn.</BangChu>
+  <DiaDiemGiaoHang>Văn phòng VRide, 88 Nguyễn Văn Trỗi, Phú Nhuận, TP.HCM</DiaDiemGiaoHang>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

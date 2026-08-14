@@ -1,0 +1,21 @@
+{
+  "batch_id": "pdf_03",
+  "format": "pdf",
+  "expected_result": "MISMATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0221",
+    "goods_receipt": "PNK-0230",
+    "invoice": "1C26TVM-00002305"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN PHỤ TÙNG VIỆT MOTO",
+  "po_total": 97295000,
+  "invoice_total": 99935000,
+  "discrepancies": [
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn tính 450 bugi trong khi PO đặt và kho thực nhập 400 (thừa 50 chiếc = 2.400.000 đ)"
+    }
+  ]
+}

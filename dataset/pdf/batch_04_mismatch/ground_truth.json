@@ -1,0 +1,26 @@
+{
+  "batch_id": "pdf_04",
+  "format": "pdf",
+  "expected_result": "MISMATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0228",
+    "goods_receipt": "PNK-0236",
+    "invoice": "1C26TAB-00001902"
+  },
+  "buyer": "CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE",
+  "seller": "CÔNG TY TNHH SẢN XUẤT THƯƠNG MẠI NHỰA AN BẢO",
+  "po_total": 118690000,
+  "invoice_total": 123282000,
+  "discrepancies": [
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Hóa đơn ghi đơn giá thùng chở hàng 365.000 đ, cao hơn PO/phiếu nhập 340.000 đ (chênh +25.000 đ/chiếc)"
+    },
+    {
+      "type": "vat",
+      "document": "invoice",
+      "description": "Hóa đơn áp thuế suất GTGT 8% trong khi PO thỏa thuận 10%"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TVM</KHHDon>
+      <SHDon>00002250</SHDon>
+      <NLap>2026-06-17</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN PHỤ TÙNG VIỆT MOTO</Ten>
+        <MST>0107854123</MST>
+        <DChi>Số 216 Đường Giải Phóng, Phường Phương Liệt, Quận Thanh Xuân, Hà Nội</DChi>
+        <SDThoai>024 3665 2210</SDThoai>
+        <STKNHang>0021000556677</STKNHang>
+        <TNHang>Vietcombank – CN Thanh Xuân</TNHang>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST</Ten>
+        <MST>0402103458</MST>
+        <DChi>Số 25 Nguyễn Hữu Thọ, Phường Hòa Thuận Tây, Quận Hải Châu, Đà Nẵng</DChi>
+        <HVTNMHang>Phạm Đức Long</HVTNMHang>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>NHOT-Y04</MHHDVu>
+          <THHDVu>Dầu nhớt xe số 0.8L cao cấp</THHDVu>
+          <DVTinh>Chai</DVTinh>
+          <SLuong>600</SLuong>
+          <DGia>98000</DGia>
+          <ThTien>58800000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>MP-DP12</MHHDVu>
+          <THHDVu>Má phanh đĩa trước (cặp)</THHDVu>
+          <DVTinh>Cặp</DVTinh>
+          <SLuong>250</SLuong>
+          <DGia>125000</DGia>
+          <ThTien>31250000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>XICH-S428</MHHDVu>
+          <THHDVu>Bộ nhông xích sên 428</THHDVu>
+          <DVTinh>Bộ</DVTinh>
+          <SLuong>180</SLuong>
+          <DGia>265000</DGia>
+          <ThTien>47700000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>PK-TEM01</MHHDVu>
+          <THHDVu>Tem phản quang dán thùng hàng</THHDVu>
+          <DVTinh>Tờ</DVTinh>
+          <SLuong>500</SLuong>
+          <DGia>6500</DGia>
+          <ThTien>3250000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>141000000</ThTien>
+            <TThue>14100000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>141000000</TgTCThue>
+        <TgTThue>14100000</TgTThue>
+        <TgTTTBSo>155100000</TgTTTBSo>
+        <TgTTTBChu>Một trăm năm mươi lăm triệu một trăm nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

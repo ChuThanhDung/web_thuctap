@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0171</SoDon>
+  <NgayLap>2026-06-09</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST</Ten>
+    <MST>0402103458</MST>
+    <DiaChi>Số 25 Nguyễn Hữu Thọ, Phường Hòa Thuận Tây, Quận Hải Châu, Đà Nẵng</DiaChi>
+    <NguoiDaiDien>Phạm Đức Long</NguoiDaiDien>
+    <DienThoai>0236 3625 888</DienThoai>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN PHỤ TÙNG VIỆT MOTO</Ten>
+    <MST>0107854123</MST>
+    <DiaChi>Số 216 Đường Giải Phóng, Phường Phương Liệt, Quận Thanh Xuân, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>NHOT-Y04</MaHang>
+      <TenHang>Dầu nhớt xe số 0.8L cao cấp</TenHang>
+      <DonViTinh>Chai</DonViTinh>
+      <SoLuong>600</SoLuong>
+      <DonGia>98000</DonGia>
+      <ThanhTien>58800000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>MP-DP12</MaHang>
+      <TenHang>Má phanh đĩa trước (cặp)</TenHang>
+      <DonViTinh>Cặp</DonViTinh>
+      <SoLuong>250</SoLuong>
+      <DonGia>125000</DonGia>
+      <ThanhTien>31250000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>XICH-S428</MaHang>
+      <TenHang>Bộ nhông xích sên 428</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>180</SoLuong>
+      <DonGia>265000</DonGia>
+      <ThanhTien>47700000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>137750000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>13775000</TienThueGTGT>
+  <TongTienThanhToan>151525000</TongTienThanhToan>
+  <BangChu>Một trăm năm mươi mốt triệu năm trăm hai mươi lăm nghìn đồng chẵn.</BangChu>
+  <DiaDiemGiaoHang>Kho SFast, 25 Nguyễn Hữu Thọ, Hải Châu, Đà Nẵng</DiaDiemGiaoHang>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

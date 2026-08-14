@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0142</SoDon>
+  <NgayLap>2026-06-05</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+    <NguoiDaiDien>Trần Quốc Bảo</NguoiDaiDien>
+    <DienThoai>024 3768 5521</DienThoai>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH SẢN XUẤT THƯƠNG MẠI NHỰA AN BẢO</Ten>
+    <MST>0309125476</MST>
+    <DiaChi>Lô C4, KCN Tân Bình, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>MBH-CL01</MaHang>
+      <TenHang>Mũ bảo hiểm nửa đầu in logo GoNow</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>500</SoLuong>
+      <DonGia>86000</DonGia>
+      <ThanhTien>43000000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>MBH-FK03</MaHang>
+      <TenHang>Mũ bảo hiểm fullface kính chống lóa</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>120</SoLuong>
+      <DonGia>315000</DonGia>
+      <ThanhTien>37800000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>AO-MUA02</MaHang>
+      <TenHang>Áo mưa bộ PVC in thương hiệu</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>300</SoLuong>
+      <DonGia>92000</DonGia>
+      <ThanhTien>27600000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>108400000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>10840000</TienThueGTGT>
+  <TongTienThanhToan>119240000</TongTienThanhToan>
+  <BangChu>Một trăm mười chín triệu hai trăm bốn mươi nghìn đồng chẵn.</BangChu>
+  <DiaDiemGiaoHang>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</DiaDiemGiaoHang>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

@@ -1,0 +1,15 @@
+{
+  "batch_id": "pdf_02",
+  "format": "pdf",
+  "expected_result": "MATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0212",
+    "goods_receipt": "PNK-0223",
+    "invoice": "1C26TDL-00001566"
+  },
+  "buyer": "CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST",
+  "seller": "CÔNG TY TNHH VĂN PHÒNG PHẨM ĐĂNG LÂM",
+  "po_total": 24861600,
+  "invoice_total": 24861600,
+  "discrepancies": []
+}

@@ -1,0 +1,15 @@
+{
+  "batch_id": "pdf_01",
+  "format": "pdf",
+  "expected_result": "MATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0204",
+    "goods_receipt": "PNK-0218",
+    "invoice": "1C26THP-00004108"
+  },
+  "buyer": "CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE",
+  "seller": "CÔNG TY TNHH LỐP XE HÒA PHÁT THÀNH",
+  "po_total": 258940000,
+  "invoice_total": 258940000,
+  "discrepancies": []
+}
