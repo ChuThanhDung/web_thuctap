@@ -23,7 +23,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --retries 5 --timeout 120 --prefer-binary -r requirements.txt
+          for attempt in 1 2 3 4 5; do
+            python -m pip install --retries 10 --timeout 180 --prefer-binary --progress-bar off -r requirements.txt && break
+            if [ "$attempt" = "5" ]; then
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
 
       - name: Lint with ruff
         run: ruff check src/ tests/
