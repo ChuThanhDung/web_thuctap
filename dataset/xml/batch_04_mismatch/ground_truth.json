@@ -1,0 +1,26 @@
+{
+  "batch_id": "xml_04",
+  "format": "xml",
+  "expected_result": "MISMATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0171",
+    "goods_receipt": "PNK-0199",
+    "invoice": "1C26TVM-00002250"
+  },
+  "buyer": "CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST",
+  "seller": "CÔNG TY CỔ PHẦN PHỤ TÙNG VIỆT MOTO",
+  "po_total": 151525000,
+  "invoice_total": 155100000,
+  "discrepancies": [
+    {
+      "type": "short_receipt",
+      "document": "grn",
+      "description": "Kho chỉ thực nhập 560/600 chai dầu nhớt (thiếu 40) nhưng hóa đơn vẫn tính đủ 600 theo PO"
+    },
+    {
+      "type": "extra_line",
+      "document": "invoice",
+      "description": "Hóa đơn có thêm dòng 'Tem phản quang' 500 tờ x 6.500 đ không có trong PO và phiếu nhập kho"
+    }
+  ]
+}

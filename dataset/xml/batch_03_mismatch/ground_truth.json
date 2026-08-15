@@ -1,0 +1,26 @@
+{
+  "batch_id": "xml_03",
+  "format": "xml",
+  "expected_result": "MISMATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0159",
+    "goods_receipt": "PNK-0195",
+    "invoice": "1C26TTP-00000912"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH MAY MẶC THIÊN PHÚ",
+  "po_total": 236736000,
+  "invoice_total": 246780000,
+  "discrepancies": [
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Hóa đơn ghi đơn giá 154.000 đ trong khi PO và phiếu nhập là 145.000 đ (chênh +9.000 đ/chiếc, +7.200.000 đ tổng dòng)"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 650 trong khi PO đặt và kho thực nhập 600 (thừa 50 chiếc)"
+    }
+  ]
+}

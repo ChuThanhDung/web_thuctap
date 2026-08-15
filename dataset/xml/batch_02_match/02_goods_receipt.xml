@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0203</SoPhieu>
+  <NgayLap>2026-06-18</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0187 ngày 10/06/2026</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE</Ten>
+    <MST>0312945768</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Hoàng Anh Tuấn - CÔNG TY CỔ PHẦN THIẾT BỊ CÔNG NGHỆ SAO VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Văn phòng VRide, 88 Nguyễn Văn Trỗi, Phú Nhuận, TP.HCM</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>GD-DT11</MaHang>
+      <TenHang>Giá đỡ điện thoại gắn ghi đông xe máy</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>400</SoLuongTheoChungTu>
+      <SoLuongThucNhap>400</SoLuongThucNhap>
+      <DonGia>58000</DonGia>
+      <ThanhTien>23200000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>SDP-20K</MaHang>
+      <TenHang>Sạc dự phòng 20.000mAh</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>150</SoLuongTheoChungTu>
+      <SoLuongThucNhap>150</SoLuongThucNhap>
+      <DonGia>385000</DonGia>
+      <ThanhTien>57750000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>TN-C39A</MaHang>
+      <TenHang>Tai nghe Bluetooth một bên GT-C39</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>200</SoLuongTheoChungTu>
+      <SoLuongThucNhap>200</SoLuongThucNhap>
+      <DonGia>145000</DonGia>
+      <ThanhTien>29000000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>109950000</TongTien>
+  <BangChu>Một trăm linh chín triệu chín trăm năm mươi nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0187)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

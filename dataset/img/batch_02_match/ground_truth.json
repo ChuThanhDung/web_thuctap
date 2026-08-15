@@ -1,0 +1,15 @@
+{
+  "batch_id": "img_02",
+  "format": "img",
+  "expected_result": "MATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0247",
+    "goods_receipt": "PNK-0252",
+    "invoice": "1C26TTP-00000978"
+  },
+  "buyer": "CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST",
+  "seller": "CÔNG TY TNHH MAY MẶC THIÊN PHÚ",
+  "po_total": 57510000,
+  "invoice_total": 57510000,
+  "discrepancies": []
+}

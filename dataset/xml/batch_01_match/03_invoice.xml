@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TAB</KHHDon>
+      <SHDon>00001845</SHDon>
+      <NLap>2026-06-12</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH SẢN XUẤT THƯƠNG MẠI NHỰA AN BẢO</Ten>
+        <MST>0309125476</MST>
+        <DChi>Lô C4, KCN Tân Bình, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh</DChi>
+        <SDThoai>028 3815 6642</SDThoai>
+        <STKNHang>112000334455</STKNHang>
+        <TNHang>Vietinbank – CN 4 TP.HCM</TNHang>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+        <HVTNMHang>Trần Quốc Bảo</HVTNMHang>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>MBH-CL01</MHHDVu>
+          <THHDVu>Mũ bảo hiểm nửa đầu in logo GoNow</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>500</SLuong>
+          <DGia>86000</DGia>
+          <ThTien>43000000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>MBH-FK03</MHHDVu>
+          <THHDVu>Mũ bảo hiểm fullface kính chống lóa</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>120</SLuong>
+          <DGia>315000</DGia>
+          <ThTien>37800000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>AO-MUA02</MHHDVu>
+          <THHDVu>Áo mưa bộ PVC in thương hiệu</THHDVu>
+          <DVTinh>Bộ</DVTinh>
+          <SLuong>300</SLuong>
+          <DGia>92000</DGia>
+          <ThTien>27600000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>108400000</ThTien>
+            <TThue>10840000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>108400000</TgTCThue>
+        <TgTThue>10840000</TgTThue>
+        <TgTTTBSo>119240000</TgTTTBSo>
+        <TgTTTBChu>Một trăm mười chín triệu hai trăm bốn mươi nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>
