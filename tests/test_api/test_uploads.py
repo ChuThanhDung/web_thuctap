@@ -11,7 +11,7 @@ from src.api.uploads import PROJECT_ROOT, build_cloud_storage_key
 from src.config import get_settings
 from src.database import get_db
 from src.main import app
-from src.models.reconciliation import DocumentBatch, UploadedFile
+from src.models.reconciliation import DocumentBatch, ReconciliationCase, UploadedFile
 from src.models.user import User
 from src.services.document_ai_extractor import DocumentAiAnalysis
 
@@ -423,6 +423,95 @@ async def test_upload_batch_becomes_ready_when_three_doc_types_exist(client):
     assert selected["status"] == "ready"
     assert selected["missing_doc_types"] == []
     assert set(selected["uploaded_doc_types"]) == {"po", "invoice", "grn"}
+
+
+@pytest.mark.asyncio
+async def test_upload_ready_batch_creates_reconciliation_case_with_grn_tax_fallback(client, db_session, monkeypatch):
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        extracted_by_type = {
+            "invoice": {
+                "type": "invoice",
+                "invoice_number": "INV-UPLOAD-TAX",
+                "supplier_name": "Test Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 110,
+                "vat_rate_pct": 10,
+                "line_items": [
+                    {
+                        "row_index": 1,
+                        "item_name": "Steel bolt",
+                        "qty": 10,
+                        "price": 10,
+                        "vat_rate_pct": 10,
+                        "amount": 100,
+                    }
+                ],
+            },
+            "po": {
+                "type": "po",
+                "po_number": "PO-UPLOAD-TAX",
+                "supplier_name": "Test Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 110,
+                "vat_rate_pct": 10,
+                "line_items": [
+                    {
+                        "row_index": 1,
+                        "item_name": "Steel bolt",
+                        "sku": "BOLT-001",
+                        "qty": 10,
+                        "price": 10,
+                        "vat_rate_pct": 10,
+                        "amount": 100,
+                    }
+                ],
+            },
+            "grn": {
+                "type": "grn",
+                "grn_number": "GRN-UPLOAD-TAX",
+                "po_number": "PO-UPLOAD-TAX",
+                "supplier_name": "Test Supplier",
+                "supplier_tax_id": None,
+                "total_amount": 100,
+                "line_items": [
+                    {
+                        "row_index": 1,
+                        "item_name": "Steel bolt",
+                        "sku": "BOLT-001",
+                        "qty": 10,
+                        "amount": 100,
+                    }
+                ],
+            },
+        }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted_by_type[expected_doc_type],
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    for doc_type in ["po", "invoice", "grn"]:
+        response = await client.post(
+            "/api/v1/uploads",
+            data={"doc_type": doc_type, "batch_id": str(batch["id"])},
+            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+        )
+        assert response.status_code == 200
+
+    case = db_session.query(ReconciliationCase).filter_by(invoice_number="INV-UPLOAD-TAX").one()
+    assert case.status == "matched"
+    assert case.diff_amount == Decimal("0.00")
+    assert case.partner_tax_id == "0101234567"
+    assert "cộng VAT 10%" in case.ai_note
 
 
 def test_build_cloud_storage_key_uses_sequential_filename(monkeypatch):

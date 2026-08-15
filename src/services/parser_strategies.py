@@ -374,7 +374,7 @@ class LocalOcrParserStrategy(BaseParserStrategy):
                         "unit": "PCE",
                         "qty": 50.0,
                         "price": 80000.0,
-                        "vat_rate_pct": 10,
+                        "vat_rate_pct": None,
                     }
                 ],
             }
