@@ -47,6 +47,11 @@ function almostEqual(a, b) {
   return Math.abs(a - b) <= 1;
 }
 
+function getExtractionData(doc) {
+  if (!doc || doc.missing) return null;
+  return doc.extractedData || doc;
+}
+
 export function inferVatRate(...docs) {
   for (const doc of docs) {
     if (!doc || doc.missing) continue;
@@ -140,4 +145,75 @@ export function comparisonStatusToResult(status) {
   if (status === 'matched') return { result: 'Khớp', severity: 'ok' };
   if (status === 'missing') return { result: 'Thiếu dữ liệu', severity: 'warning' };
   return { result: 'Có chênh lệch', severity: 'danger' };
+}
+
+const SUMMARY_FIELDS = ['supplier_name', 'supplier_tax_id', 'vat_rate_pct', 'total_amount'];
+
+function findItemByIdentity(items, sourceItem, index) {
+  const sku = sourceItem?.sku;
+  if (sku) {
+    const foundBySku = items.find((item) => item?.sku && item.sku === sku);
+    if (foundBySku) return foundBySku;
+  }
+  return items[index] || {};
+}
+
+function getLineAmount(item) {
+  const explicitAmount = toNumber(item?.amount ?? item?.line_total ?? item?.total_amount);
+  if (explicitAmount !== null) return explicitAmount;
+
+  const qty = toNumber(item?.qty);
+  const price = toNumber(item?.price);
+  if (qty === null || price === null) return null;
+  return qty * price;
+}
+
+export function getLineItemComparisonStatus(docs) {
+  const poItems = getExtractionData(docs.po)?.line_items || [];
+  const invoiceItems = getExtractionData(docs.invoice)?.line_items || [];
+  const grnItems = getExtractionData(docs.grn)?.line_items || [];
+  const maxLineCount = Math.max(poItems.length, invoiceItems.length, grnItems.length);
+
+  return Array.from({ length: maxLineCount }).map((_, index) => {
+    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
+    const poItem = findItemByIdentity(poItems, baseItem, index);
+    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
+    const grnItem = findItemByIdentity(grnItems, baseItem, index);
+
+    const statuses = [
+      compareValues([poItem.qty, invoiceItem.qty, grnItem.qty]),
+      compareValues([poItem.price, invoiceItem.price, grnItem.price]),
+      compareValues([getLineAmount(poItem), getLineAmount(invoiceItem), getLineAmount(grnItem)]),
+    ];
+
+    if (statuses.includes('mismatch')) return 'mismatch';
+    if (statuses.includes('missing')) return 'missing';
+    return 'matched';
+  });
+}
+
+export function calculateMatchSummary(docs) {
+  const documentStatuses = SUMMARY_FIELDS.map((field) => compareDocumentField(docs, field));
+  const lineStatuses = getLineItemComparisonStatus(docs);
+  const statuses = [...documentStatuses, ...lineStatuses];
+
+  const checkedFields = statuses.length;
+  const mismatchFields = statuses.filter((status) => status === 'mismatch').length;
+  const warningFields = statuses.filter((status) => status === 'missing').length;
+  const matchedFields = statuses.filter((status) => status === 'matched').length;
+  const matchRate = checkedFields === 0 ? 0 : Math.round((matchedFields / checkedFields) * 100);
+  const status = matchRate === 100
+    ? 'matched'
+    : mismatchFields > 0
+      ? 'mismatch'
+      : 'missing';
+
+  return {
+    checkedFields,
+    matchedFields,
+    mismatchFields,
+    warningFields,
+    matchRate,
+    status,
+  };
 }

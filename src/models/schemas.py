@@ -313,6 +313,8 @@ class DocumentBatchOut(BaseModel):
     files: list[UploadedFileOut] = []
     missing_doc_types: list[str] = []
     uploaded_doc_types: list[str] = []
+    extracted_doc_types: list[str] = []
+    pending_extraction_doc_types: list[str] = []
     created_at: str
     updated_at: str | None = None
 

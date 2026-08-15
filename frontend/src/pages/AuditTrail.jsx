@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { fetchUploadFileBlob, getDocumentBatches } from '../api.js';
 import {
+  calculateMatchSummary,
   compareDocumentField,
   comparisonStatusToResult,
   compareValues as compareRawValues,
@@ -54,6 +55,7 @@ const DOC_TYPES = [
   { key: 'invoice', short: 'Invoice', label: 'Hóa đơn', icon: FileText },
   { key: 'grn', short: 'GRN', label: 'Phiếu nhập kho', icon: PackageCheck },
 ];
+const BATCHES_PER_PAGE = 5;
 
 function getFileExt(filename = '') {
   return filename.split('.').pop()?.toLowerCase() || '';
@@ -775,33 +777,22 @@ function mapApiBatchToAuditBatch(batch) {
   const missingCount = DOC_TYPES.filter((type) => docs[type.key]?.missing).length;
   const comparisons = buildComparisons(docs);
   const lineItems = buildLineItems(docs);
-  const mismatchFields = comparisons.filter((item) => item.severity === 'danger').length
-    + lineItems.filter((item) => item.severity === 'danger').length;
-  const warningFields = comparisons.filter((item) => item.severity === 'warning').length
-    + lineItems.filter((item) => item.severity === 'warning').length;
-  const checkedFields = comparisons.length + lineItems.length;
-  const matchedFields = Math.max(0, checkedFields - mismatchFields - warningFields);
-  const matchRate = checkedFields === 0 ? 0 : Math.round((matchedFields / checkedFields) * 100);
-  const missingDataFields = missingCount + warningFields;
-  const status = matchRate === 100
-    ? 'matched'
-    : mismatchFields > 0
-      ? 'mismatch'
-      : 'missing';
+  const summary = calculateMatchSummary(docs);
+  const missingDataFields = missingCount + summary.warningFields;
 
   return {
     id: batch.id,
     batchNumber: batch.batch_number,
-    status,
+    status: summary.status,
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống AI',
-    matchRate,
-    checkedFields,
-    matchedFields,
-    mismatchFields,
+    matchRate: summary.matchRate,
+    checkedFields: summary.checkedFields,
+    matchedFields: summary.matchedFields,
+    mismatchFields: summary.mismatchFields,
     missingFields: missingDataFields,
     decision:
-      mismatchFields > 0
+      summary.mismatchFields > 0
           ? 'Có chênh lệch trong dữ liệu AI đã trích xuất. Cần kiểm tra lại chứng từ.'
         : missingDataFields > 0
           ? 'Batch còn thiếu dữ liệu trích xuất. Cần kiểm tra lại chứng từ hoặc chờ AI đọc đầy đủ.'
@@ -823,6 +814,7 @@ export default function AuditTrail({ token }) {
   const [modalBatchId, setModalBatchId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [batchPage, setBatchPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -875,6 +867,25 @@ export default function AuditTrail({ token }) {
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
   }, [batches, searchQuery, statusFilter]);
+
+  const totalBatchPages = Math.max(1, Math.ceil(filteredBatches.length / BATCHES_PER_PAGE));
+  const safeBatchPage = Math.min(batchPage, totalBatchPages);
+  const paginatedBatches = filteredBatches.slice(
+    (safeBatchPage - 1) * BATCHES_PER_PAGE,
+    safeBatchPage * BATCHES_PER_PAGE
+  );
+  const batchStartIndex = filteredBatches.length === 0 ? 0 : (safeBatchPage - 1) * BATCHES_PER_PAGE + 1;
+  const batchEndIndex = Math.min(safeBatchPage * BATCHES_PER_PAGE, filteredBatches.length);
+
+  useEffect(() => {
+    setBatchPage(1);
+  }, [searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (batchPage > totalBatchPages) {
+      setBatchPage(totalBatchPages);
+    }
+  }, [batchPage, totalBatchPages]);
 
   const selectedBatch = filteredBatches.find((batch) => isSameBatchId(batch.id, selectedId)) || filteredBatches[0] || batches[0] || null;
   const summary = {
@@ -1019,7 +1030,7 @@ export default function AuditTrail({ token }) {
           </div>
 
           <div className="space-y-3">
-            {filteredBatches.map((batch) => {
+            {paginatedBatches.map((batch) => {
               const isSelected = isSameBatchId(batch.id, selectedBatch.id);
               const completion = getCompletion(batch);
               const meta = STATUS_META[batch.status];
@@ -1091,6 +1102,35 @@ export default function AuditTrail({ token }) {
               </div>
             )}
           </div>
+
+          {filteredBatches.length > BATCHES_PER_PAGE && (
+            <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Hiển thị {batchStartIndex}-{batchEndIndex} / {filteredBatches.length} batch
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBatchPage((page) => Math.max(1, page - 1))}
+                  disabled={safeBatchPage === 1}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Trước
+                </button>
+                <span className="min-w-[88px] text-center font-semibold text-slate-700 dark:text-slate-200">
+                  Trang {safeBatchPage}/{totalBatchPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBatchPage((page) => Math.min(totalBatchPages, page + 1))}
+                  disabled={safeBatchPage === totalBatchPages}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="hidden">
