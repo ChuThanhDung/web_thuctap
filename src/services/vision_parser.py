@@ -48,7 +48,7 @@ def parse_vision_document(file_bytes: bytes, filename: str, doc_type_hint: str =
                         "unit": "đơn vị tính",
                         "qty": 1.0,
                         "price": 100000.0,
-                        "vat_rate_pct": 10
+                        "vat_rate_pct": null
                     }}
                 ]
             }}

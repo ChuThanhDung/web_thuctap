@@ -16,6 +16,14 @@ import {
   X,
 } from 'lucide-react';
 import { fetchUploadFileBlob, getDocumentBatches } from '../api.js';
+import {
+  compareDocumentField,
+  comparisonStatusToResult,
+  compareValues as compareRawValues,
+  getGrnTotalAdjustment,
+  inferVatRate,
+  toNumber,
+} from '../reconciliationCompare.js';
 import { repairTextDeep } from '../text.js';
 
 const STATUS_META = {
@@ -556,7 +564,7 @@ function ResultPill({ severity, text }) {
   return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
 }
 
-const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá', 'Thuế suất VAT'];
+const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá'];
 
 function isLineItemComparison(item) {
   return LINE_ITEM_FIELDS.some((fieldName) => item.field.includes(fieldName));
@@ -629,15 +637,16 @@ function getComparableValue(doc, key) {
   return formatDisplayValue(value);
 }
 
+function formatVatRate(value) {
+  return value > 0 ? formatDisplayValue(value) : '-';
+}
+
 function compareValues(values) {
-  const presentValues = values.filter((value) => value !== '-');
-  if (presentValues.length === 0) return { result: 'Chưa có dữ liệu', severity: 'warning' };
-  if (presentValues.length < values.length) return { result: 'Thiếu dữ liệu', severity: 'warning' };
-  const normalizedValues = presentValues.map((value) => String(value).trim().toLowerCase());
-  const isMatched = normalizedValues.every((value) => value === normalizedValues[0]);
-  return isMatched
-    ? { result: 'Khớp', severity: 'ok' }
-    : { result: 'Có chênh lệch', severity: 'danger' };
+  const status = compareRawValues(values.map((value) => (value === '-' ? '' : value)));
+  if (status === 'missing' && values.every((value) => value === '-')) {
+    return { result: 'Chưa có dữ liệu', severity: 'warning' };
+  }
+  return comparisonStatusToResult(status);
 }
 
 function buildComparisons(docs) {
@@ -654,7 +663,21 @@ function buildComparisons(docs) {
       getComparableValue(docs.invoice, key),
       getComparableValue(docs.grn, key),
     ];
-    const result = compareValues(values);
+    if (key === 'vat_rate_pct') {
+      const poVatRate = inferVatRate(docs.po);
+      const invoiceVatRate = inferVatRate(docs.invoice);
+      const grnVatRate = inferVatRate(docs.grn);
+      values[0] = formatVatRate(poVatRate);
+      values[1] = formatVatRate(invoiceVatRate);
+      values[2] = grnVatRate > 0 ? formatVatRate(grnVatRate) : formatVatRate(poVatRate);
+    }
+    if (key === 'total_amount') {
+      const grnAdjustment = getGrnTotalAdjustment(docs);
+      if (grnAdjustment) {
+        values[2] = `${formatDisplayValue(grnAdjustment.baseTotal)} + ${grnAdjustment.vatRate}%`;
+      }
+    }
+    const result = comparisonStatusToResult(compareDocumentField(docs, key));
     return {
       field,
       po: values[0],
@@ -672,6 +695,16 @@ function findItemByIdentity(items, sourceItem, index) {
     if (foundBySku) return foundBySku;
   }
   return items[index] || {};
+}
+
+function getLineAmount(item) {
+  const explicitAmount = toNumber(item?.amount ?? item?.line_total ?? item?.total_amount);
+  if (explicitAmount !== null) return explicitAmount;
+
+  const qty = toNumber(item?.qty);
+  const price = toNumber(item?.price);
+  if (qty === null || price === null) return null;
+  return qty * price;
 }
 
 function buildLineItems(docs) {
@@ -695,7 +728,19 @@ function buildLineItems(docs) {
       formatDisplayValue(invoiceItem.price),
       formatDisplayValue(grnItem.price),
     ]);
-    const severity = qtyResult.severity === 'danger' || priceResult.severity === 'danger' ? 'danger' : qtyResult.severity;
+    const poAmount = getLineAmount(poItem);
+    const invoiceAmount = getLineAmount(invoiceItem);
+    const grnAmount = getLineAmount(grnItem);
+    const amountResult = compareValues([
+      formatDisplayValue(poAmount),
+      formatDisplayValue(invoiceAmount),
+      formatDisplayValue(grnAmount),
+    ]);
+    const severity = [qtyResult, priceResult, amountResult].some((item) => item.severity === 'danger')
+      ? 'danger'
+      : [qtyResult, priceResult, amountResult].some((item) => item.severity === 'warning')
+        ? 'warning'
+        : 'ok';
 
     return {
       sku: formatDisplayValue(baseItem.sku || `Dòng ${index + 1}`),
@@ -707,9 +752,14 @@ function buildLineItems(docs) {
       poPrice: formatDisplayValue(poItem.price),
       invoicePrice: formatDisplayValue(invoiceItem.price),
       grnPrice: formatDisplayValue(grnItem.price),
-      vat: formatDisplayValue(invoiceItem.vat_rate_pct ?? baseItem.vat_rate_pct),
-      amount: formatDisplayValue(invoiceItem.amount ?? baseItem.amount),
-      result: severity === 'danger' ? 'Có chênh lệch' : qtyResult.result,
+      poAmount: formatDisplayValue(poAmount),
+      invoiceAmount: formatDisplayValue(invoiceAmount),
+      grnAmount: formatDisplayValue(grnAmount),
+      result: severity === 'danger'
+        ? 'Có chênh lệch'
+        : severity === 'warning'
+          ? 'Thiếu dữ liệu'
+          : 'Khớp',
       severity,
     };
   });
@@ -1092,26 +1142,6 @@ export default function AuditTrail({ token }) {
             ))}
           </div>
 
-          {selectedBatch.issues.length > 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-900 dark:bg-amber-950/20">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                  <AlertTriangle size={18} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Điểm cần kiểm tra</h3>
-                  <div className="mt-3 space-y-2">
-                    {selectedBatch.issues.map((issue) => (
-                      <p key={issue} className="rounded-lg bg-white/70 px-3 py-2 text-sm text-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
-                        {issue}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
             <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
@@ -1157,7 +1187,7 @@ export default function AuditTrail({ token }) {
             <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Mỗi dòng là một mã hàng trong PO, Invoice và GRN để kiểm tra chủng loại, ĐVT, số lượng, giá và VAT.
+                Mỗi dòng là một mã hàng trong PO, Invoice và GRN để kiểm tra chủng loại, ĐVT, số lượng và giá.
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -1171,8 +1201,9 @@ export default function AuditTrail({ token }) {
                     <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá PO</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">VAT</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Thành tiền</th>
+                    <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
                   </tr>
                 </thead>
@@ -1190,14 +1221,15 @@ export default function AuditTrail({ token }) {
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.poPrice}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.vat}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.amount}</td>
+                        <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poAmount}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceAmount}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnAmount}</td>
                         <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                      <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                         Chưa có dữ liệu hàng hóa. Khi đủ chứng từ, hệ thống sẽ tách từng dòng hàng để đối chiếu.
                       </td>
                     </tr>
@@ -1264,19 +1296,6 @@ export default function AuditTrail({ token }) {
                 </div>
               </div>
 
-              {modalBatch.issues.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/20">
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Điểm cần kiểm tra</p>
-                  <div className="mt-2 grid gap-2 lg:grid-cols-2">
-                    {modalBatch.issues.map((issue) => (
-                      <p key={issue} className="rounded-lg bg-white/80 px-3 py-2 text-sm text-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
-                        {issue}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="grid gap-3 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => (
                   <DocumentCard key={type.key} type={type} doc={modalBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
@@ -1299,8 +1318,9 @@ export default function AuditTrail({ token }) {
                         <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
                         <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
                         <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">VAT</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Thành tiền</th>
+                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
+                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
                         <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
                       </tr>
                     </thead>
@@ -1319,14 +1339,15 @@ export default function AuditTrail({ token }) {
                             <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poPrice}</td>
                             <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
                             <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnPrice}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.vat}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.amount}</td>
+                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poAmount}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceAmount}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnAmount}</td>
                             <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                          <td colSpan={12} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                             Chưa có dữ liệu hàng hóa.
                           </td>
                         </tr>

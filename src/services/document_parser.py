@@ -115,11 +115,11 @@ def parse_invoice(root: ET.Element) -> dict[str, Any]:
         price = float(price_el.text) if price_el is not None and price_el.text else 0.0
 
         vat_el = item_node.find("TSuat")
-        vat_str = vat_el.text.strip() if vat_el is not None and vat_el.text else "10%"
+        vat_str = vat_el.text.strip() if vat_el is not None and vat_el.text else ""
         try:
-            vat_rate = int(vat_str.replace("%", "").strip())
+            vat_rate = int(vat_str.replace("%", "").strip()) if vat_str else None
         except ValueError:
-            vat_rate = 10
+            vat_rate = None
 
         line_items.append(
             {

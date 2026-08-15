@@ -20,6 +20,7 @@ import {
   YAxis,
 } from 'recharts';
 import { getDocumentBatches } from '../api.js';
+import { compareDocumentField, compareValues } from '../reconciliationCompare.js';
 import { repairTextDeep } from '../text.js';
 
 const DOC_TYPES = ['po', 'invoice', 'grn'];
@@ -41,24 +42,12 @@ function getExtraction(file) {
   return file?.ai_extraction?.extracted_data || {};
 }
 
-function normalizeValue(value) {
-  if (value === null || value === undefined || value === '') return '';
-  return String(value).trim().toLowerCase();
-}
-
 function findItemByIdentity(items, sourceItem, index) {
   if (sourceItem?.sku) {
     const found = items.find((item) => item?.sku && item.sku === sourceItem.sku);
     if (found) return found;
   }
   return items[index] || {};
-}
-
-function compareValues(values) {
-  const normalized = values.map(normalizeValue);
-  const present = normalized.filter(Boolean);
-  if (present.length < values.length) return 'missing';
-  return present.every((value) => value === present[0]) ? 'matched' : 'mismatch';
 }
 
 function analyzeBatch(batch) {
@@ -75,7 +64,7 @@ function analyzeBatch(batch) {
 
   COMPARE_FIELDS.forEach((field) => {
     checked += 1;
-    const result = compareValues(DOC_TYPES.map((type) => docs[type]?.[field]));
+    const result = compareDocumentField(docs, field);
     if (result === 'matched') matched += 1;
     if (result === 'missing') missing += 1;
     if (result === 'mismatch') mismatch += 1;

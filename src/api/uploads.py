@@ -1,6 +1,6 @@
 import mimetypes
 import os
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -11,7 +11,13 @@ from sqlalchemy.orm import Session
 from src.api.auth import get_current_user
 from src.config import get_settings
 from src.database import get_db
-from src.models.reconciliation import DocumentBatch, UploadedDocumentExtraction, UploadedFile
+from src.models.reconciliation import (
+    DocumentBatch,
+    LineItem,
+    ReconciliationCase,
+    UploadedDocumentExtraction,
+    UploadedFile,
+)
 from src.models.schemas import (
     DocumentBatchListResponse,
     DocumentBatchOut,
@@ -23,6 +29,7 @@ from src.models.schemas import (
 from src.models.user import User
 from src.services.auth import write_audit_log
 from src.services.document_ai_extractor import DocumentAiAnalysis, analyze_uploaded_document
+from src.services.reconciliation_engine import reconcile_documents
 from src.services.s3_service import (
     delete_file_from_object_storage,
     download_file_from_object_storage,
@@ -287,6 +294,154 @@ def create_ai_extraction_record(
     return extraction
 
 
+def first_present(data: dict, *keys: str):
+    for key in keys:
+        value = data.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def normalize_extracted_document(doc_type: str, extracted_data: dict | None) -> dict:
+    data = extracted_data if isinstance(extracted_data, dict) else {}
+    normalized = {
+        "type": doc_type,
+        "document_number": first_present(data, "document_number", "number"),
+        "po_number": first_present(data, "po_number", "purchase_order_number", "document_number"),
+        "invoice_number": first_present(data, "invoice_number", "document_number"),
+        "grn_number": first_present(data, "grn_number", "document_number"),
+        "supplier_name": first_present(data, "supplier_name", "vendor_name", "seller_name"),
+        "supplier_tax_id": first_present(data, "supplier_tax_id", "tax_id", "vendor_tax_id"),
+        "buyer_name": first_present(data, "buyer_name", "customer_name"),
+        "total_amount": first_present(data, "total_amount", "total", "grand_total", "payable_amount"),
+        "vat_rate_pct": first_present(data, "vat_rate_pct", "tax_rate_pct"),
+        "line_items": [],
+    }
+    if doc_type == "invoice":
+        normalized["invoice_number"] = first_present(data, "invoice_number", "document_number")
+    elif doc_type == "po":
+        normalized["po_number"] = first_present(data, "po_number", "document_number")
+    elif doc_type == "grn":
+        normalized["grn_number"] = first_present(data, "grn_number", "document_number")
+
+    line_items = data.get("line_items") if isinstance(data.get("line_items"), list) else []
+    for idx, item in enumerate(line_items, 1):
+        if not isinstance(item, dict):
+            continue
+        normalized["line_items"].append(
+            {
+                "row_index": first_present(item, "row_index") or idx,
+                "sku": first_present(item, "sku", "item_sku", "code"),
+                "item_name": first_present(item, "item_name", "name", "description") or "",
+                "unit": first_present(item, "unit", "uom"),
+                "qty": first_present(item, "qty", "quantity"),
+                "price": first_present(item, "price", "unit_price"),
+                "vat_rate_pct": first_present(item, "vat_rate_pct", "tax_rate_pct"),
+                "amount": first_present(item, "amount", "line_total", "total_amount"),
+            }
+        )
+
+    return normalized
+
+
+def build_next_case_number(db: Session) -> str:
+    existing_case_numbers = db.scalars(
+        select(ReconciliationCase.case_number).where(ReconciliationCase.case_number.like("DOC-%"))
+    ).all()
+    next_index = 1
+    for case_number in existing_case_numbers:
+        suffix = str(case_number).removeprefix("DOC-")
+        if suffix.isdigit():
+            next_index = max(next_index, int(suffix) + 1)
+    return f"DOC-{next_index:04d}"
+
+
+def find_existing_reconciliation_case(db: Session, result: dict) -> ReconciliationCase | None:
+    invoice_number = result.get("invoice_number")
+    po_number = result.get("po_number")
+    grn_number = result.get("grn_number")
+    if not any((invoice_number, po_number, grn_number)):
+        return None
+
+    stmt = select(ReconciliationCase)
+    if invoice_number:
+        stmt = stmt.where(ReconciliationCase.invoice_number == invoice_number)
+    if po_number:
+        stmt = stmt.where(ReconciliationCase.po_number == po_number)
+    if grn_number:
+        stmt = stmt.where(ReconciliationCase.grn_number == grn_number)
+    return db.scalars(stmt).first()
+
+
+def save_reconciliation_result(db: Session, result: dict) -> ReconciliationCase:
+    case = find_existing_reconciliation_case(db, result)
+    if case is None:
+        case = ReconciliationCase(case_number=build_next_case_number(db))
+        db.add(case)
+
+    case.invoice_number = result.get("invoice_number")
+    case.po_number = result.get("po_number")
+    case.grn_number = result.get("grn_number")
+    case.partner_name = result.get("partner_name")
+    case.partner_tax_id = result.get("partner_tax_id")
+    case.case_date = date.today()
+    case.total_amount = result.get("total_amount")
+    case.status = result.get("status", "major_diff")
+    case.risk_level = result.get("risk_level", "high")
+    case.confidence = result.get("confidence")
+    case.diff_amount = result.get("diff_amount")
+    case.diff_type = result.get("diff_type")
+    case.ai_note = result.get("ai_note")
+    case.ai_summary = result.get("ai_summary")
+    case.ai_recommendation = result.get("ai_recommendation")
+    case.updated_at = datetime.now()
+
+    case.line_items = [
+        LineItem(
+            row_index=line.get("row_index") or idx,
+            item_sku=line.get("item_sku"),
+            item_name=line.get("item_name"),
+            unit=line.get("unit"),
+            inv_qty=line.get("inv_qty"),
+            po_qty=line.get("po_qty"),
+            grn_qty=line.get("grn_qty"),
+            inv_unit_price=line.get("inv_unit_price"),
+            po_unit_price=line.get("po_unit_price"),
+            vat_rate_pct=line.get("vat_rate_pct"),
+            diff_type=line.get("diff_type"),
+            diff_note=line.get("diff_note"),
+        )
+        for idx, line in enumerate(result.get("line_items", []), 1)
+    ]
+    db.flush()
+    return case
+
+
+def reconcile_ready_batch(db: Session, batch: DocumentBatch) -> ReconciliationCase | None:
+    if batch.status != "ready":
+        return None
+
+    uploads = (
+        db.query(UploadedFile)
+        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
+        .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
+        .all()
+    )
+    latest_by_type: dict[str, UploadedFile] = {}
+    for upload in uploads:
+        if upload.doc_type not in latest_by_type and upload.ai_extraction and upload.ai_extraction.extracted_data:
+            latest_by_type[upload.doc_type] = upload
+
+    if any(doc_type not in latest_by_type for doc_type in REQUIRED_DOC_TYPES):
+        return None
+
+    po_data = normalize_extracted_document("po", latest_by_type["po"].ai_extraction.extracted_data)
+    invoice_data = normalize_extracted_document("invoice", latest_by_type["invoice"].ai_extraction.extracted_data)
+    grn_data = normalize_extracted_document("grn", latest_by_type["grn"].ai_extraction.extracted_data)
+    result = reconcile_documents(invoice_data, po_data, grn_data, db)
+    return save_reconciliation_result(db, result)
+
+
 def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
     files = [to_uploaded_file_out(upload) for upload in batch.files]
     uploaded_doc_types = sorted({file.doc_type for file in files if file.doc_type})
@@ -506,6 +661,7 @@ async def upload_document(
     create_ai_extraction_record(db, db_upload, ai_analysis)
     db.flush()
     update_batch_status(db, batch)
+    reconcile_ready_batch(db, batch)
     db.commit()
     db.refresh(db_upload)
 
