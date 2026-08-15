@@ -66,12 +66,17 @@ jobs:
               'POSTGRES_PORT': postgres_port,
           })
 
-          subprocess.run(['docker', 'compose', 'down', '--volumes', '--remove-orphans'], env=env, check=False)
-          subprocess.run(['docker', 'compose', 'up', '-d', 'postgres'], env=env, check=True)
+          compose_file = '.github/docker-compose.ci.yml'
+          subprocess.run(
+              ['docker', 'compose', '-f', compose_file, 'down', '--volumes', '--remove-orphans'],
+              env=env,
+              check=False,
+          )
+          subprocess.run(['docker', 'compose', '-f', compose_file, 'up', '-d', 'postgres'], env=env, check=True)
 
           for _ in range(180):
               logs = subprocess.run(
-                  ['docker', 'compose', 'logs', '--no-color', 'postgres'],
+                  ['docker', 'compose', '-f', compose_file, 'logs', '--no-color', 'postgres'],
                   env=env,
                   check=False,
                   capture_output=True,
@@ -84,7 +89,7 @@ jobs:
                   break
               time.sleep(1)
           else:
-              subprocess.run(['docker', 'compose', 'logs', '--no-color', 'postgres'], env=env, check=False)
+              subprocess.run(['docker', 'compose', '-f', compose_file, 'logs', '--no-color', 'postgres'], env=env, check=False)
               raise SystemExit('Postgres initialization did not complete in time')
           "
 
@@ -123,7 +128,7 @@ jobs:
 
       - name: Stop test Postgres DB
         if: always()
-        run: docker compose down --volumes --remove-orphans
+        run: docker compose -f .github/docker-compose.ci.yml down --volumes --remove-orphans
 
   frontend:
     name: Frontend build
