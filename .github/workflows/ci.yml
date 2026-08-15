@@ -65,6 +65,29 @@ jobs:
               raise SystemExit('Postgres did not become ready in time')
           "
 
+      - name: Wait for test database connection
+        run: |
+          python -c "
+          import time
+          import psycopg
+
+          dsn = 'postgresql://admin:Admin%40123@localhost:55433/docusyncai'
+          last_error = None
+
+          for _ in range(60):
+              try:
+                  with psycopg.connect(dsn, connect_timeout=3) as conn:
+                      with conn.cursor() as cur:
+                          cur.execute('select 1')
+                          cur.fetchone()
+                  break
+              except Exception as exc:
+                  last_error = exc
+                  time.sleep(2)
+          else:
+              raise SystemExit(f'Test database did not accept connections in time: {last_error}')
+          "
+
       - name: Test backend
         run: pytest tests/ -v --tb=short
         env:
