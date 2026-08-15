@@ -27,11 +27,42 @@ const DOC_TYPES = [
 const BATCHES_PER_PAGE = 5;
 
 function isBatchReady(batch) {
-  if (Array.isArray(batch?.missing_doc_types)) return batch.missing_doc_types.length === 0;
-  if (batch?.status === 'ready') return true;
+  const { uploadedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState(batch);
+  if (uploadedDocTypes.length > 0) {
+    return missingDocTypes.length === 0 && pendingExtractionDocTypes.length === 0;
+  }
 
-  const uploadedTypes = new Set((batch?.files || []).map((file) => file.doc_type).filter(Boolean));
-  return DOC_TYPES.every((type) => uploadedTypes.has(type.value));
+  if (Array.isArray(batch?.pending_extraction_doc_types) && Array.isArray(batch?.missing_doc_types)) {
+    return batch.missing_doc_types.length === 0 && batch.pending_extraction_doc_types.length === 0;
+  }
+  if (Array.isArray(batch?.extracted_doc_types)) {
+    return DOC_TYPES.every((type) => batch.extracted_doc_types.includes(type.value));
+  }
+  if (batch?.status === 'ready') return true;
+  return false;
+}
+
+function getBatchDocState(batch) {
+  const files = batch?.files || [];
+  const fileUploadedDocTypes = files.map((file) => file.doc_type).filter(Boolean);
+  const fallbackUploadedDocTypes = Array.isArray(batch?.uploaded_doc_types) ? batch.uploaded_doc_types : [];
+  const uploadedDocTypes = Array.from(new Set(files.length > 0 ? fileUploadedDocTypes : fallbackUploadedDocTypes));
+
+  const fileExtractedDocTypes = files
+      .filter((file) => file.ai_extraction?.is_correct_type && file.ai_extraction?.extracted_data)
+      .map((file) => file.doc_type)
+      .filter(Boolean);
+  const fallbackExtractedDocTypes = Array.isArray(batch?.extracted_doc_types) ? batch.extracted_doc_types : [];
+  const extractedDocTypes = Array.from(new Set(files.length > 0 ? fileExtractedDocTypes : fallbackExtractedDocTypes));
+
+  const missingDocTypes = DOC_TYPES
+    .map((type) => type.value)
+    .filter((docType) => !uploadedDocTypes.includes(docType));
+  const pendingExtractionDocTypes = DOC_TYPES
+    .map((type) => type.value)
+    .filter((docType) => uploadedDocTypes.includes(docType) && !extractedDocTypes.includes(docType));
+
+  return { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes };
 }
 
 function getFileExt(filename = '') {
@@ -111,6 +142,8 @@ export default function UploadQueue({ token }) {
   const documentTypesRef = useRef(null);
   const fileInputRef = useRef(null);
   const filePickerDocTypeRef = useRef('po');
+  const readyBatchIdsRef = useRef(new Set());
+  const hasLoadedBatchesRef = useRef(false);
 
   const pendingBatches = batches.filter((batch) => !isBatchReady(batch));
   const totalBatchPages = Math.max(1, Math.ceil(pendingBatches.length / BATCHES_PER_PAGE));
@@ -130,12 +163,28 @@ export default function UploadQueue({ token }) {
   }, {});
   const hasSelectedBatchFiles = selectedBatchFiles.length > 0;
 
+  const syncReadyBatchNotice = useCallback((items) => {
+    const nextReadyIds = new Set(items.filter(isBatchReady).map((batch) => batch.id));
+    if (hasLoadedBatchesRef.current) {
+      const newlyReadyBatch = items.find((batch) => nextReadyIds.has(batch.id) && !readyBatchIdsRef.current.has(batch.id));
+      if (newlyReadyBatch) {
+        setReadyBatchNotice({
+          id: newlyReadyBatch.id,
+          batchNumber: newlyReadyBatch.batch_number,
+        });
+      }
+    }
+    readyBatchIdsRef.current = nextReadyIds;
+    hasLoadedBatchesRef.current = true;
+  }, []);
+
   // Hàm load danh sách bộ đối soát thực tế từ BE
   const fetchBatches = useCallback(async (showLoading = false) => {
     try {
       if (showLoading) setLoading(true);
       const data = await getDocumentBatches(token);
       const items = data.items || [];
+      syncReadyBatchNotice(items);
       setBatches(items);
       setSelectedBatchId((currentId) => {
         const pendingItems = items.filter((batch) => !isBatchReady(batch));
@@ -147,7 +196,7 @@ export default function UploadQueue({ token }) {
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, [token]);
+  }, [syncReadyBatchNotice, token]);
 
   // Load danh sách lần đầu khi render
   useEffect(() => {
@@ -162,9 +211,11 @@ export default function UploadQueue({ token }) {
 
   // Thiết lập cơ chế tự động làm mới danh sách nếu có file đang xử lý
   useEffect(() => {
-    const hasActiveFiles = batches.some((batch) =>
-      (batch.files || []).some((f) => f.status === 'processing' || f.status === 'queued')
-    );
+    const hasActiveFiles = batches.some((batch) => {
+      const { pendingExtractionDocTypes } = getBatchDocState(batch);
+      return (batch.files || []).some((f) => f.status === 'processing' || f.status === 'queued')
+        || pendingExtractionDocTypes.length > 0;
+    });
     
     if (!hasActiveFiles) return;
 
@@ -234,13 +285,12 @@ export default function UploadQueue({ token }) {
           uploadedFile,
           ...(batch.files || []).filter((file) => file.id !== uploadedFile.id),
         ];
-        const uploadedDocTypes = Array.from(new Set(nextFiles.map((file) => file.doc_type).filter(Boolean)));
-        const missingDocTypes = DOC_TYPES
-          .map((type) => type.value)
-          .filter((docType) => !uploadedDocTypes.includes(docType));
-        const isReady = missingDocTypes.length === 0;
+        const nextBatchState = { ...batch, files: nextFiles };
+        const { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState(nextBatchState);
+        const isReady = missingDocTypes.length === 0 && pendingExtractionDocTypes.length === 0;
 
         if (!wasReady && isReady) {
+          readyBatchIdsRef.current = new Set([...readyBatchIdsRef.current, batch.id]);
           setReadyBatchNotice({
             id: batch.id,
             batchNumber: batch.batch_number,
@@ -251,7 +301,9 @@ export default function UploadQueue({ token }) {
           ...batch,
           files: nextFiles,
           uploaded_doc_types: uploadedDocTypes,
+          extracted_doc_types: extractedDocTypes,
           missing_doc_types: missingDocTypes,
+          pending_extraction_doc_types: pendingExtractionDocTypes,
           status: isReady ? 'ready' : 'incomplete',
         };
       })
@@ -406,17 +458,19 @@ export default function UploadQueue({ token }) {
           if (batch.id !== file.batch_id) return batch;
 
           const nextFiles = (batch.files || []).filter((item) => item.id !== file.id);
-          const uploadedDocTypes = Array.from(new Set(nextFiles.map((item) => item.doc_type).filter(Boolean)));
-          const missingDocTypes = DOC_TYPES
-            .map((type) => type.value)
-            .filter((docType) => !uploadedDocTypes.includes(docType));
+          const { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState({
+            ...batch,
+            files: nextFiles,
+          });
 
           return {
             ...batch,
             files: nextFiles,
             uploaded_doc_types: uploadedDocTypes,
+            extracted_doc_types: extractedDocTypes,
             missing_doc_types: missingDocTypes,
-            status: missingDocTypes.length === 0 ? 'ready' : 'incomplete',
+            pending_extraction_doc_types: pendingExtractionDocTypes,
+            status: missingDocTypes.length === 0 && pendingExtractionDocTypes.length === 0 ? 'ready' : 'incomplete',
           };
         })
       );
@@ -592,7 +646,7 @@ export default function UploadQueue({ token }) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
-                {readyBatchNotice.batchNumber} đã đủ chứng từ
+                {readyBatchNotice.batchNumber} đã đọc xong chứng từ
               </p>
               <p className="mt-0.5 text-sm text-emerald-800 dark:text-emerald-200">
                 Sang Tab Batch đối soát để xem kết quả
@@ -666,8 +720,11 @@ export default function UploadQueue({ token }) {
               }, {});
               const canDeleteBatch = (batch.files || []).length === 0;
               const isDeletingBatch = deletingBatchIds.includes(batch.id);
-              const missingCount = batch.missing_doc_types?.length ?? 3;
-              const isReady = missingCount === 0 || batch.status === 'ready';
+              const batchDocState = getBatchDocState(batch);
+              const missingCount = batchDocState.missingDocTypes.length;
+              const pendingExtractionCount = batchDocState.pendingExtractionDocTypes.length;
+              const hasAllUploads = missingCount === 0;
+              const isReady = isBatchReady(batch);
 
               return (
                 <div
@@ -697,10 +754,16 @@ export default function UploadQueue({ token }) {
                           className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                             isReady
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                              : hasAllUploads
+                              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
                               : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
                           }`}
                         >
-                          {isReady ? 'Đủ chứng từ' : `Cần bổ sung ${missingCount} chứng từ`}
+                          {isReady
+                            ? 'Sẵn sàng đối soát'
+                            : hasAllUploads
+                              ? `Đang đọc ${pendingExtractionCount || 3} chứng từ`
+                              : `Cần bổ sung ${missingCount} chứng từ`}
                         </span>
                         {isReady && (
                           <button

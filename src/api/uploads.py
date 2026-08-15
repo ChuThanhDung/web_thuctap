@@ -99,13 +99,20 @@ def get_or_create_document_batch(
 
 
 def update_batch_status(db: Session, batch: DocumentBatch) -> None:
-    doc_types = {
-        doc_type
-        for (doc_type,) in db.query(UploadedFile.doc_type)
-        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.isnot(None))
+    uploads = (
+        db.query(UploadedFile)
+        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
         .all()
+    )
+    extracted_doc_types = {
+        upload.doc_type
+        for upload in uploads
+        if upload.doc_type
+        and upload.ai_extraction
+        and upload.ai_extraction.is_correct_type
+        and upload.ai_extraction.extracted_data
     }
-    batch.status = "ready" if all(doc_type in doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
+    batch.status = "ready" if all(doc_type in extracted_doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
     batch.updated_at = datetime.now()
     db.add(batch)
 
@@ -446,6 +453,19 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
     files = [to_uploaded_file_out(upload) for upload in batch.files]
     uploaded_doc_types = sorted({file.doc_type for file in files if file.doc_type})
     missing_doc_types = [doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type not in uploaded_doc_types]
+    extracted_doc_types = sorted(
+        {
+            file.doc_type
+            for file in files
+            if file.doc_type
+            and file.ai_extraction
+            and file.ai_extraction.is_correct_type
+            and file.ai_extraction.extracted_data
+        }
+    )
+    pending_extraction_doc_types = [
+        doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type in uploaded_doc_types and doc_type not in extracted_doc_types
+    ]
     return DocumentBatchOut(
         id=batch.id,
         batch_number=batch.batch_number,
@@ -455,6 +475,8 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
         files=files,
         missing_doc_types=missing_doc_types,
         uploaded_doc_types=uploaded_doc_types,
+        extracted_doc_types=extracted_doc_types,
+        pending_extraction_doc_types=pending_extraction_doc_types,
         created_at=batch.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         updated_at=batch.updated_at.strftime("%Y-%m-%d %H:%M:%S") if batch.updated_at else None,
     )

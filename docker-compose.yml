@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: docusyncai_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
@@ -26,7 +25,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: docusyncai_backend
     restart: unless-stopped
     env_file:
       - .env
@@ -52,7 +50,6 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
-    container_name: docusyncai_frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:80"

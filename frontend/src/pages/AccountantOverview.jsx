@@ -20,11 +20,10 @@ import {
   YAxis,
 } from 'recharts';
 import { getDocumentBatches } from '../api.js';
-import { compareDocumentField, compareValues } from '../reconciliationCompare.js';
+import { calculateMatchSummary } from '../reconciliationCompare.js';
 import { repairTextDeep } from '../text.js';
 
 const DOC_TYPES = ['po', 'invoice', 'grn'];
-const COMPARE_FIELDS = ['supplier_name', 'supplier_tax_id', 'vat_rate_pct', 'total_amount'];
 
 function isBatchReady(batch) {
   if (Array.isArray(batch?.missing_doc_types)) return batch.missing_doc_types.length === 0;
@@ -42,69 +41,24 @@ function getExtraction(file) {
   return file?.ai_extraction?.extracted_data || {};
 }
 
-function findItemByIdentity(items, sourceItem, index) {
-  if (sourceItem?.sku) {
-    const found = items.find((item) => item?.sku && item.sku === sourceItem.sku);
-    if (found) return found;
-  }
-  return items[index] || {};
-}
-
 function analyzeBatch(batch) {
   const docs = DOC_TYPES.reduce((acc, type) => {
     const file = (batch.files || []).find((item) => item.doc_type === type);
     acc[type] = file ? getExtraction(file) : null;
     return acc;
   }, {});
-
-  let checked = 0;
-  let matched = 0;
-  let missing = 0;
-  let mismatch = 0;
-
-  COMPARE_FIELDS.forEach((field) => {
-    checked += 1;
-    const result = compareDocumentField(docs, field);
-    if (result === 'matched') matched += 1;
-    if (result === 'missing') missing += 1;
-    if (result === 'mismatch') mismatch += 1;
-  });
-
-  const poItems = docs.po?.line_items || [];
-  const invoiceItems = docs.invoice?.line_items || [];
-  const grnItems = docs.grn?.line_items || [];
-  const maxLineCount = Math.max(poItems.length, invoiceItems.length, grnItems.length);
-
-  Array.from({ length: maxLineCount }).forEach((_, index) => {
-    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
-    const poItem = findItemByIdentity(poItems, baseItem, index);
-    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
-    const grnItem = findItemByIdentity(grnItems, baseItem, index);
-
-    [
-      [poItem.qty, invoiceItem.qty, grnItem.qty],
-      [poItem.price, invoiceItem.price, grnItem.price],
-    ].forEach((values) => {
-      checked += 1;
-      const result = compareValues(values);
-      if (result === 'matched') matched += 1;
-      if (result === 'missing') missing += 1;
-      if (result === 'mismatch') mismatch += 1;
-    });
-  });
-
-  const matchRate = checked === 0 ? 0 : Math.round((matched / checked) * 100);
+  const summary = calculateMatchSummary(docs);
 
   return {
     id: batch.id,
     batchNumber: batch.batch_number,
     updatedAt: batch.updated_at || batch.created_at,
-    checked,
-    matched,
-    missing,
-    mismatch,
-    matchRate,
-    status: matchRate === 100 ? 'matched' : 'review',
+    checked: summary.checkedFields,
+    matched: summary.matchedFields,
+    missing: summary.warningFields,
+    mismatch: summary.mismatchFields,
+    matchRate: summary.matchRate,
+    status: summary.status === 'matched' ? 'matched' : 'review',
   };
 }
 
