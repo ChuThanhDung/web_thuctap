@@ -1,0 +1,26 @@
+{
+  "batch_id": "img_03",
+  "format": "img",
+  "expected_result": "MISMATCH",
+  "documents": {
+    "purchase_order": "PO-2026-0253",
+    "goods_receipt": "PNK-0259",
+    "invoice": "1C26TDL-00001621"
+  },
+  "buyer": "CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE",
+  "seller": "CÔNG TY TNHH VĂN PHÒNG PHẨM ĐĂNG LÂM",
+  "po_total": 38016000,
+  "invoice_total": 41990400,
+  "discrepancies": [
+    {
+      "type": "extra_line",
+      "document": "invoice",
+      "description": "Hóa đơn có thêm dòng 'Kẹp bướm 25mm' 60 hộp x 18.000 đ không có trong PO và phiếu nhập"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn tính 45 hộp mực trong khi PO đặt và kho thực nhập 40 (thừa 5 hộp = 2.600.000 đ)"
+    }
+  ]
+}

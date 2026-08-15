@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TSV</KHHDon>
+      <SHDon>00003327</SHDon>
+      <NLap>2026-06-18</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ CÔNG NGHỆ SAO VIỆT</Ten>
+        <MST>0106678234</MST>
+        <DChi>Số 45 Thái Hà, Phường Trung Liệt, Quận Đống Đa, Hà Nội</DChi>
+        <SDThoai>024 3538 1179</SDThoai>
+        <STKNHang>1903111222333</STKNHang>
+        <TNHang>Techcombank – CN Đống Đa</TNHang>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE</Ten>
+        <MST>0312945768</MST>
+        <DChi>Số 88 Nguyễn Văn Trỗi, Phường 8, Quận Phú Nhuận, TP. Hồ Chí Minh</DChi>
+        <HVTNMHang>Lê Thị Minh Hằng</HVTNMHang>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>GD-DT11</MHHDVu>
+          <THHDVu>Giá đỡ điện thoại gắn ghi đông xe máy</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>400</SLuong>
+          <DGia>58000</DGia>
+          <ThTien>23200000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>SDP-20K</MHHDVu>
+          <THHDVu>Sạc dự phòng 20.000mAh</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>150</SLuong>
+          <DGia>385000</DGia>
+          <ThTien>57750000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>TN-C39A</MHHDVu>
+          <THHDVu>Tai nghe Bluetooth một bên GT-C39</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>200</SLuong>
+          <DGia>145000</DGia>
+          <ThTien>29000000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>109950000</ThTien>
+            <TThue>10995000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>109950000</TgTCThue>
+        <TgTThue>10995000</TgTThue>
+        <TgTTTBSo>120945000</TgTTTBSo>
+        <TgTTTBChu>Một trăm hai mươi triệu chín trăm bốn mươi lăm nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

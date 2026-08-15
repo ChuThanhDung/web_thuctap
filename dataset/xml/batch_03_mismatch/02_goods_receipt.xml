@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0195</SoPhieu>
+  <NgayLap>2026-06-15</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0159 ngày 08/06/2026</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Võ Thị Kim Loan - CÔNG TY TNHH MAY MẶC THIÊN PHÚ</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>DP-AK26</MaHang>
+      <TenHang>Áo khoác đồng phục tài xế xanh lá</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>800</SoLuongTheoChungTu>
+      <SoLuongThucNhap>800</SoLuongThucNhap>
+      <DonGia>145000</DonGia>
+      <ThanhTien>116000000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>DP-AT26</MaHang>
+      <TenHang>Áo thun đồng phục cổ tròn</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>1000</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1000</SoLuongThucNhap>
+      <DonGia>78000</DonGia>
+      <ThanhTien>78000000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>DP-MU26</MaHang>
+      <TenHang>Mũ lưỡi trai thêu logo</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>600</SoLuongTheoChungTu>
+      <SoLuongThucNhap>600</SoLuongThucNhap>
+      <DonGia>42000</DonGia>
+      <ThanhTien>25200000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>219200000</TongTien>
+  <BangChu>Hai trăm mười chín triệu hai trăm nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0159)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

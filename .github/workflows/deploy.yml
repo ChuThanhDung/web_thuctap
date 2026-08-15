@@ -1,9 +1,8 @@
-name: Deploy Backend to Render
+name: Deploy Backend
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -11,7 +10,7 @@ env:
 
 jobs:
   deploy-backend:
-    name: Build image and trigger Render deploy
+    name: Build and deploy backend
     runs-on: self-hosted
 
     steps:

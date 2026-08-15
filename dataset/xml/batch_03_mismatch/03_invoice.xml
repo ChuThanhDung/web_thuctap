@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTP</KHHDon>
+      <SHDon>00000912</SHDon>
+      <NLap>2026-06-16</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH MAY MẶC THIÊN PHÚ</Ten>
+        <MST>0313567892</MST>
+        <DChi>Số 12 Trường Chinh, Phường Tân Hưng Thuận, Quận 12, TP. Hồ Chí Minh</DChi>
+        <SDThoai>028 3719 4455</SDThoai>
+        <STKNHang>060223344556</STKNHang>
+        <TNHang>ACB – CN Trường Chinh</TNHang>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+        <HVTNMHang>Trần Quốc Bảo</HVTNMHang>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>DP-AK26</MHHDVu>
+          <THHDVu>Áo khoác đồng phục tài xế xanh lá</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>800</SLuong>
+          <DGia>154000</DGia>
+          <ThTien>123200000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>DP-AT26</MHHDVu>
+          <THHDVu>Áo thun đồng phục cổ tròn</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>1000</SLuong>
+          <DGia>78000</DGia>
+          <ThTien>78000000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>DP-MU26</MHHDVu>
+          <THHDVu>Mũ lưỡi trai thêu logo</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>650</SLuong>
+          <DGia>42000</DGia>
+          <ThTien>27300000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>228500000</ThTien>
+            <TThue>18280000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>228500000</TgTCThue>
+        <TgTThue>18280000</TgTThue>
+        <TgTTTBSo>246780000</TgTTTBSo>
+        <TgTTTBChu>Hai trăm bốn mươi sáu triệu bảy trăm tám mươi nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

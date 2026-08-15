@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
-  Settings,
   Sun,
   Upload,
   X,
@@ -28,7 +27,6 @@ const navItemsManager = [
   { to: '/manager', icon: LayoutDashboard, label: 'Tổng quan' },
   { to: '/accountant', icon: FileCheck, label: 'Phê duyệt đối soát' },
   { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
-  { to: '/settings', icon: Settings, label: 'Cấu hình' },
 ];
 
 function getInitials(fullName) {

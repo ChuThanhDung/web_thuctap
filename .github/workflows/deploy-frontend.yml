@@ -1,14 +1,13 @@
-name: Deploy Frontend to Vercel
+name: Deploy Frontend
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   deploy-frontend:
-    name: Build frontend and deploy to Vercel
+    name: Build and deploy frontend
     runs-on: self-hosted
 
     env:
