@@ -23,14 +23,13 @@ Hệ thống đã có các màn hình nghiệp vụ chính cho hai vai trò kế
 - Hoàn thiện giao diện tổng quan cho kế toán viên và kế toán trưởng; cải thiện responsive UI, sidebar.
 - Bổ sung chức năng xem, cập nhật hồ sơ cá nhân.
 - Hoàn thiện luồng tạo batch và upload ba loại chứng từ PO, GRN, Invoice.
-- Hỗ trợ nhiều định dạng dữ liệu như XML, PDF, ảnh và tài liệu Word; bổ sung AI để nhận diện, đọc và trích xuất thông tin chứng từ.
+- Hỗ trợ nhiều định dạng dữ liệu như XML, PDF; bổ sung AI để nhận diện, đọc và trích xuất thông tin chứng từ.
 - Theo dõi các chứng từ đã có/còn thiếu trong từng batch và chuyển batch sang trạng thái sẵn sàng khi đủ bộ ba chứng từ.
 - Xây dựng logic đối soát 3 chiều theo số lượng, đơn giá và ngưỡng sai lệch.
 - Hoàn thiện luồng HITL: kế toán trưởng có quyền phê duyệt, từ chối và các hành động được lưu vào Audit Trail.
 - Bổ sung bộ dữ liệu mẫu gồm PO, GRN và Invoice ở nhiều định dạng để phục vụ demo và kiểm thử.
-- Viết lại README theo đúng chức năng, kiến trúc, cách cài đặt, biến môi trường và API hiện có của project.
 
-## 3. Kết quả đạt được
+## 3. Kết quả hiện tại
 
 MVP hiện đã thể hiện được luồng nghiệp vụ chính: người dùng đăng nhập, tạo batch, tải lên bộ chứng từ, xem trạng thái xử lý, theo dõi hồ sơ đối soát và thực hiện quyết định.
 
