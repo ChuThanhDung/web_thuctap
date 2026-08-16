@@ -24,8 +24,7 @@ const navItemsAccountant = [
 ];
 
 const navItemsManager = [
-  { to: '/manager', icon: LayoutDashboard, label: 'Tổng quan' },
-  { to: '/accountant', icon: FileCheck, label: 'Phê duyệt đối soát' },
+  { to: '/accountant', icon: LayoutDashboard, label: 'Tổng quan' },
   { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
 ];
 

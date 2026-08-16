@@ -195,6 +195,12 @@ class DocumentBatch(Base):
     created_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
     )
+    approved_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
+    )
+    chief_approved_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="incomplete")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
@@ -206,7 +212,9 @@ class DocumentBatch(Base):
         onupdate=func.now(),
     )
 
-    created_by: Mapped[User | None] = relationship()
+    created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
+    approved_by: Mapped[User | None] = relationship(foreign_keys=[approved_by_id])
+    chief_approved_by: Mapped[User | None] = relationship(foreign_keys=[chief_approved_by_id])
     files: Mapped[list["UploadedFile"]] = relationship(
         back_populates="batch",
         order_by="UploadedFile.created_at.desc()",

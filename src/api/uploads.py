@@ -508,6 +508,10 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
         status=batch.status,
         created_by_id=batch.created_by_id,
         created_by_name=batch.created_by.full_name if batch.created_by else None,
+        approved_by_id=batch.approved_by_id,
+        approved_by_name=batch.approved_by.full_name if batch.approved_by else None,
+        chief_approved_by_id=batch.chief_approved_by_id,
+        chief_approved_by_name=batch.chief_approved_by.full_name if batch.chief_approved_by else None,
         files=files,
         missing_doc_types=missing_doc_types,
         uploaded_doc_types=uploaded_doc_types,
@@ -576,6 +580,7 @@ async def approve_upload_batch(
         )
 
     batch.status = "approved"
+    batch.approved_by_id = current_user.public_id
     batch.updated_at = datetime.now()
     db.add(batch)
     write_audit_log(
@@ -593,6 +598,131 @@ async def approve_upload_batch(
         ip_address=None,
         user_agent=None,
     )
+    db.commit()
+    db.refresh(batch)
+    return to_document_batch_out(batch)
+
+
+@router.post("/batches/{batch_id}/final-approve", response_model=DocumentBatchOut)
+async def final_approve_upload_batch(
+    batch_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DocumentBatchOut:
+    # Chỉ kế toán trưởng mới được duyệt final
+    if current_user.role.code != "chief_accountant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ kế toán trưởng mới có quyền duyệt cuối cùng."
+        )
+
+    batch = db.get(DocumentBatch, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+
+    # Batch phải ở trạng thái matched (khớp 100%) hoặc approved (đã qua kế toán viên)
+    if batch.status not in ["matched", "approved"]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Chỉ có thể duyệt batch đã khớp hoàn toàn hoặc đã được kế toán viên duyệt."
+        )
+
+    # Nếu đã duyệt rồi thì trả về luôn
+    if batch.status == "final_approved":
+        return to_document_batch_out(batch)
+
+    # Nếu batch là 'matched', cần kiểm tra reconciliation case
+    if batch.status == "matched":
+        update_batch_status(db, batch)
+        db.flush()
+        if batch.status != "ready":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Batch chưa sẵn sàng để duyệt.",
+            )
+        reconciliation_case = find_batch_reconciliation_case(db, batch) or reconcile_ready_batch(db, batch)
+        if reconciliation_case is None or reconciliation_case.status != "matched":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Chỉ có thể duyệt batch đã khớp hoàn toàn.",
+            )
+
+    batch.status = "final_approved"
+    batch.chief_approved_by_id = current_user.public_id
+    batch.updated_at = datetime.now()
+    db.add(batch)
+    
+    reconciliation_case = find_batch_reconciliation_case(db, batch)
+    write_audit_log(
+        db=db,
+        action="DOCUMENT_BATCH_FINAL_APPROVED",
+        user=current_user,
+        target_type="DOCUMENT_BATCH",
+        target_id=str(batch_id),
+        details={
+            "batch_number": batch.batch_number,
+            "case_id": str(reconciliation_case.id) if reconciliation_case else None,
+            "case_number": reconciliation_case.case_number if reconciliation_case else None,
+            "note": "Document batch final approved by chief accountant.",
+        },
+        ip_address=None,
+        user_agent=None,
+    )
+    db.commit()
+    db.refresh(batch)
+    return to_document_batch_out(batch)
+
+
+@router.post("/batches/{batch_id}/reject", response_model=DocumentBatchOut)
+async def reject_upload_batch(
+    batch_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DocumentBatchOut:
+    # Chỉ kế toán trưởng mới được từ chối
+    if current_user.role.code != "chief_accountant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ kế toán trưởng mới có quyền từ chối batch."
+        )
+
+    batch = db.get(DocumentBatch, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+
+    # Batch phải đã được kế toán viên duyệt trước
+    if batch.status != "approved":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Chỉ có thể từ chối batch đã được kế toán viên duyệt."
+        )
+
+    # Nếu đã từ chối rồi thì trả về luôn
+    if batch.status == "rejected":
+        return to_document_batch_out(batch)
+
+    batch.status = "rejected"
+    batch.chief_approved_by_id = current_user.public_id  # Lưu người từ chối
+    batch.updated_at = datetime.now()
+    db.add(batch)
+    
+    reconciliation_case = find_batch_reconciliation_case(db, batch)
+    write_audit_log(
+        db=db,
+        action="DOCUMENT_BATCH_REJECTED",
+        user=current_user,
+        target_type="DOCUMENT_BATCH",
+        target_id=str(batch_id),
+        details={
+            "batch_number": batch.batch_number,
+            "case_id": str(reconciliation_case.id) if reconciliation_case else None,
+            "case_number": reconciliation_case.case_number if reconciliation_case else None,
+            "note": "Document batch rejected by chief accountant.",
+        },
+        ip_address=None,
+        user_agent=None,
+    )
+    db.commit()
     db.refresh(batch)
     return to_document_batch_out(batch)
 

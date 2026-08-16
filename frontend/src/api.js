@@ -26,10 +26,26 @@ export function getAvatarViewUrl(user) {
   return buildApiUrl(user?.avatar_url);
 }
 
+export class AuthenticationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AuthenticationError';
+    this.isAuthError = true;
+  }
+}
+
 export async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    // Chỉ trigger auto-logout khi là lỗi authentication thực sự
+    // Không trigger khi là lỗi permission (403) có message cụ thể
+    if (response.status === 401) {
+      // Dispatch event để App.jsx có thể logout
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      throw new AuthenticationError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    }
+
     let detailMsg = '';
     if (typeof data.detail === 'string') {
       detailMsg = data.detail;
@@ -161,6 +177,20 @@ export async function deleteDocumentBatch(token, batchId) {
 
 export async function approveDocumentBatch(token, batchId) {
   const response = await authFetch(`/uploads/batches/${batchId}/approve`, token, {
+    method: 'POST',
+  });
+  return parseResponse(response);
+}
+
+export async function finalApproveDocumentBatch(token, batchId) {
+  const response = await authFetch(`/uploads/batches/${batchId}/final-approve`, token, {
+    method: 'POST',
+  });
+  return parseResponse(response);
+}
+
+export async function rejectDocumentBatch(token, batchId) {
+  const response = await authFetch(`/uploads/batches/${batchId}/reject`, token, {
     method: 'POST',
   });
   return parseResponse(response);
