@@ -117,6 +117,14 @@ def update_batch_status(db: Session, batch: DocumentBatch) -> None:
     db.add(batch)
 
 
+def require_accountant(current_user: User) -> None:
+    if current_user.role.code != "accountant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ Kế toán viên mới có quyền duyệt batch đối soát.",
+        )
+
+
 def build_sequential_stored_filename_from_names(
     existing_filenames: list[str],
     selected_doc_type: str,
@@ -428,17 +436,7 @@ def reconcile_ready_batch(db: Session, batch: DocumentBatch) -> ReconciliationCa
     if batch.status != "ready":
         return None
 
-    uploads = (
-        db.query(UploadedFile)
-        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
-        .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
-        .all()
-    )
-    latest_by_type: dict[str, UploadedFile] = {}
-    for upload in uploads:
-        if upload.doc_type not in latest_by_type and upload.ai_extraction and upload.ai_extraction.extracted_data:
-            latest_by_type[upload.doc_type] = upload
-
+    latest_by_type = get_latest_valid_uploads_by_type(db, batch)
     if any(doc_type not in latest_by_type for doc_type in REQUIRED_DOC_TYPES):
         return None
 
@@ -447,6 +445,44 @@ def reconcile_ready_batch(db: Session, batch: DocumentBatch) -> ReconciliationCa
     grn_data = normalize_extracted_document("grn", latest_by_type["grn"].ai_extraction.extracted_data)
     result = reconcile_documents(invoice_data, po_data, grn_data, db)
     return save_reconciliation_result(db, result)
+
+
+def get_latest_valid_uploads_by_type(db: Session, batch: DocumentBatch) -> dict[str, UploadedFile]:
+    uploads = (
+        db.query(UploadedFile)
+        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
+        .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
+        .all()
+    )
+    latest_by_type: dict[str, UploadedFile] = {}
+    for upload in uploads:
+        if (
+            upload.doc_type not in latest_by_type
+            and upload.ai_extraction
+            and upload.ai_extraction.is_correct_type
+            and upload.ai_extraction.extracted_data
+        ):
+            latest_by_type[upload.doc_type] = upload
+    return latest_by_type
+
+
+def find_batch_reconciliation_case(db: Session, batch: DocumentBatch) -> ReconciliationCase | None:
+    latest_by_type = get_latest_valid_uploads_by_type(db, batch)
+    if any(doc_type not in latest_by_type for doc_type in REQUIRED_DOC_TYPES):
+        return None
+
+    extracted_docs = {
+        doc_type: normalize_extracted_document(doc_type, latest_by_type[doc_type].ai_extraction.extracted_data)
+        for doc_type in REQUIRED_DOC_TYPES
+    }
+    return find_existing_reconciliation_case(
+        db,
+        {
+            "invoice_number": extracted_docs["invoice"].get("invoice_number"),
+            "po_number": extracted_docs["po"].get("po_number"),
+            "grn_number": extracted_docs["grn"].get("grn_number"),
+        },
+    )
 
 
 def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
@@ -502,6 +538,63 @@ async def list_upload_batches(
     batches = db.scalars(stmt).all()
     items = [to_document_batch_out(batch) for batch in batches]
     return DocumentBatchListResponse(items=items, total=len(items))
+
+
+@router.post("/batches/{batch_id}/approve", response_model=DocumentBatchOut)
+async def approve_upload_batch(
+    batch_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DocumentBatchOut:
+    require_accountant(current_user)
+
+    batch = db.get(DocumentBatch, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+
+    if batch.status == "approved":
+        return to_document_batch_out(batch)
+
+    update_batch_status(db, batch)
+    db.flush()
+    if batch.status != "ready":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Chỉ có thể duyệt batch đã đủ chứng từ và trích xuất xong.",
+        )
+
+    reconciliation_case = find_batch_reconciliation_case(db, batch) or reconcile_ready_batch(db, batch)
+    if reconciliation_case is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Chưa tìm thấy kết quả đối soát của batch này.",
+        )
+    if reconciliation_case.status != "matched":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Chỉ có thể duyệt batch đã khớp hoàn toàn.",
+        )
+
+    batch.status = "approved"
+    batch.updated_at = datetime.now()
+    db.add(batch)
+    write_audit_log(
+        db=db,
+        action="DOCUMENT_BATCH_APPROVED",
+        user=current_user,
+        target_type="DOCUMENT_BATCH",
+        target_id=str(batch_id),
+        details={
+            "batch_number": batch.batch_number,
+            "case_id": str(reconciliation_case.id),
+            "case_number": reconciliation_case.case_number,
+            "note": "Matched document batch approved by accountant.",
+        },
+        ip_address=None,
+        user_agent=None,
+    )
+    db.refresh(batch)
+    return to_document_batch_out(batch)
 
 
 @router.delete("/batches/{batch_id}", response_model=MessageResponse)

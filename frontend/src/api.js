@@ -159,6 +159,13 @@ export async function deleteDocumentBatch(token, batchId) {
   return parseResponse(response);
 }
 
+export async function approveDocumentBatch(token, batchId) {
+  const response = await authFetch(`/uploads/batches/${batchId}/approve`, token, {
+    method: 'POST',
+  });
+  return parseResponse(response);
+}
+
 export async function fetchUploadFileBlob(token, file) {
   const fileUrl = getUploadFileViewUrl(file);
   if (!fileUrl) {

@@ -20,9 +20,9 @@ import {
 } from '../api.js';
 
 const DOC_TYPES = [
-  { value: 'po', label: 'Đơn đặt hàng (PO)', desc: 'Lưu thông tin thô đơn đặt hàng làm cơ sở đối chiếu', icon: ShoppingCart },
-  { value: 'invoice', label: 'Hóa đơn (Invoice)', desc: 'Kích hoạt đối soát 3 bên chéo trực tiếp từ DB', icon: FileText },
-  { value: 'grn', label: 'Phiếu nhập kho (GRN)', desc: 'Lưu thông tin thực nhận làm cơ sở đối chiếu', icon: PackageCheck },
+  { value: 'po', label: 'Đơn đặt hàng (PO)', icon: ShoppingCart },
+  { value: 'invoice', label: 'Hóa đơn (Invoice)', icon: FileText },
+  { value: 'grn', label: 'Phiếu nhập kho (GRN)', icon: PackageCheck },
 ];
 const BATCHES_PER_PAGE = 5;
 
@@ -46,23 +46,48 @@ function getBatchDocState(batch) {
   const files = batch?.files || [];
   const fileUploadedDocTypes = files.map((file) => file.doc_type).filter(Boolean);
   const fallbackUploadedDocTypes = Array.isArray(batch?.uploaded_doc_types) ? batch.uploaded_doc_types : [];
-  const uploadedDocTypes = Array.from(new Set(files.length > 0 ? fileUploadedDocTypes : fallbackUploadedDocTypes));
+  const fallbackPendingDocTypes = Array.isArray(batch?.pending_extraction_doc_types)
+    ? batch.pending_extraction_doc_types
+    : [];
+  const fallbackExtractedDocTypes = Array.isArray(batch?.extracted_doc_types) ? batch.extracted_doc_types : [];
+  const uploadedDocTypes = Array.from(new Set([
+    ...fileUploadedDocTypes,
+    ...fallbackUploadedDocTypes,
+    ...fallbackPendingDocTypes,
+    ...fallbackExtractedDocTypes,
+  ]));
 
   const fileExtractedDocTypes = files
       .filter((file) => file.ai_extraction?.is_correct_type && file.ai_extraction?.extracted_data)
       .map((file) => file.doc_type)
       .filter(Boolean);
-  const fallbackExtractedDocTypes = Array.isArray(batch?.extracted_doc_types) ? batch.extracted_doc_types : [];
-  const extractedDocTypes = Array.from(new Set(files.length > 0 ? fileExtractedDocTypes : fallbackExtractedDocTypes));
+  const extractedDocTypes = Array.from(new Set([
+    ...fileExtractedDocTypes,
+    ...fallbackExtractedDocTypes,
+  ]));
 
   const missingDocTypes = DOC_TYPES
     .map((type) => type.value)
     .filter((docType) => !uploadedDocTypes.includes(docType));
   const pendingExtractionDocTypes = DOC_TYPES
     .map((type) => type.value)
-    .filter((docType) => uploadedDocTypes.includes(docType) && !extractedDocTypes.includes(docType));
+    .filter((docType) => (
+      fallbackPendingDocTypes.includes(docType)
+      || (uploadedDocTypes.includes(docType) && !extractedDocTypes.includes(docType))
+    ));
 
   return { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes };
+}
+
+function hasExtractedData(file) {
+  return Boolean(file?.ai_extraction?.is_correct_type && file?.ai_extraction?.extracted_data);
+}
+
+function isFileBeingRead(file) {
+  if (!file) return false;
+  if (file.status === 'error') return false;
+  if (file.status === 'queued' || file.status === 'processing') return true;
+  return !hasExtractedData(file);
 }
 
 function getFileExt(filename = '') {
@@ -287,7 +312,7 @@ export default function UploadQueue({ token }) {
         ];
         const nextBatchState = { ...batch, files: nextFiles };
         const { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState(nextBatchState);
-        const isReady = missingDocTypes.length === 0 && pendingExtractionDocTypes.length === 0;
+        const isReady = isBatchReady(nextBatchState);
 
         if (!wasReady && isReady) {
           readyBatchIdsRef.current = new Set([...readyBatchIdsRef.current, batch.id]);
@@ -560,11 +585,13 @@ export default function UploadQueue({ token }) {
                 <Icon size={18} />
               </div>
               <span className="mt-3 font-bold text-sm text-slate-900 dark:text-slate-100">{type.label}</span>
-              <span className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{type.desc}</span>
               {uploadedFiles.length > 0 && (
                 <div className="mt-3 w-full border-t border-slate-200/80 pt-2 dark:border-slate-700">
                   <div className="space-y-1">
                     {uploadedFiles.map((file, index) => (
+                      (() => {
+                        const fileBeingRead = isFileBeingRead(file);
+                        return (
                       <div
                         key={`${file.id || file.filename}-${index}`}
                         className="flex w-full flex-wrap items-center gap-1 rounded-md bg-slate-50 px-2 py-1 dark:bg-slate-900"
@@ -579,13 +606,13 @@ export default function UploadQueue({ token }) {
                           title="Bấm để mở file"
                         >
                           <span className="truncate">{file.filename}</span>
-                          {(file.status === 'queued' || file.status === 'processing') ? (
+                          {fileBeingRead ? (
                             <Loader2 size={12} className="shrink-0 animate-spin text-brand-600 dark:text-brand-300" />
                           ) : (
                             <ExternalLink size={12} className="shrink-0 text-slate-400" />
                           )}
                         </button>
-                        {file.status === 'completed' && (
+                        {file.status === 'completed' && !fileBeingRead && (
                           <button
                             type="button"
                             onClick={(event) => {
@@ -598,15 +625,11 @@ export default function UploadQueue({ token }) {
                             <X size={13} />
                           </button>
                         )}
-                        {(file.status === 'queued' || file.status === 'processing') && (
-                          <div className="hidden">
-                            <Loader2 size={12} className="animate-spin" />
-                            <span>
-                              {file.status === 'queued'
-                                ? 'Đang chờ tải lên...'
-                                : 'Đang tải và AI đang đọc...' }
-                            </span>
-                          </div>
+                        {fileBeingRead && (
+                          <p className="mt-1 flex basis-full items-center gap-1 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
+                            <Loader2 size={11} className="animate-spin" />
+                            Đang đọc file
+                          </p>
                         )}
                         {file.status === 'error' && (
                           <p className="mt-1 basis-full text-[10px] font-semibold text-rose-600 dark:text-rose-300">
@@ -614,6 +637,8 @@ export default function UploadQueue({ token }) {
                           </p>
                         )}
                       </div>
+                        );
+                      })()
                     ))}
                   </div>
                 </div>
@@ -646,10 +671,10 @@ export default function UploadQueue({ token }) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
-                {readyBatchNotice.batchNumber} đã đọc xong chứng từ
+                {readyBatchNotice.batchNumber} đã trích xuất và so khớp xong
               </p>
               <p className="mt-0.5 text-sm text-emerald-800 dark:text-emerald-200">
-                Sang Tab Batch đối soát để xem kết quả
+                Có thể xem thông tin đối soát của bộ chứng từ này.
               </p>
             </div>
           </div>
@@ -760,9 +785,9 @@ export default function UploadQueue({ token }) {
                           }`}
                         >
                           {isReady
-                            ? 'Sẵn sàng đối soát'
+                            ? 'Khớp hoàn toàn'
                             : hasAllUploads
-                              ? `Đang đọc ${pendingExtractionCount || 3} chứng từ`
+                              ? `Đang đọc file (${pendingExtractionCount || 3})`
                               : `Cần bổ sung ${missingCount} chứng từ`}
                         </span>
                         {isReady && (
@@ -788,11 +813,14 @@ export default function UploadQueue({ token }) {
                     <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-3 lg:max-w-3xl">
                       {DOC_TYPES.map((type) => {
                         const file = filesByType[type.value];
+                        const fileBeingRead = isFileBeingRead(file) || batchDocState.pendingExtractionDocTypes.includes(type.value);
                         return (
                           <span
                             key={type.value}
                             className={`min-w-0 rounded-lg border px-3 py-2 text-xs ${
-                              file
+                              fileBeingRead
+                                ? 'border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
+                                : file
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
                                 : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'
                             }`}
@@ -800,8 +828,14 @@ export default function UploadQueue({ token }) {
                           >
                             <span className="block font-semibold">{type.label}</span>
                             <span className="mt-0.5 block truncate">
-                              {file?.filename || 'Chưa có chứng từ'}
+                              {file?.filename || (fileBeingRead ? 'Đã nhận file' : 'Chưa có chứng từ')}
                             </span>
+                            {fileBeingRead && (
+                              <span className="mt-1 flex items-center gap-1 font-semibold">
+                                <Loader2 size={11} className="animate-spin" />
+                                Đang đọc file
+                              </span>
+                            )}
                           </span>
                         );
                       })}
