@@ -448,6 +448,7 @@ def ensure_document_batch_tables() -> None:
             THEN 'ready'
             ELSE 'incomplete'
         END
+        WHERE status <> 'approved'
         """,
         """
         SELECT setval(

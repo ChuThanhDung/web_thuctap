@@ -9,13 +9,14 @@ import {
   Eye,
   FileSearch,
   FileText,
+  Loader2,
   PackageCheck,
   Search,
   ShoppingCart,
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { fetchUploadFileBlob, getDocumentBatches } from '../api.js';
+import { approveDocumentBatch, fetchUploadFileBlob, getDocumentBatches } from '../api.js';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -42,6 +43,11 @@ const STATUS_META = {
     label: 'Khớp hoàn toàn',
     tone: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300',
     rail: 'bg-emerald-500',
+  },
+  approved: {
+    label: 'Đã duyệt',
+    tone: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300',
+    rail: 'bg-teal-500',
   },
   mismatch: {
     label: 'Lệch',
@@ -465,8 +471,62 @@ function isApiBatchReady(batch) {
   return DOC_TYPES.every((type) => uploadedTypes.has(type.key));
 }
 
+function startOfDay(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function endOfDay(date) {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
+function parseDateInput(value, boundary) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return boundary === 'end' ? endOfDay(date) : startOfDay(date);
+}
+
+function parseBatchDate(value) {
+  if (!value) return null;
+  const normalized = typeof value === 'string' ? value.replace(' ', 'T') : value;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isWithinDateRange(batch, range) {
+  if (!range.start && !range.end) return true;
+  const date = parseBatchDate(batch?.updatedAt);
+  if (!date) return false;
+  if (range.start && date < range.start) return false;
+  if (range.end && date > range.end) return false;
+  return true;
+}
+
+function matchesOverviewFilter(batch, overviewFilter) {
+  if (!overviewFilter || overviewFilter === 'all') return true;
+  if (overviewFilter === 'ready') return batch.isReady;
+  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved'].includes(batch.status);
+  if (overviewFilter === 'review') return batch.isReady && !['matched', 'approved'].includes(batch.status);
+  if (overviewFilter === 'incomplete') return false;
+  return true;
+}
+
+function getOverviewFilterLabel(overviewFilter) {
+  const labels = {
+    ready: 'Tổng hồ sơ',
+    matched: 'Đã khớp',
+    review: 'Cần xem',
+    incomplete: 'Batch chưa có hồ sơ',
+  };
+  return labels[overviewFilter] || null;
+}
+
 function getStatusIcon(status) {
-  if (status === 'matched') return CheckCircle2;
+  if (status === 'matched' || status === 'approved') return CheckCircle2;
   if (status === 'mismatch') return AlertTriangle;
   if (status === 'matching') return Clock3;
   return ClipboardList;
@@ -538,10 +598,6 @@ function DocumentCard({ type, doc, onOpenFile }) {
 
       {!doc?.missing && (
         <>
-          <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-950/50">
-            <span className="text-slate-500 dark:text-slate-400">OCR {doc.confidence}%</span>
-            <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">{doc.extractedAt}</span>
-          </div>
           <div className="mt-4 space-y-2.5">
             {normalizedVisibleFields.map(([label, value]) => (
               <div key={label} className="flex items-start justify-between gap-3 text-xs">
@@ -779,11 +835,15 @@ function mapApiBatchToAuditBatch(batch) {
   const lineItems = buildLineItems(docs);
   const summary = calculateMatchSummary(docs);
   const missingDataFields = missingCount + summary.warningFields;
+  const isApproved = batch.status === 'approved';
 
   return {
     id: batch.id,
+    rawStatus: batch.status,
     batchNumber: batch.batch_number,
-    status: summary.status,
+    status: isApproved ? 'approved' : summary.status,
+    isApproved,
+    isReady: isApiBatchReady(batch),
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống AI',
     matchRate: summary.matchRate,
@@ -809,12 +869,19 @@ function mapApiBatchToAuditBatch(batch) {
 export default function AuditTrail({ token }) {
   const [searchParams] = useSearchParams();
   const requestedBatchId = searchParams.get('batchId');
+  const overviewFilter = searchParams.get('overviewFilter') || 'all';
+  const overviewFilterLabel = getOverviewFilterLabel(overviewFilter);
+  const overviewDateRange = useMemo(() => ({
+    start: parseDateInput(searchParams.get('from'), 'start'),
+    end: parseDateInput(searchParams.get('to'), 'end'),
+  }), [searchParams]);
   const [batches, setBatches] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [modalBatchId, setModalBatchId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [batchPage, setBatchPage] = useState(1);
+  const [approvingBatchIds, setApprovingBatchIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -826,7 +893,7 @@ export default function AuditTrail({ token }) {
         setLoading(true);
         setError('');
         const data = repairTextDeep(await getDocumentBatches(token));
-        const mappedBatches = (data.items || []).filter(isApiBatchReady).map(mapApiBatchToAuditBatch);
+        const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
         if (!isMounted) return;
         setBatches(mappedBatches);
         if (requestedBatchId) {
@@ -857,16 +924,20 @@ export default function AuditTrail({ token }) {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     return batches.filter((batch) => {
+      if (!batch.isReady) return false;
+
       const matchesStatus = statusFilter === 'all' || batch.status === statusFilter;
+      const matchesOverviewGroup = matchesOverviewFilter(batch, overviewFilter);
+      const matchesDateRange = isWithinDateRange(batch, overviewDateRange);
       const haystack = [
         batch.batchNumber,
         batch.owner,
         ...DOC_TYPES.map((type) => batch.docs[type.key]?.filename || ''),
       ].join(' ').toLowerCase();
 
-      return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
+      return matchesStatus && matchesOverviewGroup && matchesDateRange && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [batches, searchQuery, statusFilter]);
+  }, [batches, overviewDateRange, overviewFilter, searchQuery, statusFilter]);
 
   const totalBatchPages = Math.max(1, Math.ceil(filteredBatches.length / BATCHES_PER_PAGE));
   const safeBatchPage = Math.min(batchPage, totalBatchPages);
@@ -879,7 +950,7 @@ export default function AuditTrail({ token }) {
 
   useEffect(() => {
     setBatchPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [overviewDateRange, overviewFilter, searchQuery, statusFilter]);
 
   useEffect(() => {
     if (batchPage > totalBatchPages) {
@@ -887,19 +958,49 @@ export default function AuditTrail({ token }) {
     }
   }, [batchPage, totalBatchPages]);
 
-  const selectedBatch = filteredBatches.find((batch) => isSameBatchId(batch.id, selectedId)) || filteredBatches[0] || batches[0] || null;
+  useEffect(() => {
+    if (filteredBatches.length === 0) return;
+    if (!filteredBatches.some((batch) => isSameBatchId(batch.id, selectedId))) {
+      setSelectedId(filteredBatches[0].id);
+    }
+  }, [filteredBatches, selectedId]);
+
+  const selectedBatch = filteredBatches.find((batch) => isSameBatchId(batch.id, selectedId)) || filteredBatches[0] || null;
   const summary = {
-    total: batches.length,
-    missing: batches.filter((batch) => batch.status === 'missing').length,
-    matching: batches.filter((batch) => batch.status === 'matching').length,
-    mismatch: batches.filter((batch) => batch.status === 'mismatch').length,
-    matched: batches.filter((batch) => batch.status === 'matched').length,
+    total: filteredBatches.length,
+    missing: filteredBatches.filter((batch) => batch.status === 'missing').length,
+    matching: filteredBatches.filter((batch) => batch.status === 'matching').length,
+    mismatch: filteredBatches.filter((batch) => batch.status === 'mismatch').length,
+    matched: filteredBatches.filter((batch) => batch.status === 'matched').length,
+    approved: filteredBatches.filter((batch) => batch.status === 'approved').length,
   };
   const documentComparisons = selectedBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
   const lineItems = selectedBatch?.lineItems || [];
   const modalBatch = batches.find((batch) => isSameBatchId(batch.id, modalBatchId)) || null;
   const modalComparisons = modalBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
   const modalLineItems = modalBatch?.lineItems || [];
+
+  const handleApproveBatch = async (batch, options = {}) => {
+    if (!batch?.id || batch.status !== 'matched' || approvingBatchIds.includes(batch.id)) return;
+
+    const confirmed = window.confirm(`Bạn có chắc chắn muốn duyệt batch "${batch.batchNumber}" không?`);
+    if (!confirmed) return;
+
+    setApprovingBatchIds((prev) => [...prev, batch.id]);
+    try {
+      const approvedBatch = repairTextDeep(await approveDocumentBatch(token, batch.id));
+      const mappedBatch = mapApiBatchToAuditBatch(approvedBatch);
+      setBatches((prev) => prev.map((item) => (isSameBatchId(item.id, mappedBatch.id) ? mappedBatch : item)));
+      setSelectedId(mappedBatch.id);
+      if (!options.keepModalOpen) {
+        setModalBatchId(null);
+      }
+    } catch (err) {
+      alert(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
+    } finally {
+      setApprovingBatchIds((prev) => prev.filter((id) => !isSameBatchId(id, batch.id)));
+    }
+  };
 
   const handleOpenUploadedFile = async (file) => {
     if (!file?.file_url || file.status !== 'completed') return;
@@ -962,6 +1063,11 @@ export default function AuditTrail({ token }) {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Batch đối soát</h1>
+          {overviewFilterLabel && (
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Đang xem nhóm: <span className="font-semibold text-slate-700 dark:text-slate-200">{overviewFilterLabel}</span>
+            </p>
+          )}
         </div>
         <button type="button" className="btn-primary self-start lg:self-auto">
           <FileSearch size={16} />
@@ -1015,6 +1121,7 @@ export default function AuditTrail({ token }) {
               <option value="all">Tất cả trạng thái</option>
               <option value="missing">Thiếu dữ liệu</option>
               <option value="matched">Khớp hoàn toàn</option>
+              <option value="approved">Đã duyệt</option>
               <option value="mismatch">Lệch</option>
             </select>
             <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1035,14 +1142,24 @@ export default function AuditTrail({ token }) {
               const completion = getCompletion(batch);
               const meta = STATUS_META[batch.status];
               const hasMissingData = batch.status === 'missing';
+              const canApprove = batch.status === 'matched';
+              const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
 
               return (
-                <button
+                <div
                   key={batch.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     setSelectedId(batch.id);
                     setModalBatchId(batch.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedId(batch.id);
+                      setModalBatchId(batch.id);
+                    }
                   }}
                   className={`relative block w-full rounded-xl border bg-white p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 ${
                     hasMissingData
@@ -1062,9 +1179,29 @@ export default function AuditTrail({ token }) {
                         </div>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Cập nhật: {batch.updatedAt}</p>
                       </div>
-                      <div className="shrink-0 text-right">
+                      <div className="flex shrink-0 flex-col items-end gap-2 text-right">
                         <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">{batch.matchRate}%</p>
                         <p className="text-[11px] text-slate-400">match</p>
+                        {canApprove && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleApproveBatch(batch);
+                            }}
+                            disabled={isApproving}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Duyệt batch"
+                            aria-label={`Duyệt batch ${batch.batchNumber}`}
+                          >
+                            {isApproving ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <CheckCircle2 size={13} />
+                            )}
+                            Duyệt
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1092,7 +1229,7 @@ export default function AuditTrail({ token }) {
                       <span className="shrink-0 tabular-nums">{batch.mismatchFields} lệch · {batch.missingFields} thiếu dữ liệu</span>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
 
@@ -1305,15 +1442,34 @@ export default function AuditTrail({ token }) {
                   Xử lý bởi {modalBatch.owner} · Cập nhật {modalBatch.updatedAt}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setModalBatchId(null)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
-                title="Đóng"
-                aria-label="Đóng chi tiết batch"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                {modalBatch.status === 'matched' && (
+                  <button
+                    type="button"
+                    onClick={() => handleApproveBatch(modalBatch, { keepModalOpen: true })}
+                    disabled={approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id))}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Duyệt batch"
+                    aria-label={`Duyệt batch ${modalBatch.batchNumber}`}
+                  >
+                    {approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id)) ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <CheckCircle2 size={14} />
+                    )}
+                    Duyệt
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setModalBatchId(null)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                  title="Đóng"
+                  aria-label="Đóng chi tiết batch"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">

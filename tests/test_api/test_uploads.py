@@ -514,6 +514,128 @@ async def test_upload_ready_batch_creates_reconciliation_case_with_grn_tax_fallb
     assert "cộng VAT 10%" in case.ai_note
 
 
+@pytest.mark.asyncio
+async def test_accountant_can_approve_fully_matched_batch(client, db_session, monkeypatch):
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        extracted_by_type = {
+            "invoice": {
+                "type": "invoice",
+                "invoice_number": "INV-APPROVE-MATCH",
+                "supplier_name": "Matched Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "price": 10, "amount": 100}],
+            },
+            "po": {
+                "type": "po",
+                "po_number": "PO-APPROVE-MATCH",
+                "supplier_name": "Matched Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "price": 10, "amount": 100}],
+            },
+            "grn": {
+                "type": "grn",
+                "grn_number": "GRN-APPROVE-MATCH",
+                "po_number": "PO-APPROVE-MATCH",
+                "supplier_name": "Matched Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "amount": 100}],
+            },
+        }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted_by_type[expected_doc_type],
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    for doc_type in ["po", "invoice", "grn"]:
+        response = await client.post(
+            "/api/v1/uploads",
+            data={"doc_type": doc_type, "batch_id": str(batch["id"])},
+            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+        )
+        assert response.status_code == 200
+
+    approve_response = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+
+    assert approve_response.status_code == 200
+    assert approve_response.json()["status"] == "approved"
+    db_session.expire_all()
+    assert db_session.get(DocumentBatch, batch["id"]).status == "approved"
+
+
+@pytest.mark.asyncio
+async def test_accountant_cannot_approve_batch_that_is_not_fully_matched(client, db_session, monkeypatch):
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        extracted_by_type = {
+            "invoice": {
+                "type": "invoice",
+                "invoice_number": "INV-APPROVE-MISMATCH",
+                "supplier_name": "Mismatch Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "price": 10, "amount": 100}],
+            },
+            "po": {
+                "type": "po",
+                "po_number": "PO-APPROVE-MISMATCH",
+                "supplier_name": "Mismatch Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "price": 10, "amount": 100}],
+            },
+            "grn": {
+                "type": "grn",
+                "grn_number": "GRN-APPROVE-MISMATCH",
+                "po_number": "PO-APPROVE-MISMATCH",
+                "supplier_name": "Mismatch Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 80,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 8, "amount": 80}],
+            },
+        }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted_by_type[expected_doc_type],
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    for doc_type in ["po", "invoice", "grn"]:
+        response = await client.post(
+            "/api/v1/uploads",
+            data={"doc_type": doc_type, "batch_id": str(batch["id"])},
+            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+        )
+        assert response.status_code == 200
+
+    approve_response = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+
+    assert approve_response.status_code == 409
+    assert "khớp hoàn toàn" in approve_response.json()["detail"]
+    db_session.expire_all()
+    assert db_session.get(DocumentBatch, batch["id"]).status == "ready"
+
+
 def test_build_cloud_storage_key_uses_sequential_filename(monkeypatch):
     today = datetime.now()
     date_part = today.strftime("%d_%m_%Y")
