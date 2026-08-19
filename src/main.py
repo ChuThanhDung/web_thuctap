@@ -1,7 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 import src.models  # noqa: F401
@@ -341,12 +343,35 @@ def ensure_document_batch_tables() -> None:
             id INTEGER PRIMARY KEY DEFAULT nextval('document_batches_id_seq'),
             batch_number VARCHAR(30) UNIQUE NOT NULL,
             created_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
+            approved_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
+            chief_approved_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'incomplete',
             created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now())),
             updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))
         )
         """,
         "CREATE INDEX IF NOT EXISTS ix_document_batches_batch_number ON document_batches (batch_number)",
+        "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS approved_by_id INTEGER",
+        "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS chief_approved_by_id INTEGER",
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'document_batches_approved_by_id_fkey'
+            ) THEN
+                ALTER TABLE document_batches
+                ADD CONSTRAINT document_batches_approved_by_id_fkey
+                FOREIGN KEY (approved_by_id) REFERENCES users(public_id) ON DELETE SET NULL;
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'document_batches_chief_approved_by_id_fkey'
+            ) THEN
+                ALTER TABLE document_batches
+                ADD CONSTRAINT document_batches_chief_approved_by_id_fkey
+                FOREIGN KEY (chief_approved_by_id) REFERENCES users(public_id) ON DELETE SET NULL;
+            END IF;
+        END $$;
+        """,
         "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS batch_id INTEGER",
         "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS doc_type VARCHAR(20)",
         """
@@ -642,14 +667,28 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
+cors_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
+    allow_origins=cors_origins,
+    allow_origin_regex=r"^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?|.*\.vercel\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled server exception at %s: %s", request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Lỗi máy chủ nội bộ. Vui lòng thử lại sau."},
+    )
+
 
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
