@@ -8,7 +8,7 @@ import {
   Save,
 } from 'lucide-react';
 import { formatDate, formatVND, repairVietnameseText } from '../text.js';
-import { getThresholds, updateThreshold } from '../services/thresholds.js';
+import { getCachedThresholds, getThresholds, updateThreshold } from '../services/thresholds.js';
 
 const RULE_META = [
   {
@@ -253,9 +253,22 @@ function RuleCard({
 }
 
 export default function ThresholdConfig({ token }) {
-  const [configs, setConfigs] = useState([]);
-  const [drafts, setDrafts] = useState({});
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedThresholds();
+  const initialItems = Array.isArray(cached) ? cached : cached?.items || [];
+  const [configs, setConfigs] = useState(() => initialItems);
+  const [drafts, setDrafts] = useState(() =>
+    Object.fromEntries(
+      initialItems.map((item) => [
+        item.id,
+        {
+          category: repairVietnameseText(item.category || ''),
+          percent_threshold: String(item.percent_threshold ?? 0),
+          absolute_threshold: String(item.absolute_threshold ?? 0),
+        },
+      ])
+    )
+  );
+  const [loading, setLoading] = useState(() => !cached);
   const [savingId, setSavingId] = useState(null);
   const [expandedRuleId, setExpandedRuleId] = useState(null);
   const [error, setError] = useState('');
@@ -266,7 +279,9 @@ export default function ThresholdConfig({ token }) {
 
     async function fetchConfigs() {
       try {
-        setLoading(true);
+        if (!getCachedThresholds()) {
+          setLoading(true);
+        }
         setError('');
         const data = await getThresholds(token);
         const items = Array.isArray(data) ? data : data.items || [];
@@ -285,7 +300,9 @@ export default function ThresholdConfig({ token }) {
           )
         );
       } catch (err) {
-        if (isMounted) setError(err.message || 'Không thể tải cấu hình ngưỡng.');
+        if (isMounted && !getCachedThresholds()) {
+          setError(err.message || 'Không thể tải cấu hình ngưỡng.');
+        }
       } finally {
         if (isMounted) setLoading(false);
       }

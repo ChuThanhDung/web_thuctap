@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -16,7 +16,13 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { approveDocumentBatch, fetchUploadFileBlob, finalApproveDocumentBatch, getDocumentBatches } from '../api.js';
+import { approveDocumentBatch, fetchUploadFileBlob, finalApproveDocumentBatch } from '../api.js';
+import {
+  fetchDocumentBatchesWithCache,
+  getCachedBatches,
+  subscribeBatchCache,
+  updateCachedBatchItem,
+} from '../services/batchCache.js';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -536,14 +542,14 @@ function getOverviewFilterLabel(overviewFilter) {
 }
 
 function getStatusIcon(status) {
-  if (status === 'matched' || status === 'approved') return CheckCircle2;
-  if (status === 'mismatch') return AlertTriangle;
+  if (status === 'matched' || status === 'approved' || status === 'final_approved') return CheckCircle2;
+  if (status === 'mismatch' || status === 'rejected') return AlertTriangle;
   if (status === 'matching') return Clock3;
   return ClipboardList;
 }
 
 function StatusBadge({ status }) {
-  const meta = STATUS_META[status];
+  const meta = STATUS_META[status] || STATUS_META.matching;
   const Icon = getStatusIcon(status);
 
   return (
@@ -891,24 +897,48 @@ export default function AuditTrail({ token, role }) {
     start: parseDateInput(searchParams.get('from'), 'start'),
     end: parseDateInput(searchParams.get('to'), 'end'),
   }), [searchParams]);
-  const [batches, setBatches] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-  const [modalBatchId, setModalBatchId] = useState(null);
+  const cached = getCachedBatches();
+  const [batches, setBatches] = useState(() => (cached?.items || []).map(mapApiBatchToAuditBatch));
+  const [selectedId, setSelectedId] = useState(() => {
+    const initialBatches = (cached?.items || []).map(mapApiBatchToAuditBatch);
+    if (requestedBatchId) {
+      const match = initialBatches.find((b) => isSameBatchId(b.id, requestedBatchId));
+      if (match) return match.id;
+    }
+    return initialBatches[0]?.id || null;
+  });
+  const [modalBatchId, setModalBatchId] = useState(() => {
+    if (!requestedBatchId || !cached?.items) return null;
+    const initialBatches = cached.items.map(mapApiBatchToAuditBatch);
+    const match = initialBatches.find((b) => isSameBatchId(b.id, requestedBatchId));
+    return match ? match.id : null;
+  });
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [batchPage, setBatchPage] = useState(1);
   const [approvingBatchIds, setApprovingBatchIds] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = subscribeBatchCache((data) => {
+      if (data?.items) {
+        setBatches(data.items.map(mapApiBatchToAuditBatch));
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     async function fetchBatches() {
       try {
-        setLoading(true);
+        if (!getCachedBatches()) {
+          setLoading(true);
+        }
         setError('');
-        const data = repairTextDeep(await getDocumentBatches(token));
+        const data = await fetchDocumentBatchesWithCache(token);
         const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
         if (!isMounted) return;
         setBatches(mappedBatches);
@@ -924,7 +954,9 @@ export default function AuditTrail({ token, role }) {
         });
       } catch (err) {
         if (!isMounted) return;
-        setError(err.message || 'Không thể tải danh sách batch.');
+        if (!getCachedBatches()) {
+          setError(err.message || 'Không thể tải danh sách batch.');
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -950,7 +982,15 @@ export default function AuditTrail({ token, role }) {
         }
       }
 
-      const matchesStatus = statusFilter === 'all' || batch.status === statusFilter;
+      let matchesStatus = true;
+      if (statusFilter === 'all') {
+        matchesStatus = true;
+      } else if (statusFilter === 'approved') {
+        matchesStatus = batch.status === 'approved' || batch.status === 'final_approved' || batch.isApproved || batch.isFinalApproved;
+      } else {
+        matchesStatus = batch.status === statusFilter;
+      }
+
       const matchesOverviewGroup = matchesOverviewFilter(batch, overviewFilter);
       const matchesDateRange = isWithinDateRange(batch, overviewDateRange);
       const haystack = [
@@ -1028,6 +1068,7 @@ export default function AuditTrail({ token, role }) {
       // Gọi API phù hợp theo role
       const approveFunc = isChiefAccountant ? finalApproveDocumentBatch : approveDocumentBatch;
       const approvedBatch = repairTextDeep(await approveFunc(token, batch.id));
+      updateCachedBatchItem(approvedBatch);
       const mappedBatch = mapApiBatchToAuditBatch(approvedBatch);
       setBatches((prev) => prev.map((item) => (isSameBatchId(item.id, mappedBatch.id) ? mappedBatch : item)));
       setSelectedId(mappedBatch.id);
@@ -1158,10 +1199,10 @@ export default function AuditTrail({ token, role }) {
               className="input-field appearance-none pl-9 pr-9"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="missing">Thiếu dữ liệu</option>
               <option value="matched">Khớp hoàn toàn</option>
               <option value="approved">Đã duyệt</option>
               <option value="mismatch">Lệch</option>
+              <option value="missing">Thiếu dữ liệu</option>
             </select>
             <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
@@ -1432,8 +1473,8 @@ export default function AuditTrail({ token, role }) {
                     lineItems.map((item) => (
                       <tr key={`${selectedBatch.id}-${item.sku}`} className="table-row-hover">
                         <td className="px-4 py-3">
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{item.sku}</p>
-                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.name}</p>
+                          <p className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{item.name || item.sku}</p>
+                          <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.poQty}</td>
@@ -1470,7 +1511,7 @@ export default function AuditTrail({ token, role }) {
           onClick={() => setModalBatchId(null)}
         >
           <div
-            className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(0,55,112,0.24)] dark:border-slate-800 dark:bg-slate-950"
+            className="max-h-[92vh] w-full max-w-[1360px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(0,55,112,0.24)] dark:border-slate-800 dark:bg-slate-950"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:flex-row lg:items-start lg:justify-between">
@@ -1546,42 +1587,42 @@ export default function AuditTrail({ token, role }) {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1120px] text-sm">
+                  <table className="w-full text-xs sm:text-[13px]">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Mã hàng / Tên hàng</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">SL PO</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
+                        <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Tên hàng / Mã</th>
+                        <th className="px-2 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
+                        <th className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">SL PO</th>
+                        <th className="px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
+                        <th className="px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
+                        <th className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
+                        <th className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
+                        <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {modalLineItems.length > 0 ? (
                         modalLineItems.map((item) => (
                           <tr key={`${modalBatch.id}-modal-${item.sku}`} className="table-row-hover">
-                            <td className="px-4 py-3">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100">{item.sku}</p>
-                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.name}</p>
+                            <td className="px-3 py-2.5 max-w-[240px]">
+                              <p className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm leading-snug">{item.name || item.sku}</p>
+                              <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                             </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poPrice}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnPrice}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poAmount}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceAmount}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnAmount}</td>
-                            <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                            <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
+                            <td className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
+                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poPrice}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.invoicePrice}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnPrice}</td>
+                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poAmount}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.invoiceAmount}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnAmount}</td>
+                            <td className="px-3 py-2.5 text-center whitespace-nowrap"><ResultPill severity={item.severity} text={item.result} /></td>
                           </tr>
                         ))
                       ) : (

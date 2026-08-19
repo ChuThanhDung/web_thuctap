@@ -19,8 +19,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { getDocumentBatches } from '../api.js';
 import { calculateMatchSummary } from '../reconciliationCompare.js';
+import { fetchDocumentBatchesWithCache, getCachedBatches, subscribeBatchCache } from '../services/batchCache.js';
 import { repairTextDeep } from '../text.js';
 
 const DOC_TYPES = ['po', 'invoice', 'grn'];
@@ -202,25 +202,39 @@ function MetricCard({ icon: Icon, label, value, detail, tone, onClick }) {
 
 export default function AccountantOverview({ token, role }) {
   const navigate = useNavigate();
-  const [batches, setBatches] = useState([]);
+  const cached = getCachedBatches();
+  const [batches, setBatches] = useState(() => cached?.items || []);
   const [dateFilter, setDateFilter] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [reviewPage, setReviewPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = subscribeBatchCache((data) => {
+      if (data?.items) {
+        setBatches(data.items);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     async function fetchOverview() {
       try {
-        setLoading(true);
+        if (!getCachedBatches()) {
+          setLoading(true);
+        }
         setError('');
-        const data = repairTextDeep(await getDocumentBatches(token));
+        const data = await fetchDocumentBatchesWithCache(token);
         if (isMounted) setBatches(data.items || []);
       } catch (err) {
-        if (isMounted) setError(err.message || 'Không thể tải dữ liệu tổng quan.');
+        if (isMounted && !getCachedBatches()) {
+          setError(err.message || 'Không thể tải dữ liệu tổng quan.');
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
