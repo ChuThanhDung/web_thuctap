@@ -310,6 +310,10 @@ class DocumentBatchOut(BaseModel):
     status: str
     created_by_id: int | None = None
     created_by_name: str | None = None
+    approved_by_id: int | None = None
+    approved_by_name: str | None = None
+    chief_approved_by_id: int | None = None
+    chief_approved_by_name: str | None = None
     files: list[UploadedFileOut] = []
     missing_doc_types: list[str] = []
     uploaded_doc_types: list[str] = []

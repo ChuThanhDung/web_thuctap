@@ -200,7 +200,7 @@ function MetricCard({ icon: Icon, label, value, detail, tone, onClick }) {
   );
 }
 
-export default function AccountantOverview({ token }) {
+export default function AccountantOverview({ token, role }) {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const [dateFilter, setDateFilter] = useState('all');
@@ -250,6 +250,26 @@ export default function AccountantOverview({ token }) {
   const activeRangeLabel = useMemo(() => formatRangeLabel(activeDateRange), [activeDateRange]);
 
   const summary = useMemo(() => {
+    const isChiefAccountant = role === 'chief_accountant';
+    
+    if (isChiefAccountant) {
+      // Kế toán trưởng: matched + approved (chờ duyệt), final_approved (đã duyệt), rejected (từ chối)
+      const matched = filteredBatches.filter((batch) => batch.status === 'matched').length;
+      const approved = filteredBatches.filter((batch) => batch.status === 'approved').length;
+      const finalApproved = filteredBatches.filter((batch) => batch.status === 'final_approved').length;
+      const rejected = filteredBatches.filter((batch) => batch.status === 'rejected').length;
+      
+      return {
+        total: matched + approved + finalApproved + rejected,
+        approved: matched + approved,  // Tổng hồ sơ chờ duyệt (cả matched và approved)
+        finalApproved,                  // Đã duyệt bởi kế toán trưởng
+        rejected,                       // Đã từ chối bởi kế toán trưởng
+        readyBatches: [],
+        avgMatchRate: 100,
+      };
+    }
+    
+    // Kế toán viên: Logic cũ
     const readyBatches = filteredBatches.filter(isBatchReady).map(analyzeBatch);
     const matched = readyBatches.filter((batch) => batch.status === 'matched').length;
     const review = readyBatches.filter((batch) => batch.status === 'review').length;
@@ -268,7 +288,7 @@ export default function AccountantOverview({ token }) {
         ? Math.round(readyBatches.reduce((sum, batch) => sum + batch.matchRate, 0) / readyBatches.length)
         : 0,
     };
-  }, [filteredBatches]);
+  }, [filteredBatches, role]);
 
   const statusChartData = [
     { name: 'Đã khớp', value: summary.matched, color: '#14b8a6' },
@@ -399,12 +419,44 @@ export default function AccountantOverview({ token }) {
       </section>
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard icon={ClipboardList} label="Tổng hồ sơ" value={formatDisplayNumber(summary.total)} detail="Batch đã đủ PO, Invoice và GRN trong khoảng lọc" tone="brand" onClick={() => navigateToBatchFilter('ready')} />
-        <MetricCard icon={CheckCircle2} label="Đã khớp" value={formatDisplayNumber(summary.matched)} detail="Batch có tỉ lệ khớp 100%" tone="emerald" onClick={() => navigateToBatchFilter('matched')} />
-        <MetricCard icon={AlertTriangle} label="Cần xem" value={formatDisplayNumber(summary.review)} detail="Batch chưa khớp hoặc còn thiếu dữ liệu" tone="amber" onClick={() => navigateToBatchFilter('review')} />
-        <MetricCard icon={FileSearch} label="Batch chưa có hồ sơ" value={formatDisplayNumber(summary.incomplete)} detail="Batch còn thiếu PO, Invoice hoặc GRN trong khoảng lọc" tone="brand" onClick={() => navigate('/upload')} />
+        {role === 'chief_accountant' ? (
+          <>
+            <MetricCard 
+              icon={ClipboardList} 
+              label="Tổng hồ sơ" 
+              value={formatDisplayNumber(summary.approved)} 
+              detail="Batch đã được kế toán viên duyệt, chờ kế toán trưởng duyệt" 
+              tone="brand" 
+              onClick={() => navigate('/audit-trail')} 
+            />
+            <MetricCard 
+              icon={CheckCircle2} 
+              label="Đã duyệt" 
+              value={formatDisplayNumber(summary.finalApproved)} 
+              detail="Batch đã được kế toán trưởng duyệt cuối cùng" 
+              tone="emerald" 
+              onClick={() => navigate('/audit-trail')} 
+            />
+            <MetricCard 
+              icon={AlertTriangle} 
+              label="Từ chối" 
+              value={formatDisplayNumber(summary.rejected)} 
+              detail="Batch đã bị kế toán trưởng từ chối" 
+              tone="rose" 
+              onClick={() => navigate('/audit-trail')} 
+            />
+          </>
+        ) : (
+          <>
+            <MetricCard icon={ClipboardList} label="Tổng hồ sơ" value={formatDisplayNumber(summary.total)} detail="Batch đã đủ PO, Invoice và GRN trong khoảng lọc" tone="brand" onClick={() => navigateToBatchFilter('ready')} />
+            <MetricCard icon={CheckCircle2} label="Đã khớp" value={formatDisplayNumber(summary.matched)} detail="Batch có tỉ lệ khớp 100%" tone="emerald" onClick={() => navigateToBatchFilter('matched')} />
+            <MetricCard icon={AlertTriangle} label="Cần xem" value={formatDisplayNumber(summary.review)} detail="Batch chưa khớp hoặc còn thiếu dữ liệu" tone="amber" onClick={() => navigateToBatchFilter('review')} />
+            <MetricCard icon={FileSearch} label="Batch chưa có hồ sơ" value={formatDisplayNumber(summary.incomplete)} detail="Batch còn thiếu PO, Invoice hoặc GRN trong khoảng lọc" tone="brand" onClick={() => navigate('/upload')} />
+          </>
+        )}
       </section>
 
+      {role !== 'chief_accountant' && (
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-4">
@@ -454,7 +506,9 @@ export default function AccountantOverview({ token }) {
           </div>
         </div>
       </section>
+      )}
 
+      {role !== 'chief_accountant' && (
       <section className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Hồ sơ cần xem</h2>
@@ -522,6 +576,7 @@ export default function AccountantOverview({ token }) {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

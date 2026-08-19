@@ -8,7 +8,6 @@
 - Xem danh sách và chi tiết hồ sơ đối soát, bao gồm từng line item.
 - Kế toán trưởng có thể approve, hoặc reject hồ sơ.
 - Theo dõi audit log.
-- Quản lý hồ sơ cá nhân, người dùng.
 
 
 ## Tech stack
@@ -129,13 +128,6 @@ Dừng services:
 ```bash
 docker compose down
 ```
-
-## Demo
-
-Demo: <https://docusyncai-frontend.vercel.app/login>
-- Kế toán viên: `accountant@docusync.ai`
-- Kế toán trưởng: `chief.accountant@docusync.ai`
-- Mật khẩu: `123456`
 
 
 ### Sample request: đăng nhập

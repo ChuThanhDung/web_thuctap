@@ -5,9 +5,9 @@ import Sidebar from './components/Sidebar.jsx';
 import Login from './pages/Login.jsx';
 import AccountantOverview from './pages/AccountantOverview.jsx';
 import CaseDetail from './pages/CaseDetail.jsx';
-import Dashboard from './pages/Dashboard.jsx';
 import UploadQueue from './pages/UploadQueue.jsx';
 import AuditTrail from './pages/AuditTrail.jsx';
+import ChiefAccountantBatches from './pages/ChiefAccountantBatches.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
 import { repairTextDeep } from './text.js';
 
@@ -32,7 +32,7 @@ function getInitialTheme() {
 }
 
 function getHomePath(role) {
-  return role === 'chief_accountant' ? '/manager' : '/accountant';
+  return role === 'chief_accountant' ? '/audit-trail' : '/accountant';
 }
 
 function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
@@ -44,6 +44,24 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [auth, setAuth] = useState(getInitialAuth);
   const [theme, setTheme] = useState(getInitialTheme);
+
+  // Tự động logout khi token hết hạn
+  useEffect(() => {
+    function handleUnauthorized() {
+      if (auth) {
+        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        setAuth(null);
+        // Hiển thị thông báo cho người dùng
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      }
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, [auth]);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -141,15 +159,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path="/login" element={<Navigate to={homePath} replace />} />
-            <Route path="/accountant" element={<AccountantOverview token={auth.access_token} />} />
-            <Route
-              path="/manager"
-              element={
-                <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
-                  <Dashboard token={auth.access_token} />
-                </RoleRoute>
-              }
-            />
+            <Route path="/accountant" element={<AccountantOverview token={auth.access_token} role={role} />} />
             <Route path="/case/:id" element={<CaseDetail token={auth.access_token} role={role} />} />
             <Route
               path="/upload"
@@ -159,7 +169,14 @@ export default function App() {
                 </RoleRoute>
               }
             />
-            <Route path="/audit-trail" element={<AuditTrail token={auth.access_token} role={role} />} />
+            <Route 
+              path="/audit-trail" 
+              element={
+                role === 'chief_accountant' 
+                  ? <ChiefAccountantBatches token={auth.access_token} />
+                  : <AuditTrail token={auth.access_token} role={role} />
+              } 
+            />
             <Route
               path="/settings"
               element={

@@ -16,7 +16,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { approveDocumentBatch, fetchUploadFileBlob, getDocumentBatches } from '../api.js';
+import { approveDocumentBatch, fetchUploadFileBlob, finalApproveDocumentBatch, getDocumentBatches } from '../api.js';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -48,6 +48,16 @@ const STATUS_META = {
     label: 'Đã duyệt',
     tone: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300',
     rail: 'bg-teal-500',
+  },
+  final_approved: {
+    label: 'Đã duyệt cuối',
+    tone: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300',
+    rail: 'bg-blue-500',
+  },
+  rejected: {
+    label: 'Đã từ chối',
+    tone: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300',
+    rail: 'bg-red-500',
   },
   mismatch: {
     label: 'Lệch',
@@ -836,16 +846,22 @@ function mapApiBatchToAuditBatch(batch) {
   const summary = calculateMatchSummary(docs);
   const missingDataFields = missingCount + summary.warningFields;
   const isApproved = batch.status === 'approved';
+  const isFinalApproved = batch.status === 'final_approved';
+  const isRejected = batch.status === 'rejected';
 
   return {
     id: batch.id,
     rawStatus: batch.status,
     batchNumber: batch.batch_number,
-    status: isApproved ? 'approved' : summary.status,
+    status: isRejected ? 'rejected' : isFinalApproved ? 'final_approved' : isApproved ? 'approved' : summary.status,
     isApproved,
+    isFinalApproved,
+    isRejected,
     isReady: isApiBatchReady(batch),
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống AI',
+    approvedBy: batch.approved_by_name || null,
+    chiefApprovedBy: batch.chief_approved_by_name || null,
     matchRate: summary.matchRate,
     checkedFields: summary.checkedFields,
     matchedFields: summary.matchedFields,
@@ -866,7 +882,7 @@ function mapApiBatchToAuditBatch(batch) {
   };
 }
 
-export default function AuditTrail({ token }) {
+export default function AuditTrail({ token, role }) {
   const [searchParams] = useSearchParams();
   const requestedBatchId = searchParams.get('batchId');
   const overviewFilter = searchParams.get('overviewFilter') || 'all';
@@ -926,6 +942,14 @@ export default function AuditTrail({ token }) {
     return batches.filter((batch) => {
       if (!batch.isReady) return false;
 
+      // Kế toán trưởng thấy: matched, approved, final_approved, rejected
+      if (role === 'chief_accountant') {
+        const allowedStatuses = ['matched', 'approved', 'final_approved', 'rejected'];
+        if (!allowedStatuses.includes(batch.status)) {
+          return false;
+        }
+      }
+
       const matchesStatus = statusFilter === 'all' || batch.status === statusFilter;
       const matchesOverviewGroup = matchesOverviewFilter(batch, overviewFilter);
       const matchesDateRange = isWithinDateRange(batch, overviewDateRange);
@@ -937,7 +961,7 @@ export default function AuditTrail({ token }) {
 
       return matchesStatus && matchesOverviewGroup && matchesDateRange && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [batches, overviewDateRange, overviewFilter, searchQuery, statusFilter]);
+  }, [batches, overviewDateRange, overviewFilter, role, searchQuery, statusFilter]);
 
   const totalBatchPages = Math.max(1, Math.ceil(filteredBatches.length / BATCHES_PER_PAGE));
   const safeBatchPage = Math.min(batchPage, totalBatchPages);
@@ -981,14 +1005,29 @@ export default function AuditTrail({ token }) {
   const modalLineItems = modalBatch?.lineItems || [];
 
   const handleApproveBatch = async (batch, options = {}) => {
-    if (!batch?.id || batch.status !== 'matched' || approvingBatchIds.includes(batch.id)) return;
+    // Kiểm tra điều kiện theo role
+    const isChiefAccountant = role === 'chief_accountant';
+    
+    // Kế toán trưởng: có thể duyệt batch 'approved' (đã qua KTV) hoặc 'matched' (duyệt trực tiếp)
+    // Kế toán viên: chỉ duyệt batch 'matched'
+    const canApprove = isChiefAccountant 
+      ? (batch.status === 'approved' || batch.status === 'matched')
+      : batch.status === 'matched';
+    
+    if (!batch?.id || !canApprove || approvingBatchIds.includes(batch.id)) return;
 
-    const confirmed = window.confirm(`Bạn có chắc chắn muốn duyệt batch "${batch.batchNumber}" không?`);
+    const confirmMessage = isChiefAccountant
+      ? 'Bạn có muốn duyệt không?'
+      : `Bạn có chắc chắn muốn duyệt batch "${batch.batchNumber}" không?`;
+    
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
     setApprovingBatchIds((prev) => [...prev, batch.id]);
     try {
-      const approvedBatch = repairTextDeep(await approveDocumentBatch(token, batch.id));
+      // Gọi API phù hợp theo role
+      const approveFunc = isChiefAccountant ? finalApproveDocumentBatch : approveDocumentBatch;
+      const approvedBatch = repairTextDeep(await approveFunc(token, batch.id));
       const mappedBatch = mapApiBatchToAuditBatch(approvedBatch);
       setBatches((prev) => prev.map((item) => (isSameBatchId(item.id, mappedBatch.id) ? mappedBatch : item)));
       setSelectedId(mappedBatch.id);
@@ -1142,7 +1181,11 @@ export default function AuditTrail({ token }) {
               const completion = getCompletion(batch);
               const meta = STATUS_META[batch.status];
               const hasMissingData = batch.status === 'missing';
-              const canApprove = batch.status === 'matched';
+              // Kế toán viên: duyệt batch matched
+              // Kế toán trưởng: duyệt batch approved hoặc matched
+              const canApprove = role === 'chief_accountant' 
+                ? (batch.status === 'approved' || batch.status === 'matched')
+                : batch.status === 'matched';
               const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
 
               return (
@@ -1175,7 +1218,7 @@ export default function AuditTrail({ token }) {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{batch.batchNumber}</p>
-                          <StatusBadge status={batch.status} />
+                          {role !== 'chief_accountant' && <StatusBadge status={batch.status} />}
                         </div>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Cập nhật: {batch.updatedAt}</p>
                       </div>
@@ -1276,7 +1319,7 @@ export default function AuditTrail({ token }) {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedBatch.batchNumber}</h2>
-                  <StatusBadge status={selectedBatch.status} />
+                  {role !== 'chief_accountant' && <StatusBadge status={selectedBatch.status} />}
                 </div>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Xử lý bởi {selectedBatch.owner} · Cập nhật {selectedBatch.updatedAt}
@@ -1436,7 +1479,7 @@ export default function AuditTrail({ token }) {
                   <h2 id="batch-detail-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
                     {modalBatch.batchNumber}
                   </h2>
-                  <StatusBadge status={modalBatch.status} />
+                  {role !== 'chief_accountant' && <StatusBadge status={modalBatch.status} />}
                 </div>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Xử lý bởi {modalBatch.owner} · Cập nhật {modalBatch.updatedAt}
