@@ -651,7 +651,7 @@ async def final_approve_upload_batch(
     batch.chief_approved_by_id = current_user.public_id
     batch.updated_at = datetime.now()
     db.add(batch)
-    
+
     reconciliation_case = find_batch_reconciliation_case(db, batch)
     write_audit_log(
         db=db,
@@ -705,7 +705,7 @@ async def reject_upload_batch(
     batch.chief_approved_by_id = current_user.public_id  # Lưu người từ chối
     batch.updated_at = datetime.now()
     db.add(batch)
-    
+
     reconciliation_case = find_batch_reconciliation_case(db, batch)
     write_audit_log(
         db=db,
