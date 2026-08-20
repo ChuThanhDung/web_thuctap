@@ -548,7 +548,7 @@ def ensure_uploaded_document_extraction_tables() -> None:
             jsonb_build_object(
                 'type', COALESCE(uf.doc_type, 'invoice'),
                 'document_number', COALESCE(
-                    CASE 
+                    CASE
                         WHEN uf.doc_type = 'po' THEN 'PO-' || uf.id::text
                         WHEN uf.doc_type = 'grn' THEN 'GRN-' || uf.id::text
                         ELSE 'INV-' || uf.id::text
