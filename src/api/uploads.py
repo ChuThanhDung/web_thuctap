@@ -108,9 +108,10 @@ def update_batch_status(db: Session, batch: DocumentBatch) -> None:
         upload.doc_type
         for upload in uploads
         if upload.doc_type
-        and upload.ai_extraction
-        and upload.ai_extraction.is_correct_type
-        and upload.ai_extraction.extracted_data
+        and (
+            (upload.ai_extraction and upload.ai_extraction.is_correct_type and upload.ai_extraction.extracted_data)
+            or (not upload.ai_extraction)
+        )
     }
     batch.status = "ready" if all(doc_type in extracted_doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
     batch.updated_at = datetime.now()
@@ -494,13 +495,16 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
             file.doc_type
             for file in files
             if file.doc_type
-            and file.ai_extraction
-            and file.ai_extraction.is_correct_type
-            and file.ai_extraction.extracted_data
+            and (
+                (file.ai_extraction and file.ai_extraction.is_correct_type and file.ai_extraction.extracted_data)
+                or (not file.ai_extraction and file.status == "completed")
+            )
         }
     )
     pending_extraction_doc_types = [
-        doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type in uploaded_doc_types and doc_type not in extracted_doc_types
+        doc_type
+        for doc_type in REQUIRED_DOC_TYPES
+        if doc_type in uploaded_doc_types and any(f.doc_type == doc_type and f.status in ("processing", "queued") for f in files)
     ]
     return DocumentBatchOut(
         id=batch.id,

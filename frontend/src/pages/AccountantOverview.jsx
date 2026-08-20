@@ -345,6 +345,12 @@ export default function AccountantOverview({ token, role }) {
     navigate(`/audit-trail?${params.toString()}`);
   };
 
+  const navigateToChiefBatchFilter = (status) => {
+    const params = new URLSearchParams({ status });
+    appendDateRangeParams(params, activeDateRange);
+    navigate(`/audit-trail?${params.toString()}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-24">
@@ -441,7 +447,7 @@ export default function AccountantOverview({ token, role }) {
               value={formatDisplayNumber(summary.approved)} 
               detail="Batch đã được kế toán viên duyệt, chờ kế toán trưởng duyệt" 
               tone="brand" 
-              onClick={() => navigate('/audit-trail')} 
+              onClick={() => navigateToChiefBatchFilter('all')} 
             />
             <MetricCard 
               icon={CheckCircle2} 
@@ -449,7 +455,7 @@ export default function AccountantOverview({ token, role }) {
               value={formatDisplayNumber(summary.finalApproved)} 
               detail="Batch đã được kế toán trưởng duyệt cuối cùng" 
               tone="emerald" 
-              onClick={() => navigate('/audit-trail')} 
+              onClick={() => navigateToChiefBatchFilter('approved')} 
             />
             <MetricCard 
               icon={AlertTriangle} 
@@ -457,7 +463,7 @@ export default function AccountantOverview({ token, role }) {
               value={formatDisplayNumber(summary.rejected)} 
               detail="Batch đã bị kế toán trưởng từ chối" 
               tone="rose" 
-              onClick={() => navigate('/audit-trail')} 
+              onClick={() => navigateToChiefBatchFilter('rejected')} 
             />
           </>
         ) : (

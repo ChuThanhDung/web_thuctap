@@ -38,6 +38,7 @@ const DOC_TYPES = [
 const BATCHES_PER_PAGE = 5;
 
 function isBatchReady(batch) {
+  if (batch?.status === 'ready' || batch?.status === 'approved' || batch?.status === 'final_approved') return true;
   const { uploadedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState(batch);
   if (uploadedDocTypes.length > 0) {
     return missingDocTypes.length === 0 && pendingExtractionDocTypes.length === 0;
@@ -49,7 +50,6 @@ function isBatchReady(batch) {
   if (Array.isArray(batch?.extracted_doc_types)) {
     return DOC_TYPES.every((type) => batch.extracted_doc_types.includes(type.value));
   }
-  if (batch?.status === 'ready') return true;
   return false;
 }
 
@@ -69,7 +69,7 @@ function getBatchDocState(batch) {
   ]));
 
   const fileExtractedDocTypes = files
-      .filter((file) => file.ai_extraction?.is_correct_type && file.ai_extraction?.extracted_data)
+      .filter((file) => hasExtractedData(file))
       .map((file) => file.doc_type)
       .filter(Boolean);
   const extractedDocTypes = Array.from(new Set([
@@ -84,14 +84,18 @@ function getBatchDocState(batch) {
     .map((type) => type.value)
     .filter((docType) => (
       fallbackPendingDocTypes.includes(docType)
-      || (uploadedDocTypes.includes(docType) && !extractedDocTypes.includes(docType))
+      || files.some((f) => f.doc_type === docType && (f.status === 'processing' || f.status === 'queued' || f.isInFlight))
     ));
 
   return { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes };
 }
 
 function hasExtractedData(file) {
-  return Boolean(file?.ai_extraction?.is_correct_type && file?.ai_extraction?.extracted_data);
+  if (!file) return false;
+  if (file.ai_extraction) {
+    return Boolean(file.ai_extraction.is_correct_type && file.ai_extraction.extracted_data);
+  }
+  return file.status === 'completed';
 }
 
 function isFileBeingRead(file) {
@@ -99,7 +103,7 @@ function isFileBeingRead(file) {
   if (file.isInFlight) return file.status === 'processing';
   if (file.status === 'error') return false;
   if (file.status === 'queued' || file.status === 'processing') return true;
-  return !hasExtractedData(file);
+  return false;
 }
 
 function getFileExt(filename = '') {
@@ -331,7 +335,7 @@ export default function UploadQueue({ token }) {
     const hasActiveFiles = inFlightFiles.some((f) => f.status === 'processing') || batches.some((batch) => {
       const { pendingExtractionDocTypes } = getBatchDocState(batch);
       return (batch.files || []).some((f) => f.status === 'processing' || f.status === 'queued')
-        || pendingExtractionDocTypes.length > 0;
+        || (pendingExtractionDocTypes.length > 0 && (batch.files || []).some((f) => f.status === 'processing' || f.status === 'queued'));
     });
     
     if (!hasActiveFiles) return;
@@ -919,7 +923,9 @@ export default function UploadQueue({ token }) {
               const isSelectedBatch = selectedBatch?.id === batch.id;
               const filesByType = (batch.files || []).reduce((acc, file) => {
                 if (!file.doc_type) return acc;
-                acc[file.doc_type] = file;
+                if (!acc[file.doc_type]) {
+                  acc[file.doc_type] = file;
+                }
                 return acc;
               }, {});
               const canDeleteBatch = (batch.files || []).length === 0;
@@ -981,6 +987,7 @@ export default function UploadQueue({ token }) {
                         const file = filesByType[type.value];
                         const typeInFlight = batchInFlight.find((inf) => inf.docType === type.value && inf.status === 'processing');
                         const fileBeingRead = Boolean(typeInFlight) || isFileBeingRead(file) || batchDocState.pendingExtractionDocTypes.includes(type.value);
+                        const isWrongType = Boolean(file?.ai_extraction && !file.ai_extraction.is_correct_type);
 
                         return (
                           <span
@@ -988,6 +995,8 @@ export default function UploadQueue({ token }) {
                             className={`min-w-0 rounded-lg border px-3 py-2 text-xs transition-colors ${
                               fileBeingRead
                                 ? 'border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
+                                : isWrongType
+                                ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300'
                                 : file
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
                                 : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'
@@ -1002,6 +1011,11 @@ export default function UploadQueue({ token }) {
                               <span className="mt-1 flex items-center gap-1 font-semibold text-brand-600 dark:text-brand-300 whitespace-nowrap">
                                 <Loader2 size={11} className="animate-spin" />
                                 Đang đọc file
+                              </span>
+                            ) : isWrongType ? (
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                                <AlertCircle size={11} />
+                                Sai loại file
                               </span>
                             ) : file ? (
                               <span className="mt-1 flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
