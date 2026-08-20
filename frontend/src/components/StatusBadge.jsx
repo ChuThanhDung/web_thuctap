@@ -7,6 +7,42 @@ const STATUS_STYLES = {
     dot: 'bg-emerald-500',
     label: 'Khớp hoàn toàn',
   },
+  approved: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    dot: 'bg-emerald-500',
+    label: 'Đã duyệt',
+  },
+  final_approved: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    dot: 'bg-emerald-500',
+    label: 'Đã duyệt cuối',
+  },
+  rejected: {
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    dot: 'bg-rose-500',
+    label: 'Đã từ chối',
+  },
+  mismatch: {
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    dot: 'bg-rose-500',
+    label: 'Lệch',
+  },
+  missing: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    dot: 'bg-amber-500',
+    label: 'Thiếu dữ liệu',
+  },
+  unapproved: {
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
+    dot: 'bg-slate-500',
+    label: 'Chưa duyệt',
+  },
   minor_diff: {
     bg: 'bg-amber-50',
     text: 'text-amber-700',

@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from src.api.auth import get_current_user
 from src.config import get_settings
@@ -538,7 +538,17 @@ async def list_upload_batches(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DocumentBatchListResponse:
-    stmt = select(DocumentBatch).order_by(DocumentBatch.updated_at.desc(), DocumentBatch.created_at.desc())
+    stmt = (
+        select(DocumentBatch)
+        .options(
+            selectinload(DocumentBatch.created_by),
+            selectinload(DocumentBatch.approved_by),
+            selectinload(DocumentBatch.chief_approved_by),
+            selectinload(DocumentBatch.files).selectinload(UploadedFile.uploaded_by),
+            selectinload(DocumentBatch.files).selectinload(UploadedFile.ai_extraction),
+        )
+        .order_by(DocumentBatch.updated_at.desc(), DocumentBatch.created_at.desc())
+    )
     batches = db.scalars(stmt).all()
     items = [to_document_batch_out(batch) for batch in batches]
     return DocumentBatchListResponse(items=items, total=len(items))
@@ -773,7 +783,14 @@ async def list_uploads(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UploadedFileListResponse:
-    stmt = select(UploadedFile).order_by(UploadedFile.created_at.desc())
+    stmt = (
+        select(UploadedFile)
+        .options(
+            selectinload(UploadedFile.uploaded_by),
+            selectinload(UploadedFile.ai_extraction),
+        )
+        .order_by(UploadedFile.created_at.desc())
+    )
     uploads = db.scalars(stmt).all()
 
     items = [to_uploaded_file_out(up) for up in uploads]

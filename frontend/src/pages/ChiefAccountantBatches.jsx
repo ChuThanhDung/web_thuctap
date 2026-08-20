@@ -16,7 +16,13 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { fetchUploadFileBlob, finalApproveDocumentBatch, getDocumentBatches, rejectDocumentBatch } from '../api.js';
+import { fetchUploadFileBlob, finalApproveDocumentBatch, rejectDocumentBatch } from '../api.js';
+import {
+  fetchDocumentBatchesWithCache,
+  getCachedBatches,
+  subscribeBatchCache,
+  updateCachedBatchItem,
+} from '../services/batchCache.js';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -36,8 +42,8 @@ const STATUS_META = {
   },
   matching: {
     label: 'Đang đối soát',
-    tone: 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/50 dark:text-brand-300',
-    rail: 'bg-brand-500',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300',
+    rail: 'bg-emerald-500',
   },
   matched: {
     label: 'Khớp hoàn toàn',
@@ -46,13 +52,13 @@ const STATUS_META = {
   },
   approved: {
     label: 'Đã duyệt',
-    tone: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300',
-    rail: 'bg-teal-500',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300',
+    rail: 'bg-emerald-500',
   },
   final_approved: {
     label: 'Đã duyệt cuối',
-    tone: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300',
-    rail: 'bg-blue-500',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300',
+    rail: 'bg-emerald-500',
   },
   rejected: {
     label: 'Đã từ chối',
@@ -169,7 +175,7 @@ function getStatusIcon(status) {
 // Badge cho kế toán trưởng - hiển thị "Được duyệt bởi [Tên]"
 function ApprovedByBadge({ approvedBy }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
       <CheckCircle2 size={14} />
       Được duyệt bởi {approvedBy}
     </span>
@@ -502,36 +508,50 @@ function mapApiBatchToAuditBatch(batch) {
   };
 }
 
+function filterChiefBatches(items) {
+  return (items || [])
+    .map(mapApiBatchToAuditBatch)
+    .filter((batch) => ['matched', 'approved', 'final_approved', 'rejected'].includes(batch.status));
+}
+
 export default function ChiefAccountantBatches({ token }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [batches, setBatches] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cached = getCachedBatches();
+  const [batches, setBatches] = useState(() => filterChiefBatches(cached?.items));
+  const [isLoading, setIsLoading] = useState(() => !cached);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all');
   const [detailBatchId, setDetailBatchId] = useState(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const loadBatches = async () => {
-    setIsLoading(true);
+  const loadBatches = async (forceRefresh = false) => {
+    if (!getCachedBatches()) {
+      setIsLoading(true);
+    }
     try {
-      const response = await getDocumentBatches(token);
-      const items = (response?.items || []).map(mapApiBatchToAuditBatch);
-      
-      // Kế toán trưởng chỉ thấy: matched, approved, final_approved, rejected
-      const filteredItems = items.filter((batch) =>
-        ['matched', 'approved', 'final_approved', 'rejected'].includes(batch.status)
-      );
-      
-      setBatches(filteredItems);
+      const response = await fetchDocumentBatchesWithCache(token, { forceRefresh });
+      setBatches(filterChiefBatches(response?.items));
     } catch (error) {
       console.error('Failed to load batches:', error);
-      alert(error.message || 'Không thể tải danh sách batch');
+      if (!getCachedBatches()) {
+        alert(error.message || 'Không thể tải danh sách batch');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const unsubscribe = subscribeBatchCache((data) => {
+      if (data?.items) {
+        setBatches(filterChiefBatches(data.items));
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -543,8 +563,8 @@ export default function ChiefAccountantBatches({ token }) {
     if (!window.confirm('Bạn có muốn duyệt không?')) return;
 
     try {
-      await finalApproveDocumentBatch(token, batch.id);
-      await loadBatches();
+      const updated = await finalApproveDocumentBatch(token, batch.id);
+      updateCachedBatchItem(updated);
       setDetailPanelOpen(false);
     } catch (error) {
       console.error('Failed to approve batch:', error);
@@ -556,8 +576,8 @@ export default function ChiefAccountantBatches({ token }) {
     if (!window.confirm('Bạn có chắc chắn muốn từ chối batch này không?')) return;
 
     try {
-      await rejectDocumentBatch(token, batch.id);
-      await loadBatches();
+      const updated = await rejectDocumentBatch(token, batch.id);
+      updateCachedBatchItem(updated);
       setDetailPanelOpen(false);
     } catch (error) {
       console.error('Failed to reject batch:', error);
@@ -599,12 +619,28 @@ export default function ChiefAccountantBatches({ token }) {
       );
     }
 
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'unapproved') {
+        result = result.filter((batch) => batch.status === 'approved' || batch.status === 'matched');
+      } else if (statusFilter === 'approved') {
+        result = result.filter((batch) => batch.status === 'final_approved');
+      } else if (statusFilter === 'rejected') {
+        result = result.filter((batch) => batch.status === 'rejected');
+      } else {
+        result = result.filter((batch) => batch.status === statusFilter);
+      }
+    }
+
     if (dateRange.start || dateRange.end) {
       result = result.filter((batch) => isWithinDateRange(batch, dateRange));
     }
 
     return result;
-  }, [batches, searchQuery, dateRange]);
+  }, [batches, searchQuery, statusFilter, dateRange]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, dateRange]);
 
   const totalPages = Math.ceil(filteredBatches.length / BATCHES_PER_PAGE);
   const paginatedBatches = filteredBatches.slice((currentPage - 1) * BATCHES_PER_PAGE, currentPage * BATCHES_PER_PAGE);
@@ -657,6 +693,21 @@ export default function ChiefAccountantBatches({ token }) {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field w-full pl-10"
             />
+          </div>
+
+          <div className="relative min-w-[200px]">
+            <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input-field appearance-none pl-9 pr-9 w-full"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="unapproved">Chưa duyệt</option>
+              <option value="approved">Đã duyệt</option>
+              <option value="rejected">Từ chối</option>
+            </select>
+            <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
           
           <div className="relative">
@@ -724,7 +775,7 @@ export default function ChiefAccountantBatches({ token }) {
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="animate-spin text-brand-600" size={32} />
+            <Loader2 className="animate-spin text-emerald-600" size={32} />
           </div>
         ) : paginatedBatches.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center text-slate-500 dark:text-slate-400">
@@ -747,13 +798,13 @@ export default function ChiefAccountantBatches({ token }) {
                         </h3>
                         {/* Hiển thị badge "Được duyệt bởi [Tên]" */}
                         {batch.status === 'approved' && batch.approvedBy && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                             <CheckCircle2 size={12} />
                             Được duyệt bởi {batch.approvedBy}
                           </span>
                         )}
                         {batch.status === 'final_approved' && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                             <CheckCircle2 size={12} />
                             Đã duyệt
                           </span>
@@ -804,9 +855,9 @@ export default function ChiefAccountantBatches({ token }) {
                       <button
                         type="button"
                         onClick={() => handleViewDetails(batch)}
-                        className="btn-secondary inline-flex items-center gap-2"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                       >
-                        <Eye size={14} />
+                        <Eye size={13} />
                         Chi tiết
                       </button>
                       
@@ -814,9 +865,9 @@ export default function ChiefAccountantBatches({ token }) {
                         <button
                           type="button"
                           onClick={() => handleApproveBatch(batch)}
-                          className="btn-primary inline-flex items-center gap-2"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                         >
-                          <CheckCircle2 size={14} />
+                          <CheckCircle2 size={13} />
                           Duyệt
                         </button>
                       )}
@@ -825,9 +876,9 @@ export default function ChiefAccountantBatches({ token }) {
                         <button
                           type="button"
                           onClick={() => handleRejectBatch(batch)}
-                          className="btn-danger inline-flex items-center gap-2"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98]"
                         >
-                          <X size={14} />
+                          <X size={13} />
                           Từ chối
                         </button>
                       )}
@@ -867,24 +918,24 @@ export default function ChiefAccountantBatches({ token }) {
 
       {/* Detail Panel */}
       {detailPanelOpen && detailBatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="card max-h-[90vh] w-full max-w-[1152px] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-sm">
+          <div className="card max-h-[92vh] w-full max-w-[1360px] overflow-y-auto">
             {/* Panel Header */}
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-6 dark:border-slate-800 dark:bg-slate-900">
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-5 py-4 sm:px-6 sm:py-5 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {detailBatch.batchNumber}
                   </h2>
-                  <div className="mt-3 flex items-center gap-3">
+                  <div className="mt-2.5 flex items-center gap-3">
                     {detailBatch.status === 'approved' && detailBatch.approvedBy && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <CheckCircle2 size={12} />
                         Được duyệt bởi {detailBatch.approvedBy}
                       </span>
                     )}
                     {detailBatch.status === 'final_approved' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <CheckCircle2 size={12} />
                         Đã duyệt
                       </span>
@@ -903,7 +954,7 @@ export default function ChiefAccountantBatches({ token }) {
                     <button
                       type="button"
                       onClick={() => handleApproveBatch(detailBatch)}
-                      className="btn-primary inline-flex items-center gap-2"
+                      className="inline-flex h-8.5 sm:h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                     >
                       <CheckCircle2 size={14} />
                       Duyệt
@@ -914,7 +965,7 @@ export default function ChiefAccountantBatches({ token }) {
                     <button
                       type="button"
                       onClick={() => handleRejectBatch(detailBatch)}
-                      className="btn-danger inline-flex items-center gap-2"
+                      className="inline-flex h-8.5 sm:h-9 items-center gap-1.5 rounded-full bg-rose-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98]"
                     >
                       <X size={14} />
                       Từ chối
@@ -933,26 +984,7 @@ export default function ChiefAccountantBatches({ token }) {
             </div>
 
             {/* Panel Content */}
-            <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-                  {[
-                    ['Đã đối chiếu', detailBatch.checkedFields, 'text-slate-900 dark:text-slate-100'],
-                    ['Khớp', detailBatch.matchedFields, 'text-emerald-700 dark:text-emerald-300'],
-                    ['Lệch', detailBatch.mismatchFields, 'text-rose-700 dark:text-rose-300'],
-                    ['Thiếu dữ liệu', detailBatch.missingFields, 'text-amber-700 dark:text-amber-300'],
-                  ].map(([label, value, color]) => (
-                    <div key={label} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
-                      <p className={`mt-0.5 text-lg font-bold tabular-nums ${color}`}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
-                  <MatchMeter value={detailBatch.matchRate} />
-                </div>
-              </div>
-
+            <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-4 sm:p-5">
               <div className="grid gap-3 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => (
                   <DocumentCard
@@ -965,46 +997,46 @@ export default function ChiefAccountantBatches({ token }) {
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                <div className="border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1120px] text-sm">
+                  <table className="w-full text-xs sm:text-[13px]">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Mã hàng / Tên hàng</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">SL PO</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
-                        <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
+                        <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Tên hàng / Mã</th>
+                        <th className="px-2 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
+                        <th className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">SL PO</th>
+                        <th className="px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
+                        <th className="px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
+                        <th className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
+                        <th className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
+                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
+                        <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {detailBatch.lineItems.length > 0 ? (
                         detailBatch.lineItems.map((item, idx) => (
                           <tr key={idx} className="table-row-hover">
-                            <td className="px-4 py-3">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100">{item.sku}</p>
-                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.name}</p>
+                            <td className="px-3 py-2.5 max-w-[240px]">
+                              <p className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm leading-snug">{item.name || item.sku}</p>
+                              <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                             </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poPrice}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnPrice || '-'}</td>
-                            <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poAmount || '-'}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.amount}</td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnAmount || '-'}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
+                            <td className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
+                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poPrice}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.invoicePrice}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnPrice || '-'}</td>
+                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poAmount || '-'}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.amount}</td>
+                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnAmount || '-'}</td>
+                            <td className="px-3 py-2.5 text-center whitespace-nowrap">
                               <ResultPill severity={item.severity} text={item.result} />
                             </td>
                           </tr>
@@ -1022,11 +1054,11 @@ export default function ChiefAccountantBatches({ token }) {
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                <div className="border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] text-sm">
+                  <table className="w-full text-xs sm:text-[13px]">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
                         <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Trường</th>

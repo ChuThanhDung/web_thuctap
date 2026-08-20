@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -9,15 +9,26 @@ import {
   ShoppingCart,
   PackageCheck,
   X,
+  Plus,
+  RefreshCw,
+  AlertCircle,
+  ArrowRight,
 } from 'lucide-react';
 import {
   createDocumentBatch,
   deleteDocumentBatch,
   deleteUploadedFile,
   fetchUploadFileBlob,
-  getDocumentBatches,
   uploadDocument,
 } from '../api.js';
+import {
+  fetchDocumentBatchesWithCache,
+  getCachedBatches,
+  invalidateBatchCache,
+  removeCachedBatchItem,
+  subscribeBatchCache,
+  updateCachedBatchItem,
+} from '../services/batchCache.js';
 
 const DOC_TYPES = [
   { value: 'po', label: 'Đơn đặt hàng (PO)', icon: ShoppingCart },
@@ -85,6 +96,7 @@ function hasExtractedData(file) {
 
 function isFileBeingRead(file) {
   if (!file) return false;
+  if (file.isInFlight) return file.status === 'processing';
   if (file.status === 'error') return false;
   if (file.status === 'queued' || file.status === 'processing') return true;
   return !hasExtractedData(file);
@@ -156,65 +168,145 @@ function buildXmlPreviewHtml(filename, xmlText) {
 
 export default function UploadQueue({ token }) {
   const navigate = useNavigate();
-  const [batches, setBatches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedBatches();
+  const [batches, setBatches] = useState(() => cached?.items || []);
+  const [loading, setLoading] = useState(() => !cached);
+  const [inFlightFiles, setInFlightFiles] = useState([]);
   const [activeDropType, setActiveDropType] = useState(null);
   const [selectedDocType, setSelectedDocType] = useState('po');
-  const [selectedBatchId, setSelectedBatchId] = useState(null);
+  const [selectedBatchId, setSelectedBatchId] = useState(() => {
+    const pendingItems = (cached?.items || []).filter((batch) => !isBatchReady(batch));
+    return pendingItems[0]?.id || cached?.items?.[0]?.id || null;
+  });
+  const [batchFilterTab, setBatchFilterTab] = useState('incomplete'); // 'incomplete' | 'ready' | 'all'
   const [batchPage, setBatchPage] = useState(1);
   const [deletingBatchIds, setDeletingBatchIds] = useState([]);
-  const [readyBatchNotice, setReadyBatchNotice] = useState(null);
+
+  // Ref to always have the real-time selected batch ID without stale closure
+  const selectedBatchIdRef = useRef(selectedBatchId);
+  useEffect(() => {
+    selectedBatchIdRef.current = selectedBatchId;
+  }, [selectedBatchId]);
+
+  // Track batches that have been viewed / navigated to AuditTrail
+  const initialReadyIdsRef = useRef(null);
+  const [viewedBatchIds, setViewedBatchIds] = useState(() => new Set());
+
   const documentTypesRef = useRef(null);
   const fileInputRef = useRef(null);
   const filePickerDocTypeRef = useRef('po');
-  const readyBatchIdsRef = useRef(new Set());
-  const hasLoadedBatchesRef = useRef(false);
 
-  const pendingBatches = batches.filter((batch) => !isBatchReady(batch));
-  const totalBatchPages = Math.max(1, Math.ceil(pendingBatches.length / BATCHES_PER_PAGE));
+  // Batches that need action: incomplete batches + newly completed batches not yet viewed
+  const activeBatches = useMemo(() => {
+    return batches.filter((batch) => {
+      if (!isBatchReady(batch)) return true; // incomplete
+      return !viewedBatchIds.has(batch.id); // newly completed in this session, not yet viewed!
+    });
+  }, [batches, viewedBatchIds]);
+
+  const readyBatches = useMemo(() => {
+    return batches.filter((batch) => isBatchReady(batch));
+  }, [batches]);
+
+  // Selected batch lookup: strictly prioritize the explicitly selected batch ID
+  const selectedBatch = useMemo(() => {
+    const targetId = selectedBatchId || selectedBatchIdRef.current;
+    if (targetId) {
+      const match = batches.find((batch) => batch.id === targetId);
+      if (match) return match;
+    }
+    return activeBatches[0] || batches[0] || null;
+  }, [batches, selectedBatchId, activeBatches]);
+
+  // In-flight files for selected batch
+  const selectedBatchInFlight = inFlightFiles.filter((inf) => inf.batchId === selectedBatch?.id);
+  const selectedBatchFiles = selectedBatch?.files || [];
+
+  // Group files by doc_type for the selected batch
+  const uploadedFilesByType = useMemo(() => {
+    return DOC_TYPES.reduce((acc, type) => {
+      const completed = selectedBatchFiles.filter((f) => f.doc_type === type.value);
+      const inFlight = selectedBatchInFlight
+        .filter((inf) => inf.docType === type.value)
+        .map((inf) => ({
+          id: inf.tempId,
+          batch_id: inf.batchId,
+          doc_type: inf.docType,
+          filename: inf.filename,
+          size: inf.size,
+          status: inf.status,
+          error_message: inf.errorMessage,
+          isInFlight: true,
+        }));
+
+      // In-flight files take visual precedence or appear alongside completed
+      acc[type.value] = inFlight.length > 0 ? inFlight : completed;
+      return acc;
+    }, {});
+  }, [selectedBatchFiles, selectedBatchInFlight]);
+
+  // Filtering batches for list based on tab
+  const filteredBatches = useMemo(() => {
+    if (batchFilterTab === 'incomplete') return activeBatches;
+    if (batchFilterTab === 'ready') return readyBatches;
+    return batches;
+  }, [batchFilterTab, activeBatches, readyBatches, batches]);
+
+  const totalBatchPages = Math.max(1, Math.ceil(filteredBatches.length / BATCHES_PER_PAGE));
   const safeBatchPage = Math.min(batchPage, totalBatchPages);
-  const paginatedBatches = pendingBatches.slice(
+  const paginatedBatches = filteredBatches.slice(
     (safeBatchPage - 1) * BATCHES_PER_PAGE,
     safeBatchPage * BATCHES_PER_PAGE
   );
-  const batchStartIndex = pendingBatches.length === 0 ? 0 : (safeBatchPage - 1) * BATCHES_PER_PAGE + 1;
-  const batchEndIndex = Math.min(safeBatchPage * BATCHES_PER_PAGE, pendingBatches.length);
-  const selectedBatch = pendingBatches.find((batch) => batch.id === selectedBatchId) || pendingBatches[0] || null;
-  const selectedBatchFiles = selectedBatch?.files || [];
-  const uploadedFilesByType = selectedBatchFiles.reduce((acc, file) => {
-    if (!file.doc_type) return acc;
-    acc[file.doc_type] = [...(acc[file.doc_type] || []), file];
-    return acc;
-  }, {});
-  const hasSelectedBatchFiles = selectedBatchFiles.length > 0;
+  const batchStartIndex = filteredBatches.length === 0 ? 0 : (safeBatchPage - 1) * BATCHES_PER_PAGE + 1;
+  const batchEndIndex = Math.min(safeBatchPage * BATCHES_PER_PAGE, filteredBatches.length);
 
   const syncReadyBatchNotice = useCallback((items) => {
     const nextReadyIds = new Set(items.filter(isBatchReady).map((batch) => batch.id));
-    if (hasLoadedBatchesRef.current) {
-      const newlyReadyBatch = items.find((batch) => nextReadyIds.has(batch.id) && !readyBatchIdsRef.current.has(batch.id));
-      if (newlyReadyBatch) {
-        setReadyBatchNotice({
-          id: newlyReadyBatch.id,
-          batchNumber: newlyReadyBatch.batch_number,
-        });
-      }
+    
+    // On first load, mark historical ready batches as already viewed
+    if (initialReadyIdsRef.current === null && items.length > 0) {
+      initialReadyIdsRef.current = new Set(nextReadyIds);
+      setViewedBatchIds(new Set(nextReadyIds));
     }
-    readyBatchIdsRef.current = nextReadyIds;
-    hasLoadedBatchesRef.current = true;
   }, []);
 
+  // Lắng nghe thay đổi từ batchCache
+  useEffect(() => {
+    const unsubscribe = subscribeBatchCache((data) => {
+      if (data?.items) {
+        syncReadyBatchNotice(data.items);
+        setBatches(data.items);
+      }
+    });
+    return unsubscribe;
+  }, [syncReadyBatchNotice]);
+
   // Hàm load danh sách bộ đối soát thực tế từ BE
-  const fetchBatches = useCallback(async (showLoading = false) => {
+  const fetchBatches = useCallback(async (showLoading = false, forceRefresh = false) => {
     try {
-      if (showLoading) setLoading(true);
-      const data = await getDocumentBatches(token);
-      const items = data.items || [];
+      if (showLoading && !getCachedBatches()) setLoading(true);
+      const data = await fetchDocumentBatchesWithCache(token, { forceRefresh });
+      const items = data?.items || [];
       syncReadyBatchNotice(items);
       setBatches(items);
+      
       setSelectedBatchId((currentId) => {
+        const activeId = currentId || selectedBatchIdRef.current;
+        // If current selected batch is valid in items, keep it locked
+        if (activeId && items.some((batch) => batch.id === activeId)) {
+          selectedBatchIdRef.current = activeId;
+          return activeId;
+        }
+        // If activeId was locally set (e.g. freshly created), retain it
+        if (activeId) {
+          selectedBatchIdRef.current = activeId;
+          return activeId;
+        }
         const pendingItems = items.filter((batch) => !isBatchReady(batch));
-        if (currentId && pendingItems.some((batch) => batch.id === currentId)) return currentId;
-        return pendingItems[0]?.id || null;
+        const fallbackId = pendingItems[0]?.id || items[0]?.id || null;
+        selectedBatchIdRef.current = fallbackId;
+        return fallbackId;
       });
     } catch (err) {
       console.error('Không thể lấy danh sách bộ đối soát:', err);
@@ -234,9 +326,9 @@ export default function UploadQueue({ token }) {
     }
   }, [batchPage, totalBatchPages]);
 
-  // Thiết lập cơ chế tự động làm mới danh sách nếu có file đang xử lý
+  // Tự động làm mới nếu có file đang xử lý
   useEffect(() => {
-    const hasActiveFiles = batches.some((batch) => {
+    const hasActiveFiles = inFlightFiles.some((f) => f.status === 'processing') || batches.some((batch) => {
       const { pendingExtractionDocTypes } = getBatchDocState(batch);
       return (batch.files || []).some((f) => f.status === 'processing' || f.status === 'queued')
         || pendingExtractionDocTypes.length > 0;
@@ -249,7 +341,7 @@ export default function UploadQueue({ token }) {
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [batches, fetchBatches]);
+  }, [batches, inFlightFiles, fetchBatches]);
 
   const resetDragState = () => {
     setActiveDropType(null);
@@ -282,21 +374,35 @@ export default function UploadQueue({ token }) {
   };
 
   const handleCreateBatch = async () => {
-    const batch = await createDocumentBatch(token);
-    setBatches((prev) => [batch, ...prev.filter((item) => item.id !== batch.id)]);
-    setSelectedBatchId(batch.id);
-    setBatchPage(1);
-    documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return batch;
+    try {
+      // If currently selected batch was completed, mark it as viewed
+      if (selectedBatch && isBatchReady(selectedBatch)) {
+        setViewedBatchIds((prev) => new Set([...prev, selectedBatch.id]));
+      }
+      const batch = await createDocumentBatch(token);
+      updateCachedBatchItem(batch);
+      setBatches((prev) => [batch, ...prev.filter((item) => item.id !== batch.id)]);
+      setSelectedBatchId(batch.id);
+      selectedBatchIdRef.current = batch.id;
+      setBatchFilterTab('incomplete');
+      setBatchPage(1);
+      documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return batch;
+    } catch (err) {
+      alert(err.message || 'Không thể tạo bộ đối soát mới.');
+    }
   };
 
   const handleSelectBatch = (batchId) => {
     setSelectedBatchId(batchId);
+    selectedBatchIdRef.current = batchId;
     documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const ensureSelectedBatch = async () => {
-    if (selectedBatch) return selectedBatch;
+    const currentId = selectedBatchIdRef.current || selectedBatchId;
+    const existing = batches.find((b) => b.id === currentId) || selectedBatch;
+    if (existing) return existing;
     return handleCreateBatch();
   };
 
@@ -304,25 +410,16 @@ export default function UploadQueue({ token }) {
     setBatches((prev) =>
       prev.map((batch) => {
         if (batch.id !== uploadedFile.batch_id) return batch;
-        const wasReady = isBatchReady(batch);
 
         const nextFiles = [
           uploadedFile,
-          ...(batch.files || []).filter((file) => file.id !== uploadedFile.id),
+          ...(batch.files || []).filter((file) => file.id !== uploadedFile.id && file.doc_type !== uploadedFile.doc_type),
         ];
         const nextBatchState = { ...batch, files: nextFiles };
         const { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState(nextBatchState);
         const isReady = isBatchReady(nextBatchState);
 
-        if (!wasReady && isReady) {
-          readyBatchIdsRef.current = new Set([...readyBatchIdsRef.current, batch.id]);
-          setReadyBatchNotice({
-            id: batch.id,
-            batchNumber: batch.batch_number,
-          });
-        }
-
-        return {
+        const updated = {
           ...batch,
           files: nextFiles,
           uploaded_doc_types: uploadedDocTypes,
@@ -331,94 +428,69 @@ export default function UploadQueue({ token }) {
           pending_extraction_doc_types: pendingExtractionDocTypes,
           status: isReady ? 'ready' : 'incomplete',
         };
+        updateCachedBatchItem(updated);
+        return updated;
       })
     );
   };
 
-  // Upload file lên BE
-  const uploadFiles = async (fileList, docType = selectedDocType, batchId = selectedBatchId) => {
+  // Upload file lên BE với trạng thái in-flight độc lập
+  const uploadFiles = async (fileList, docType = selectedDocType, batchId = null) => {
     const filesArray = Array.from(fileList);
     if (filesArray.length === 0) return;
 
-    const targetBatch = batchId
-      ? batches.find((batch) => batch.id === batchId) || selectedBatch
-      : await ensureSelectedBatch();
-    const targetBatchId = targetBatch?.id;
+    const targetBatchId = batchId || selectedBatchIdRef.current || selectedBatch?.id || (await ensureSelectedBatch())?.id;
     if (!targetBatchId) return;
+
+    // Lock the selected batch to this target batch
     setSelectedBatchId(targetBatchId);
+    selectedBatchIdRef.current = targetBatchId;
     
-    // Thêm các file mới vào UI ngay lập tức với trạng thái 'queued' để tối ưu trải nghiệm
-    const tempFiles = filesArray.map((f, i) => ({
-      id: `temp-${Date.now()}-${i}`,
-      batch_id: targetBatchId,
-      doc_type: docType,
+    // Thêm các file vào tracking inFlightFiles để luôn giữ trạng thái "Đang đọc file" ngay lập tức (0ms)
+    const newTrackingItems = filesArray.map((f, i) => ({
+      tempId: `inflight-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      batchId: targetBatchId,
+      docType: docType,
       filename: f.name,
       size: `${(f.size / 1024 / 1024).toFixed(1)} MB`,
-      status: 'queued',
-      progress: 0,
-      created_at: new Date().toISOString(),
+      status: 'processing',
+      errorMessage: null,
+      startedAt: Date.now(),
     }));
-    
-    setBatches((prev) =>
-      prev.map((batch) =>
-        batch.id === targetBatchId
-          ? { ...batch, files: [...tempFiles, ...(batch.files || [])] }
-          : batch
-      )
-    );
+
+    setInFlightFiles((prev) => [...prev, ...newTrackingItems]);
 
     // Tiến hành upload từng file lên BE
     for (let i = 0; i < filesArray.length; i++) {
       const fileObj = filesArray[i];
-      try {
-        // Cập nhật trạng thái file local thành 'processing'
-        setBatches((prev) =>
-          prev.map((batch) =>
-            batch.id === targetBatchId
-              ? {
-                  ...batch,
-                  files: (batch.files || []).map((f) =>
-                    f.id === tempFiles[i].id ? { ...f, status: 'processing', progress: 30 } : f
-                  ),
-                }
-              : batch
-          )
-        );
+      const trackingItem = newTrackingItems[i];
 
-        // Gọi API thật, truyền kèm loại tài liệu đã chọn
+      try {
         const uploadedFile = await uploadDocument(token, fileObj, docType, targetBatchId);
-        setBatches((prev) =>
-          prev.map((batch) =>
-            batch.id === targetBatchId
-              ? {
-                  ...batch,
-                  files: (batch.files || []).filter((f) => f.id !== tempFiles[i].id),
-                }
-              : batch
-          )
-        );
+
+        // Xóa khỏi in-flight khi hoàn thành
+        setInFlightFiles((prev) => prev.filter((item) => item.tempId !== trackingItem.tempId));
+
+        // Cập nhật ngay vào batch
         upsertUploadedFileIntoBatch(uploadedFile);
         
-        // Load lại danh sách thật từ BE để đồng bộ hóa
-        await fetchBatches(false);
+        // Đồng bộ lại với backend
+        await fetchBatches(false, true);
       } catch (err) {
-        // Đánh dấu lỗi nếu upload thất bại
-        setBatches((prev) =>
-          prev.map((batch) =>
-            batch.id === targetBatchId
-              ? {
-                  ...batch,
-                  files: (batch.files || []).map((f) =>
-                    f.id === tempFiles[i].id
-                      ? { ...f, status: 'error', progress: 0, error_message: err.message || 'Lỗi tải lên' }
-                      : f
-                  ),
-                }
-              : batch
+        // Đánh dấu lỗi trên tracking item
+        setInFlightFiles((prev) =>
+          prev.map((item) =>
+            item.tempId === trackingItem.tempId
+              ? { ...item, status: 'error', errorMessage: err.message || 'Lỗi đọc file' }
+              : item
           )
         );
       }
     }
+  };
+
+  const handleDismissInFlightError = (tempId) => {
+    setInFlightFiles((prev) => prev.filter((item) => item.tempId !== tempId));
   };
 
   const handleDrop = (e, docType = selectedDocType) => {
@@ -427,13 +499,15 @@ export default function UploadQueue({ token }) {
     resetDragState();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       setSelectedDocType(docType);
-      uploadFiles(e.dataTransfer.files, docType, selectedBatch?.id || null);
+      const targetId = selectedBatchIdRef.current || selectedBatch?.id;
+      uploadFiles(e.dataTransfer.files, docType, targetId);
     }
   };
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      uploadFiles(e.target.files, filePickerDocTypeRef.current);
+      const targetId = selectedBatchIdRef.current || selectedBatch?.id;
+      uploadFiles(e.target.files, filePickerDocTypeRef.current, targetId);
       e.target.value = '';
     }
   };
@@ -499,7 +573,7 @@ export default function UploadQueue({ token }) {
           };
         })
       );
-      await fetchBatches(false);
+      await fetchBatches(false, true);
     } catch (err) {
       alert(err.message || 'Không thể xóa file này. Vui lòng thử lại.');
     }
@@ -514,14 +588,14 @@ export default function UploadQueue({ token }) {
     setDeletingBatchIds((prev) => [...prev, batch.id]);
     try {
       await deleteDocumentBatch(token, batch.id);
-      const remainingBatches = batches.filter((item) => item.id !== batch.id && !isBatchReady(item));
-      setBatches((prev) => {
-        const filteredBatches = prev.filter((item) => item.id !== batch.id);
-        return filteredBatches;
+      removeCachedBatchItem(batch.id);
+      const remainingBatches = batches.filter((item) => item.id !== batch.id);
+      setBatches(remainingBatches);
+      setSelectedBatchId((currentId) => {
+        const nextId = currentId === batch.id ? remainingBatches[0]?.id || null : currentId;
+        selectedBatchIdRef.current = nextId;
+        return nextId;
       });
-      setSelectedBatchId((currentId) => (
-        currentId === batch.id ? remainingBatches[0]?.id || null : currentId
-      ));
     } catch (err) {
       alert(err.message || 'Không thể xóa batch này. Vui lòng thử lại.');
     } finally {
@@ -529,33 +603,91 @@ export default function UploadQueue({ token }) {
     }
   };
 
+  // Navigating to audit-trail marks the batch as viewed, moving it to "Đã hoàn tất"
   const handleViewReconciliation = (batch) => {
     if (!batch?.id) return;
+    setViewedBatchIds((prev) => new Set([...prev, batch.id]));
     navigate(`/audit-trail?batchId=${batch.id}`);
-  };
-
-  const handleOpenReadyBatch = () => {
-    if (!readyBatchNotice?.id) return;
-    navigate(`/audit-trail?batchId=${readyBatchNotice.id}`);
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải lên & Xử lý chứng từ</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Tải lên đơn đặt hàng PO, hóa đơn (.xml, .pdf, .png) hoặc phiếu nhập kho GRN để AI tự động bóc tách và đối soát.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải lên & Xử lý chứng từ</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Tải lên đơn đặt hàng PO, hóa đơn (.xml, .pdf, .png) hoặc phiếu nhập kho GRN để AI tự động bóc tách và đối soát.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => fetchBatches(true, true)}
+            className="btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3"
+            title="Làm mới dữ liệu"
+          >
+            <RefreshCw size={13} />
+            Làm mới
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateBatch}
+            className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5"
+          >
+            <Plus size={14} />
+            Tạo bộ mới
+          </button>
+        </div>
       </div>
 
-      {/* Select Document Type with Highlight Bounding Container */}
-      <div ref={documentTypesRef} className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3 scroll-mt-6">
+      {/* Selected Batch Status Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+            Đang tải cho bộ:
+          </span>
+          <span className="rounded-md bg-brand-50 px-2.5 py-1 font-mono text-sm font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+            {selectedBatch?.batch_number || 'Chưa chọn bộ'}
+          </span>
+          {selectedBatch && (
+            isBatchReady(selectedBatch) ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                <CheckCircle2 size={12} />
+                Đã đủ chứng từ & hoàn tất bóc tách
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                <AlertCircle size={12} />
+                Cần bổ sung chứng từ
+              </span>
+            )
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedBatch && isBatchReady(selectedBatch) && (
+            <button
+              type="button"
+              onClick={() => handleViewReconciliation(selectedBatch)}
+              className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-4 font-semibold shadow-sm"
+            >
+              <Eye size={14} />
+              Xem đối soát ngay
+              <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Select Document Type with Drop Zones */}
+      <div ref={documentTypesRef} className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3.5 scroll-mt-6">
         {DOC_TYPES.map((type) => {
           const isSelected = selectedDocType === type.value;
           const isDropActive = activeDropType === type.value;
           const Icon = type.icon;
           const uploadedFiles = uploadedFilesByType[type.value] || [];
+          const isReadingThisType = uploadedFiles.some((f) => isFileBeingRead(f));
+
           return (
             <div
               key={type.value}
@@ -573,80 +705,137 @@ export default function UploadQueue({ token }) {
               onDragOver={(event) => handleTypeDragOver(event, type.value)}
               onDragLeave={handleTypeDragLeave}
               onDrop={(event) => handleDrop(event, type.value)}
-              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all ${
+              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all cursor-pointer ${
                 isDropActive
                   ? 'border-brand-500 bg-brand-50 shadow-md ring-4 ring-brand-100 dark:border-brand-400 dark:bg-brand-950/30 dark:ring-brand-950'
+                  : isReadingThisType
+                  ? 'border-brand-400 bg-brand-50/50 shadow-sm ring-2 ring-brand-100 dark:border-brand-500 dark:bg-brand-950/20 dark:ring-brand-950'
                   : isSelected
                   ? 'border-brand-500 bg-white shadow-md dark:bg-slate-800 dark:border-brand-400'
-                  : 'border-slate-200/80 bg-white/60 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
+                  : 'border-slate-200/80 bg-white/70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
               }`}
             >
-              <div className={`p-2 rounded-lg ${isSelected || isDropActive ? 'bg-brand-600 text-white dark:bg-brand-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                <Icon size={18} />
+              <div className="flex w-full items-center justify-between">
+                <div className={`p-2 rounded-lg transition-colors ${
+                  isReadingThisType
+                    ? 'bg-brand-600 text-white dark:bg-brand-500 animate-pulse'
+                    : isSelected || isDropActive
+                    ? 'bg-brand-600 text-white dark:bg-brand-500'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                }`}>
+                  <Icon size={18} />
+                </div>
+                {isReadingThisType && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                    <Loader2 size={11} className="animate-spin" />
+                    Đang đọc file
+                  </span>
+                )}
               </div>
+
               <span className="mt-3 font-bold text-sm text-slate-900 dark:text-slate-100">{type.label}</span>
+
               {uploadedFiles.length > 0 && (
-                <div className="mt-3 w-full border-t border-slate-200/80 pt-2 dark:border-slate-700">
-                  <div className="space-y-1">
-                    {uploadedFiles.map((file, index) => (
-                      (() => {
-                        const fileBeingRead = isFileBeingRead(file);
+                <div className="mt-3 w-full border-t border-slate-200/80 pt-2.5 dark:border-slate-700">
+                  <div className="space-y-1.5">
+                    {uploadedFiles.map((file, index) => {
+                      const fileBeingRead = isFileBeingRead(file);
+
+                      if (fileBeingRead) {
                         return (
-                      <div
-                        key={`${file.id || file.filename}-${index}`}
-                        className="flex w-full flex-wrap items-center gap-1 rounded-md bg-slate-50 px-2 py-1 dark:bg-slate-900"
-                      >
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenUploadedFile(file);
-                          }}
-                          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left text-[11px] font-medium text-slate-700 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-300"
-                          title="Bấm để mở file"
+                          <div
+                            key={file.id || `${file.filename}-${index}`}
+                            className="flex w-full flex-col gap-1.5 rounded-lg border border-brand-200 bg-brand-50/90 p-2.5 dark:border-brand-800 dark:bg-brand-950/40"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <Loader2 size={13} className="shrink-0 animate-spin text-brand-600 dark:text-brand-400" />
+                                <span className="truncate text-xs font-semibold text-brand-950 dark:text-brand-100" title={file.filename}>
+                                  {file.filename}
+                                </span>
+                              </div>
+                              {file.size && (
+                                <span className="shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">
+                                  {file.size}
+                                </span>
+                              )}
+                            </div>
+                            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-500 animate-ping" />
+                              Đang đọc và bóc tách dữ liệu AI...
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      if (file.status === 'error') {
+                        return (
+                          <div
+                            key={file.id || `${file.filename}-${index}`}
+                            className="flex w-full flex-col gap-1 rounded-lg border border-rose-200 bg-rose-50 p-2.5 dark:border-rose-900 dark:bg-rose-950/30"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-xs font-semibold text-rose-800 dark:text-rose-200">{file.filename}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDismissInFlightError(file.id);
+                                }}
+                                className="text-rose-600 hover:text-rose-800"
+                                title="Đóng thông báo"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                            <p className="text-[11px] font-medium text-rose-600 dark:text-rose-300">
+                              {file.error_message || 'Tải lên hoặc đọc file thất bại'}
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      // Completed file
+                      return (
+                        <div
+                          key={file.id || `${file.filename}-${index}`}
+                          className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-2.5 py-2 dark:border-slate-800 dark:bg-slate-900"
                         >
-                          <span className="truncate">{file.filename}</span>
-                          {fileBeingRead ? (
-                            <Loader2 size={12} className="shrink-0 animate-spin text-brand-600 dark:text-brand-300" />
-                          ) : (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenUploadedFile(file);
+                            }}
+                            className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                            title="Bấm để mở xem file"
+                          >
+                            <CheckCircle2 size={14} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                            <span className="truncate">{file.filename}</span>
                             <ExternalLink size={12} className="shrink-0 text-slate-400" />
-                          )}
-                        </button>
-                        {file.status === 'completed' && !fileBeingRead && (
+                          </button>
                           <button
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
                               handleDeleteUploadedFile(file);
                             }}
-                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 dark:hover:bg-rose-950/40"
+                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
                             title="Xóa file"
                           >
                             <X size={13} />
                           </button>
-                        )}
-                        {fileBeingRead && (
-                          <p className="mt-1 flex basis-full items-center gap-1 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
-                            <Loader2 size={11} className="animate-spin" />
-                            Đang đọc file
-                          </p>
-                        )}
-                        {file.status === 'error' && (
-                          <p className="mt-1 basis-full text-[10px] font-semibold text-rose-600 dark:text-rose-300">
-                            {file.error_message || 'Tải lên thất bại'}
-                          </p>
-                        )}
-                      </div>
-                        );
-                      })()
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-              {uploadedFiles.length === 0 && hasSelectedBatchFiles && (
-                <div className="mt-3 w-full border-t border-slate-200/80 pt-2 dark:border-slate-700">
-                  <p className="rounded-md bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                    Chưa có chứng từ
+
+              {uploadedFiles.length === 0 && (
+                <div className="mt-3 w-full border-t border-slate-200/80 pt-2.5 dark:border-slate-700">
+                  <p className="rounded-md bg-amber-50/80 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                    Chưa có chứng từ (kéo thả file vào đây)
                   </p>
                 </div>
               )}
@@ -663,79 +852,69 @@ export default function UploadQueue({ token }) {
         />
       </div>
 
-      {readyBatchNotice && (
-        <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-emerald-900 dark:bg-emerald-950/25 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-              <CheckCircle2 size={17} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
-                {readyBatchNotice.batchNumber} đã trích xuất và so khớp xong
-              </p>
-              <p className="mt-0.5 text-sm text-emerald-800 dark:text-emerald-200">
-                Có thể xem thông tin đối soát của bộ chứng từ này.
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 sm:self-center">
-            <button
-              type="button"
-              onClick={handleOpenReadyBatch}
-              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-            >
-              Xem ngay
-            </button>
-            <button
-              type="button"
-              onClick={() => setReadyBatchNotice(null)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-200 dark:hover:bg-emerald-950"
-              title="Đóng thông báo"
-              aria-label="Đóng thông báo"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Batches */}
+      {/* Batches Queue Table */}
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
+        <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-              Hàng đợi xử lý ({pendingBatches.length} bộ)
+              Danh sách bộ đối soát ({batches.length} bộ)
             </h3>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               Chọn một bộ để bổ sung PO, hóa đơn hoặc phiếu nhập kho còn thiếu.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 self-start sm:self-center bg-slate-100 p-1 rounded-lg dark:bg-slate-800">
             <button
-              onClick={() => fetchBatches(true)}
-              className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-semibold"
+              type="button"
+              onClick={() => { setBatchFilterTab('incomplete'); setBatchPage(1); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                batchFilterTab === 'incomplete'
+                  ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-300'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
             >
-              Làm mới
+              Chờ xử lý ({activeBatches.length})
             </button>
             <button
-              onClick={handleCreateBatch}
-              className="rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              type="button"
+              onClick={() => { setBatchFilterTab('ready'); setBatchPage(1); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                batchFilterTab === 'ready'
+                  ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-300'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
             >
-              Tạo bộ mới
+              Đã hoàn tất ({readyBatches.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setBatchFilterTab('all'); setBatchPage(1); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                batchFilterTab === 'all'
+                  ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-300'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              Tất cả ({batches.length})
             </button>
           </div>
         </div>
+
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="animate-spin text-brand-600 dark:text-brand-400" size={24} />
             <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">Đang tải danh sách...</span>
           </div>
-        ) : pendingBatches.length === 0 ? (
+        ) : filteredBatches.length === 0 ? (
           <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
-            Chưa có bộ đối soát nào. Hãy kéo file vào ô PO, Invoice hoặc GRN để tạo bộ đầu tiên.
+            {batchFilterTab === 'incomplete'
+              ? 'Không có bộ nào đang chờ bổ sung chứng từ.'
+              : batchFilterTab === 'ready'
+              ? 'Chưa có bộ nào hoàn tất đủ 3 chứng từ.'
+              : 'Chưa có bộ đối soát nào. Hãy kéo file vào ô PO, Invoice hoặc GRN để tạo bộ đầu tiên.'}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 max-h-[460px] overflow-y-auto dark:divide-slate-800">
+          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto dark:divide-slate-800">
             {paginatedBatches.map((batch) => {
               const isSelectedBatch = selectedBatch?.id === batch.id;
               const filesByType = (batch.files || []).reduce((acc, file) => {
@@ -747,9 +926,9 @@ export default function UploadQueue({ token }) {
               const isDeletingBatch = deletingBatchIds.includes(batch.id);
               const batchDocState = getBatchDocState(batch);
               const missingCount = batchDocState.missingDocTypes.length;
-              const pendingExtractionCount = batchDocState.pendingExtractionDocTypes.length;
-              const hasAllUploads = missingCount === 0;
               const isReady = isBatchReady(batch);
+              const batchInFlight = inFlightFiles.filter((inf) => inf.batchId === batch.id);
+              const hasInFlight = batchInFlight.some((inf) => inf.status === 'processing');
 
               return (
                 <div
@@ -770,77 +949,72 @@ export default function UploadQueue({ token }) {
                   } group relative cursor-pointer pr-14`}
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
+                    <div className="min-w-0 shrink-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
                           {batch.batch_number}
                         </p>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            isReady
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                              : hasAllUploads
-                              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
-                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                          }`}
-                        >
-                          {isReady
-                            ? 'Khớp hoàn toàn'
-                            : hasAllUploads
-                              ? `Đang đọc file (${pendingExtractionCount || 3})`
-                              : `Cần bổ sung ${missingCount} chứng từ`}
-                        </span>
-                        {isReady && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleViewReconciliation(batch);
-                            }}
-                            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-brand-200 bg-white px-2.5 text-[11px] font-semibold text-brand-700 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-950/40"
-                            title="Xem đối soát"
-                            aria-label={`Xem đối soát ${batch.batch_number}`}
+                        {!isReady && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              hasInFlight
+                                ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                            }`}
                           >
-                            <Eye size={13} />
-                            Xem đối soát
-                          </button>
+                            {hasInFlight ? 'Đang đọc file...' : `Cần bổ sung ${missingCount} chứng từ`}
+                          </span>
+                        )}
+                        {isReady && batchFilterTab !== 'incomplete' && (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            Đã hoàn tất
+                          </span>
                         )}
                       </div>
                       <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                         Cập nhật: {batch.updated_at || batch.created_at}
                       </p>
                     </div>
-                    <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-3 lg:max-w-3xl">
+
+                    <div className="grid min-w-0 flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3">
                       {DOC_TYPES.map((type) => {
                         const file = filesByType[type.value];
-                        const fileBeingRead = isFileBeingRead(file) || batchDocState.pendingExtractionDocTypes.includes(type.value);
+                        const typeInFlight = batchInFlight.find((inf) => inf.docType === type.value && inf.status === 'processing');
+                        const fileBeingRead = Boolean(typeInFlight) || isFileBeingRead(file) || batchDocState.pendingExtractionDocTypes.includes(type.value);
+
                         return (
                           <span
                             key={type.value}
-                            className={`min-w-0 rounded-lg border px-3 py-2 text-xs ${
+                            className={`min-w-0 rounded-lg border px-3 py-2 text-xs transition-colors ${
                               fileBeingRead
                                 ? 'border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
                                 : file
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
                                 : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'
                             }`}
-                            title={file?.filename || 'Chưa có chứng từ'}
+                            title={typeInFlight?.filename || file?.filename || 'Chưa có chứng từ'}
                           >
-                            <span className="block font-semibold">{type.label}</span>
-                            <span className="mt-0.5 block truncate">
-                              {file?.filename || (fileBeingRead ? 'Đã nhận file' : 'Chưa có chứng từ')}
+                            <span className="block font-semibold whitespace-nowrap truncate">{type.label}</span>
+                            <span className="mt-0.5 block truncate text-[11px]">
+                              {typeInFlight?.filename || file?.filename || (fileBeingRead ? 'Đã nhận file' : 'Chưa có chứng từ')}
                             </span>
-                            {fileBeingRead && (
-                              <span className="mt-1 flex items-center gap-1 font-semibold">
+                            {fileBeingRead ? (
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-brand-600 dark:text-brand-300 whitespace-nowrap">
                                 <Loader2 size={11} className="animate-spin" />
                                 Đang đọc file
                               </span>
-                            )}
+                            ) : file ? (
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                                <CheckCircle2 size={11} />
+                                Đã bóc tách
+                              </span>
+                            ) : null}
                           </span>
                         );
                       })}
                     </div>
                   </div>
+
                   {canDeleteBatch && (
                     <button
                       type="button"
@@ -861,10 +1035,11 @@ export default function UploadQueue({ token }) {
             })}
           </div>
         )}
-        {pendingBatches.length > BATCHES_PER_PAGE && (
+
+        {filteredBatches.length > BATCHES_PER_PAGE && (
           <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Hiển thị {batchStartIndex}-{batchEndIndex} / {pendingBatches.length} bộ
+              Hiển thị {batchStartIndex}-{batchEndIndex} / {filteredBatches.length} bộ
             </p>
             <div className="flex items-center justify-end gap-2">
               <button

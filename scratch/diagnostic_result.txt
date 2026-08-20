@@ -1,0 +1,17 @@
+=== STARTING DIAGNOSTIC FOR LOGIN ===
+
+1. Checking Users Table:
+Found 4 users in database.
+  - User: email='chuthanhdungtruong@gmail.com', status='ACTIVE', role='chief_accountant'
+  - User: email='chief.accountant@docusync.ai', status='ACTIVE', role='chief_accountant'
+  - User: email='accountant@docusync.ai', status='ACTIVE', role='accountant'
+  - User: email='chuthanhdung@gmail.com', status='ACTIVE', role='accountant'
+
+2. Attempting authenticate_user('chuthanhdung@gmail.com', '123456'):
+Authenticate result: <src.models.user.User object at 0x00000212D63CE780>
+
+3. Testing create_user_session:
+Session created token len: 43
+
+4. Testing write_audit_log:
+Audit log written successfully.
