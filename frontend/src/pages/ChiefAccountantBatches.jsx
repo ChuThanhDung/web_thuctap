@@ -524,8 +524,34 @@ export default function ChiefAccountantBatches({ token }) {
   const [detailBatchId, setDetailBatchId] = useState(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [dateRange, setDateRange] = useState(() => {
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+    return {
+      start: parseDateInput(fromParam, 'start'),
+      end: parseDateInput(toParam, 'end'),
+    };
+  });
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    } else {
+      setStatusFilter('all');
+    }
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+    if (fromParam || toParam) {
+      setDateRange({
+        start: parseDateInput(fromParam, 'start'),
+        end: parseDateInput(toParam, 'end'),
+      });
+    } else {
+      setDateRange({ start: null, end: null });
+    }
+  }, [searchParams]);
 
   const loadBatches = async (forceRefresh = false) => {
     if (!getCachedBatches()) {
@@ -699,7 +725,19 @@ export default function ChiefAccountantBatches({ token }) {
             <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                const nextStatus = e.target.value;
+                setStatusFilter(nextStatus);
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (nextStatus === 'all') {
+                    next.delete('status');
+                  } else {
+                    next.set('status', nextStatus);
+                  }
+                  return next;
+                });
+              }}
               className="input-field appearance-none pl-9 pr-9 w-full"
             >
               <option value="all">Tất cả trạng thái</option>
@@ -714,10 +752,14 @@ export default function ChiefAccountantBatches({ token }) {
             <button
               type="button"
               onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className="btn-secondary inline-flex items-center gap-2"
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                dateRange.start || dateRange.end
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                  : 'btn-secondary'
+              }`}
             >
               <SlidersHorizontal size={16} />
-              Lọc theo thời gian
+              {dateRange.start || dateRange.end ? 'Đang lọc thời gian' : 'Lọc theo thời gian'}
             </button>
             
             {filterMenuOpen && (
@@ -750,6 +792,12 @@ export default function ChiefAccountantBatches({ token }) {
                       type="button"
                       onClick={() => {
                         setDateRange({ start: null, end: null });
+                        setSearchParams((prev) => {
+                          const next = new URLSearchParams(prev);
+                          next.delete('from');
+                          next.delete('to');
+                          return next;
+                        });
                         setFilterMenuOpen(false);
                       }}
                       className="btn-secondary flex-1"
@@ -758,7 +806,23 @@ export default function ChiefAccountantBatches({ token }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFilterMenuOpen(false)}
+                      onClick={() => {
+                        setSearchParams((prev) => {
+                          const next = new URLSearchParams(prev);
+                          if (dateRange.start) {
+                            next.set('from', dateRange.start.toISOString().split('T')[0]);
+                          } else {
+                            next.delete('from');
+                          }
+                          if (dateRange.end) {
+                            next.set('to', dateRange.end.toISOString().split('T')[0]);
+                          } else {
+                            next.delete('to');
+                          }
+                          return next;
+                        });
+                        setFilterMenuOpen(false);
+                      }}
                       className="btn-primary flex-1"
                     >
                       Áp dụng
