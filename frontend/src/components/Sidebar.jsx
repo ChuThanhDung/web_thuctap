@@ -11,6 +11,7 @@ import {
   Moon,
   Sun,
   Upload,
+  Users,
   X,
 } from 'lucide-react';
 import { getAvatarViewUrl } from '../api.js';
@@ -25,6 +26,7 @@ const navItemsAccountant = [
 
 const navItemsManager = [
   { to: '/accountant', icon: LayoutDashboard, label: 'Tổng quan' },
+  { to: '/users', icon: Users, label: 'Quản lý tài khoản' },
   { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
 ];
 

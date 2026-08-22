@@ -346,6 +346,7 @@ def ensure_document_batch_tables() -> None:
             approved_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
             chief_approved_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
             note TEXT NULL,
+            rejection_note TEXT NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'incomplete',
             created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now())),
             updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))
@@ -355,6 +356,7 @@ def ensure_document_batch_tables() -> None:
         "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS approved_by_id INTEGER",
         "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS chief_approved_by_id INTEGER",
         "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS note TEXT",
+        "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS rejection_note TEXT",
         """
         DO $$
         BEGIN

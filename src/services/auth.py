@@ -40,6 +40,25 @@ def next_public_user_id(db: Session) -> int:
     return (db.scalar(select(func.max(User.public_id))) or 0) + 1
 
 
+def get_employee_code_prefix(role_code: str) -> str:
+    return "CHIEF" if role_code == "chief_accountant" else "ACC"
+
+
+def build_next_employee_code(db: Session, role_code: str) -> str:
+    prefix = get_employee_code_prefix(role_code)
+    existing_codes = db.scalars(
+        select(User.employee_code).where(User.employee_code.like(f"{prefix}%"))
+    ).all()
+    next_index = 1
+    for code in existing_codes:
+        if not code:
+            continue
+        suffix = code.removeprefix(prefix).lstrip("-_")
+        if suffix.isdigit():
+            next_index = max(next_index, int(suffix) + 1)
+    return f"{prefix}-{next_index:03d}"
+
+
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
     stmt = (
         select(User)
@@ -179,11 +198,11 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
     if existing_user:
         raise ValueError("Email này đã được sử dụng bởi tài khoản khác trong hệ thống.")
 
-    emp_code_clean = payload.employee_code.strip() if payload.employee_code else None
-    if emp_code_clean:
-        existing_emp = db.scalars(select(User).where(User.employee_code == emp_code_clean)).first()
-        if existing_emp:
-            raise ValueError("Mã nhân viên này đã tồn tại.")
+    citizen_id_clean = payload.citizen_id.strip() if payload.citizen_id else None
+    if citizen_id_clean:
+        existing_citizen = db.scalars(select(User).where(User.citizen_id == citizen_id_clean)).first()
+        if existing_citizen:
+            raise ValueError("Căn cước công dân này đã tồn tại.")
 
     role = db.scalars(select(Role).where(Role.code == payload.role_code)).first()
     if not role:
@@ -195,9 +214,12 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
         password_hash=hash_password(payload.password),
         full_name=payload.full_name.strip(),
         role_id=role.id,
-        department=payload.department.strip() if payload.department else None,
-        employee_code=emp_code_clean,
-        phone=payload.phone.strip() if payload.phone else None,
+        department="Phòng Kế toán - Tài chính",
+        employee_code=build_next_employee_code(db, role.code),
+        phone=payload.phone.strip(),
+        citizen_id=citizen_id_clean,
+        address=payload.address.strip(),
+        date_of_birth=payload.date_of_birth,
         status="ACTIVE",
     )
     db.add(new_user)

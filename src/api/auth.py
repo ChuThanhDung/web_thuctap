@@ -1,10 +1,13 @@
+import uuid
+
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile, status
 from fastapi import Path as ApiPath
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.database import get_db
+from src.models.role import Role
 from src.models.schemas import (
     AuthUser,
     LoginRequest,
@@ -16,11 +19,13 @@ from src.models.schemas import (
     ProfileUpdateRequest,
     UserCreateRequest,
     UserListResponse,
+    UserUpdateRequest,
 )
 from src.models.user import User
 from src.services.auth import (
     PasswordChangeError,
     authenticate_user,
+    build_next_employee_code,
     create_user_by_admin,
     create_user_session,
     get_user_by_session_token,
@@ -50,6 +55,7 @@ def to_auth_user(user: User) -> AuthUser:
         full_name=user.full_name,
         role=role_code,
         role_name=role_name,
+        status=user.status,
         department=user.department,
         employee_code=user.employee_code,
         date_of_birth=user.date_of_birth,
@@ -325,3 +331,184 @@ async def list_users(
         items=[to_auth_user(u) for u in users],
         total=len(users),
     )
+
+
+def require_chief_accountant(current_user: User) -> None:
+    if current_user.role.code != "chief_accountant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ Kế toán trưởng mới có quyền quản lý người dùng.",
+        )
+
+
+def get_managed_user(db: Session, user_id: str) -> User:
+    try:
+        parsed_id = uuid.UUID(user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="user_id không hợp lệ.") from exc
+
+    user = db.scalars(
+        select(User).options(selectinload(User.role)).where(User.id == parsed_id)
+    ).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy người dùng.")
+    return user
+
+
+def count_active_chief_accountants(db: Session) -> int:
+    return db.scalar(
+        select(func.count(User.id))
+        .join(Role)
+        .where(Role.code == "chief_accountant", User.status == "ACTIVE")
+    ) or 0
+
+
+def ensure_unique_user_fields(db: Session, target_user: User, payload: UserUpdateRequest) -> None:
+    if payload.email is not None:
+        email_clean = payload.email.lower().strip()
+        exists = db.scalars(
+            select(User).where(User.email == email_clean, User.id != target_user.id)
+        ).first()
+        if exists:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email này đã được sử dụng.")
+
+    if payload.citizen_id:
+        citizen_id = payload.citizen_id.strip()
+        exists = db.scalars(
+            select(User).where(User.citizen_id == citizen_id, User.id != target_user.id)
+        ).first()
+        if exists:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Căn cước công dân này đã tồn tại.")
+
+
+@router.patch("/users/{user_id}", response_model=AuthUser)
+async def update_user_account(
+    user_id: str,
+    payload: UserUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthUser:
+    require_chief_accountant(current_user)
+    target_user = get_managed_user(db, user_id)
+    ensure_unique_user_fields(db, target_user, payload)
+
+    next_role = target_user.role
+    if payload.role_code is not None:
+        next_role = db.scalars(select(Role).where(Role.code == payload.role_code)).first()
+        if next_role is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Vai trò không hợp lệ.")
+        if (
+            target_user.role.code == "chief_accountant"
+            and next_role.code != "chief_accountant"
+            and target_user.status == "ACTIVE"
+            and count_active_chief_accountants(db) <= 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Không thể đổi vai trò của Kế toán trưởng active cuối cùng.",
+            )
+
+    if payload.email is not None:
+        target_user.email = payload.email.lower().strip()
+    if payload.full_name is not None:
+        target_user.full_name = payload.full_name.strip()
+    if payload.role_code is not None:
+        target_user.role_id = next_role.id
+        expected_prefix = "CHIEF" if next_role.code == "chief_accountant" else "ACC"
+        if not (target_user.employee_code or "").startswith(expected_prefix):
+            target_user.employee_code = build_next_employee_code(db, next_role.code)
+    target_user.department = "Phòng Kế toán - Tài chính"
+    if payload.phone is not None:
+        target_user.phone = payload.phone.strip() or None
+    if payload.citizen_id is not None:
+        target_user.citizen_id = payload.citizen_id.strip() or None
+    if payload.address is not None:
+        target_user.address = payload.address.strip() or None
+    if payload.date_of_birth is not None:
+        target_user.date_of_birth = payload.date_of_birth
+
+    db.commit()
+    db.refresh(target_user)
+
+    write_audit_log(
+        db=db,
+        action="USER_UPDATED",
+        user=current_user,
+        target_type="USER",
+        target_id=str(target_user.id),
+        details={"updated_user_email": target_user.email},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    return to_auth_user(target_user)
+
+
+@router.delete("/users/{user_id}", response_model=AuthUser)
+async def deactivate_user_account(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthUser:
+    require_chief_accountant(current_user)
+    target_user = get_managed_user(db, user_id)
+    if target_user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Không thể vô hiệu hóa tài khoản đang đăng nhập.",
+        )
+    if (
+        target_user.role.code == "chief_accountant"
+        and target_user.status == "ACTIVE"
+        and count_active_chief_accountants(db) <= 1
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Không thể vô hiệu hóa Kế toán trưởng active cuối cùng.",
+        )
+
+    target_user.status = "DEACTIVE"
+    db.commit()
+    db.refresh(target_user)
+
+    write_audit_log(
+        db=db,
+        action="USER_DEACTIVATED",
+        user=current_user,
+        target_type="USER",
+        target_id=str(target_user.id),
+        details={"deactivated_user_email": target_user.email},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    return to_auth_user(target_user)
+
+
+@router.patch("/users/{user_id}/activate", response_model=AuthUser)
+async def activate_user_account(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AuthUser:
+    require_chief_accountant(current_user)
+    target_user = get_managed_user(db, user_id)
+    target_user.status = "ACTIVE"
+    db.commit()
+    db.refresh(target_user)
+
+    write_audit_log(
+        db=db,
+        action="USER_ACTIVATED",
+        user=current_user,
+        target_type="USER",
+        target_id=str(target_user.id),
+        details={"activated_user_email": target_user.email},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    return to_auth_user(target_user)

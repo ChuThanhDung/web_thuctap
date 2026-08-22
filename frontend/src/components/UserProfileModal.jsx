@@ -17,14 +17,9 @@ import {
   MapPin,
   Phone,
   ShieldCheck,
-  UserCheck,
-  UserPlus,
-  Users,
 } from 'lucide-react';
 import {
-  createUserAccount,
   getAvatarViewUrl,
-  getUserAccounts,
   requestPasswordOtp,
   updateProfile,
   uploadAvatar,
@@ -120,11 +115,10 @@ function PasswordField({ label, value, onChange, visible, onToggle, error, helpe
 }
 
 export default function UserProfileModal({ token, user, onClose, onUserUpdate }) {
-  const isChiefAccountant = user.role === 'chief_accountant';
   const fullName = repairVietnameseText(user.full_name) || '';
   const roleName = useMemo(() => repairVietnameseText(user.role_name), [user.role_name]);
   const department = repairVietnameseText(user.department);
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'users'
+  const activeTab = 'profile';
   const [mode, setMode] = useState('view'); // 'view' | 'edit' | 'otp' | 'password'
   const [profile, setProfile] = useState({
     full_name: fullName,
@@ -143,25 +137,6 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // User creation state (chief accountant)
-  const [userList, setUserList] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [newUser, setNewUser] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role_code: 'accountant',
-    department: 'Phòng Kế toán - Tài chính',
-    employee_code: '',
-    phone: '',
-  });
-
-  useEffect(() => {
-    if (activeTab === 'users' && isChiefAccountant) {
-      loadUserList();
-    }
-  }, [activeTab]);
-
   useEffect(() => {
     if (resendCountdown <= 0) return undefined;
     const timer = window.setInterval(() => {
@@ -170,24 +145,8 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     return () => window.clearInterval(timer);
   }, [resendCountdown]);
 
-  async function loadUserList() {
-    setLoadingUsers(true);
-    try {
-      const res = await getUserAccounts(token);
-      setUserList(res.items || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoadingUsers(false);
-    }
-  }
-
   function setProfileField(field, value) {
     setProfile((current) => ({ ...current, [field]: value }));
-  }
-
-  function setNewUserField(field, value) {
-    setNewUser((current) => ({ ...current, [field]: value }));
   }
 
   function resetFeedback() {
@@ -265,47 +224,6 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     }
   }
 
-  async function handleCreateUser(event) {
-    event.preventDefault();
-    resetFeedback();
-
-    // Frontend email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newUser.email)) {
-      setError('Vui lòng nhập địa chỉ Email hợp lệ (ví dụ: user@company.com).');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const created = await createUserAccount(token, {
-        email: newUser.email,
-        password: newUser.password,
-        full_name: newUser.full_name,
-        role_code: newUser.role_code,
-        department: newUser.department || null,
-        employee_code: newUser.employee_code || null,
-        phone: newUser.phone || null,
-      });
-
-      setMessage(`Đã tạo thành công tài khoản: ${created.email} (${created.role_name}).`);
-      setNewUser({
-        email: '',
-        password: '',
-        full_name: '',
-        role_code: 'accountant',
-        department: 'Phòng Kế toán - Tài chính',
-        employee_code: '',
-        phone: '',
-      });
-      loadUserList();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-2 backdrop-blur-sm sm:p-4"
@@ -321,12 +239,10 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.2px] text-[#0d253d]">
-                {activeTab === 'profile' ? 'Thông tin cá nhân' : 'Quản lý tài khoản người dùng'}
+                Thông tin cá nhân
               </h2>
               <p className="mt-0.5 text-sm text-[#64748d]">
-                {activeTab === 'profile'
-                  ? 'Quản lý hồ sơ và bảo mật tài khoản.'
-                  : 'Tạo tài khoản Kế toán trưởng / Kế toán viên mới.'}
+                Quản lý hồ sơ và bảo mật tài khoản.
               </p>
             </div>
             <button
@@ -340,40 +256,6 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
             </button>
           </div>
 
-          {/* Navigation Tabs for Chief Accountant */}
-          {isChiefAccountant && (
-          <div className="mt-3 flex gap-4 overflow-x-auto border-b border-[#e3e8ee] text-sm font-medium">
-              <button
-                type="button"
-                className={`pb-2.5 transition-colors ${
-                  activeTab === 'profile'
-                    ? 'border-b-2 border-brand-600 font-semibold text-brand-600'
-                    : 'text-[#64748d] hover:text-[#0d253d]'
-                }`}
-                onClick={() => {
-                  setActiveTab('profile');
-                  resetFeedback();
-                }}
-              >
-                Hồ sơ cá nhân
-              </button>
-              <button
-                type="button"
-                className={`flex items-center gap-1.5 pb-2.5 transition-colors ${
-                  activeTab === 'users'
-                    ? 'border-b-2 border-brand-600 font-semibold text-brand-600'
-                    : 'text-[#64748d] hover:text-[#0d253d]'
-                }`}
-                onClick={() => {
-                  setActiveTab('users');
-                  resetFeedback();
-                }}
-              >
-                <Users size={15} />
-                Tạo & Quản lý tài khoản
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Modal Body */}
@@ -602,172 +484,6 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                 </form>
               )}
             </>
-          )}
-
-          {/* TAB 2: USER MANAGEMENT (CHIEF ACCOUNTANT ONLY) */}
-          {activeTab === 'users' && isChiefAccountant && (
-            <div className="space-y-6">
-              {/* Form Tao Tai Khoan */}
-              <div className="rounded-xl border border-[#e3e8ee] bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2 border-b border-[#f0f4ff] pb-3 text-sm font-semibold text-[#0d253d]">
-                  <UserPlus className="text-brand-600" size={18} />
-                  <span>Tạo tài khoản mới</span>
-                </div>
-
-                <form onSubmit={handleCreateUser} className="mt-4 space-y-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Email (bắt buộc)
-                      </span>
-                      <input
-                        type="email"
-                        className="input-field"
-                        placeholder="vi-du@vinuni.edu.vn"
-                        value={newUser.email}
-                        onChange={(e) => setNewUserField('email', e.target.value)}
-                        required
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Mật khẩu (tối thiểu 6 ký tự)
-                      </span>
-                      <input
-                        type="password"
-                        className="input-field"
-                        placeholder="••••••••"
-                        value={newUser.password}
-                        onChange={(e) => setNewUserField('password', e.target.value)}
-                        minLength={6}
-                        required
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Họ và Tên
-                      </span>
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="Nguyễn Văn A"
-                        value={newUser.full_name}
-                        onChange={(e) => setNewUserField('full_name', e.target.value)}
-                        required
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Vai trò hệ thống
-                      </span>
-                      <select
-                        className="input-field font-medium text-slate-800"
-                        value={newUser.role_code}
-                        onChange={(e) => setNewUserField('role_code', e.target.value)}
-                      >
-                        <option value="accountant">Kế toán viên</option>
-                        <option value="chief_accountant">Kế toán trưởng</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Mã nhân viên
-                      </span>
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="ACC-003"
-                        value={newUser.employee_code}
-                        onChange={(e) => setNewUserField('employee_code', e.target.value)}
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Phòng ban
-                      </span>
-                      <input
-                        type="text"
-                        className="input-field"
-                        value={newUser.department}
-                        onChange={(e) => setNewUserField('department', e.target.value)}
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#64748d]">
-                        Số điện thoại
-                      </span>
-                      <input
-                        type="tel"
-                        className="input-field"
-                        placeholder="0912345678"
-                        value={newUser.phone}
-                        onChange={(e) => setNewUserField('phone', e.target.value)}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="pt-2 flex justify-end">
-                    <button type="submit" className="btn-primary" disabled={loading}>
-                      {loading ? <Loader2 className="animate-spin" size={16} /> : <UserPlus size={16} />}
-                      Tạo tài khoản
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Danh sach Tai Khoan */}
-              <div className="rounded-xl border border-[#e3e8ee] bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between border-b border-[#f0f4ff] pb-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#0d253d]">
-                    <Users className="text-brand-600" size={18} />
-                    <span>Danh sách tài khoản ({userList.length})</span>
-                  </div>
-                  {loadingUsers && <Loader2 className="animate-spin text-brand-600" size={16} />}
-                </div>
-
-                <div className="mt-3 space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {userList.map((u) => (
-                    <div
-                      key={u.id}
-                    className="flex flex-col items-start justify-between gap-2 rounded-lg border border-[#e3e8ee] bg-[#f8faff] p-3 text-sm transition-colors hover:border-brand-200 hover:bg-white sm:flex-row sm:items-center"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-[#0d253d] truncate">{repairVietnameseText(u.full_name)}</p>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                              u.role === 'chief_accountant'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}
-                          >
-                            {u.role_name || u.role}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#64748d] mt-0.5">{u.email}</p>
-                      </div>
-                      <div className="text-right text-xs text-[#64748d] shrink-0">
-                        <p className="font-medium text-[#0d253d]">{u.employee_code || '---'}</p>
-                        <p>{repairVietnameseText(u.department) || 'Kế toán'}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {userList.length === 0 && !loadingUsers && (
-                    <p className="py-4 text-center text-xs text-[#64748d]">Chưa có tài khoản nào khác.</p>
-                  )}
-                </div>
-              </div>
-            </div>
           )}
         </div>
       </div>

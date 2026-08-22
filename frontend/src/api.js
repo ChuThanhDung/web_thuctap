@@ -197,9 +197,10 @@ export async function finalApproveDocumentBatch(token, batchId) {
   return parseResponse(response);
 }
 
-export async function rejectDocumentBatch(token, batchId) {
+export async function rejectDocumentBatch(token, batchId, payload = {}) {
   const response = await authFetch(`/uploads/batches/${batchId}/reject`, token, {
     method: 'POST',
+    body: JSON.stringify(payload),
   });
   return parseResponse(response);
 }
@@ -241,6 +242,31 @@ export async function createUserAccount(token, userData) {
 
 export async function getUserAccounts(token) {
   const response = await authFetch('/auth/users', token);
+  return parseResponse(response);
+}
+
+export async function updateUserAccount(token, userId, userData) {
+  const response = await authFetch(`/auth/users/${userId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(userData),
+  });
+
+  return parseResponse(response);
+}
+
+export async function deactivateUserAccount(token, userId) {
+  const response = await authFetch(`/auth/users/${userId}`, token, {
+    method: 'DELETE',
+  });
+
+  return parseResponse(response);
+}
+
+export async function activateUserAccount(token, userId) {
+  const response = await authFetch(`/auth/users/${userId}/activate`, token, {
+    method: 'PATCH',
+  });
+
   return parseResponse(response);
 }
 

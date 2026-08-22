@@ -491,6 +491,8 @@ function mapApiBatchToAuditBatch(batch) {
   return {
     id: String(batch.id),
     batchNumber: batch.batch_number,
+    note: batch.note || '',
+    rejectionNote: batch.rejection_note || '',
     status,
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống',
@@ -524,6 +526,10 @@ export default function ChiefAccountantBatches({ token }) {
   const [detailBatchId, setDetailBatchId] = useState(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [rejectingBatch, setRejectingBatch] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionError, setRejectionError] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
   const [dateRange, setDateRange] = useState(() => {
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
@@ -599,15 +605,41 @@ export default function ChiefAccountantBatches({ token }) {
   };
 
   const handleRejectBatch = async (batch) => {
-    if (!window.confirm('Bạn có chắc chắn muốn từ chối batch này không?')) return;
+    setRejectingBatch(batch);
+    setRejectionReason('');
+    setRejectionError('');
+  };
 
+  const handleCloseRejectModal = () => {
+    if (isRejecting) return;
+    setRejectingBatch(null);
+    setRejectionReason('');
+    setRejectionError('');
+  };
+
+  const handleConfirmRejectBatch = async () => {
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      setRejectionError('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+    if (!rejectingBatch) return;
+
+    setIsRejecting(true);
+    setRejectionError('');
     try {
-      const updated = await rejectDocumentBatch(token, batch.id);
+      const updated = await rejectDocumentBatch(token, rejectingBatch.id, {
+        rejection_note: reason,
+      });
       updateCachedBatchItem(updated);
       setDetailPanelOpen(false);
+      setRejectingBatch(null);
+      setRejectionReason('');
     } catch (error) {
       console.error('Failed to reject batch:', error);
-      alert(error.message || 'Không thể từ chối batch');
+      setRejectionError(error.message || 'Không thể từ chối batch');
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -640,6 +672,8 @@ export default function ChiefAccountantBatches({ token }) {
       const query = searchQuery.toLowerCase();
       result = result.filter((batch) =>
         batch.batchNumber.toLowerCase().includes(query) ||
+        batch.note.toLowerCase().includes(query) ||
+        batch.rejectionNote.toLowerCase().includes(query) ||
         batch.owner.toLowerCase().includes(query) ||
         batch.approvedBy?.toLowerCase().includes(query)
       );
@@ -714,7 +748,7 @@ export default function ChiefAccountantBatches({ token }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
               type="text"
-              placeholder="Tìm theo mã batch, người tạo, người duyệt..."
+              placeholder="Tìm theo mã batch, note, người tạo, người duyệt..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field w-full pl-10"
@@ -891,6 +925,22 @@ export default function ChiefAccountantBatches({ token }) {
                         <span>•</span>
                         <span>Tạo bởi: {batch.owner}</span>
                       </div>
+                      {batch.note && (
+                        <p
+                          className="mt-1 max-w-3xl truncate text-sm font-semibold text-slate-700 dark:text-slate-300"
+                          title={batch.note}
+                        >
+                          Note: {batch.note}
+                        </p>
+                      )}
+                      {batch.rejectionNote && (
+                        <p
+                          className="mt-1 max-w-3xl truncate text-sm font-semibold text-rose-700 dark:text-rose-300"
+                          title={batch.rejectionNote}
+                        >
+                          Lý do từ chối: {batch.rejectionNote}
+                        </p>
+                      )}
                       
                       {/* Document files */}
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -1011,6 +1061,11 @@ export default function ChiefAccountantBatches({ token }) {
                       </span>
                     )}
                   </div>
+                  {detailBatch.rejectionNote && (
+                    <p className="mt-2 max-w-4xl text-sm font-semibold text-rose-700 dark:text-rose-300">
+                      Lý do từ chối: {detailBatch.rejectionNote}
+                    </p>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -1148,6 +1203,65 @@ export default function ChiefAccountantBatches({ token }) {
                   </table>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectingBatch && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Lý do từ chối</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{rejectingBatch.batchNumber}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseRejectModal}
+                disabled={isRejecting}
+                className="btn-ghost h-8 w-8 rounded-lg p-0 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <textarea
+              value={rejectionReason}
+              onChange={(event) => {
+                setRejectionReason(event.target.value.slice(0, 1000));
+                setRejectionError('');
+              }}
+              rows={4}
+              maxLength={1000}
+              placeholder="Nhập lý do từ chối để kế toán viên biết cần điều chỉnh gì..."
+              className="mt-4 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-2 focus:ring-rose-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-rose-500 dark:focus:bg-slate-900 dark:focus:ring-rose-950"
+              autoFocus
+            />
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+              <span className="font-semibold text-rose-600 dark:text-rose-300">{rejectionError}</span>
+              <span className="shrink-0 text-slate-400 dark:text-slate-500">{rejectionReason.length}/1000</span>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCloseRejectModal}
+                disabled={isRejecting}
+                className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectBatch}
+                disabled={isRejecting}
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRejecting && <Loader2 size={14} className="animate-spin" />}
+                OK
+              </button>
             </div>
           </div>
         </div>

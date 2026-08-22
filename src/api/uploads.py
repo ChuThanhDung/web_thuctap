@@ -21,6 +21,7 @@ from src.models.reconciliation import (
 from src.models.schemas import (
     DocumentBatchListResponse,
     DocumentBatchOut,
+    DocumentBatchRejectRequest,
     DocumentBatchUpdateRequest,
     MessageResponse,
     UploadedDocumentExtractionOut,
@@ -511,6 +512,7 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
         id=batch.id,
         batch_number=batch.batch_number,
         note=batch.note,
+        rejection_note=batch.rejection_note,
         status=batch.status,
         created_by_id=batch.created_by_id,
         created_by_name=batch.created_by.full_name if batch.created_by else None,
@@ -725,6 +727,7 @@ async def final_approve_upload_batch(
 @router.post("/batches/{batch_id}/reject", response_model=DocumentBatchOut)
 async def reject_upload_batch(
     batch_id: int,
+    payload: DocumentBatchRejectRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DocumentBatchOut:
@@ -750,8 +753,16 @@ async def reject_upload_batch(
     if batch.status == "rejected":
         return to_document_batch_out(batch)
 
+    rejection_note = payload.rejection_note.strip()
+    if not rejection_note:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Vui lòng nhập lý do từ chối batch.",
+        )
+
     batch.status = "rejected"
     batch.chief_approved_by_id = current_user.public_id  # Lưu người từ chối
+    batch.rejection_note = rejection_note
     batch.updated_at = datetime.now()
     db.add(batch)
 
@@ -766,7 +777,7 @@ async def reject_upload_batch(
             "batch_number": batch.batch_number,
             "case_id": str(reconciliation_case.id) if reconciliation_case else None,
             "case_number": reconciliation_case.case_number if reconciliation_case else None,
-            "note": "Document batch rejected by chief accountant.",
+            "note": rejection_note,
         },
         ip_address=None,
         user_agent=None,
