@@ -436,7 +436,69 @@ async def test_upload_batch_note_is_optional_and_updateable(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_chief_accountant_rejects_batch_with_reason(client, db_session):
+async def test_accountant_only_sees_own_upload_batches(client, db_session):
+    accountant = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
+    other_accountant = db_session.query(User).filter(User.email == "chuthanhdung@gmail.com").first()
+    own_batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_80",
+        created_by_id=accountant.public_id,
+        status="incomplete",
+    )
+    other_batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_81",
+        created_by_id=other_accountant.public_id,
+        status="incomplete",
+    )
+    db_session.add_all([own_batch, other_batch])
+    db_session.commit()
+
+    accountant_response = await client.get("/api/v1/uploads/batches")
+
+    assert accountant_response.status_code == 200
+    accountant_ids = {item["id"] for item in accountant_response.json()["items"]}
+    assert own_batch.id in accountant_ids
+    assert other_batch.id not in accountant_ids
+
+    app.dependency_overrides[get_current_user] = override_get_chief_user
+    try:
+        chief_response = await client.get("/api/v1/uploads/batches")
+    finally:
+        app.dependency_overrides[get_current_user] = override_get_current_user
+
+    assert chief_response.status_code == 200
+    chief_ids = {item["id"] for item in chief_response.json()["items"]}
+    assert {own_batch.id, other_batch.id}.issubset(chief_ids)
+
+
+@pytest.mark.asyncio
+async def test_accountant_cannot_access_other_accountants_batch(client, db_session):
+    other_accountant = db_session.query(User).filter(User.email == "chuthanhdung@gmail.com").first()
+    other_batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_82",
+        created_by_id=other_accountant.public_id,
+        status="incomplete",
+    )
+    db_session.add(other_batch)
+    db_session.commit()
+
+    note_response = await client.patch(
+        f"/api/v1/uploads/batches/{other_batch.id}",
+        json={"note": "Không được sửa batch của kế toán viên khác"},
+    )
+
+    assert note_response.status_code == 404
+
+    upload_response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po", "batch_id": str(other_batch.id)},
+        files={"file": ("po.pdf", b"%PDF-1.4 mock", "application/pdf")},
+    )
+
+    assert upload_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_chief_accountant_rejects_batch_with_reason(client, db_session, monkeypatch):
     user = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
     batch = DocumentBatch(
         batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_99",
@@ -446,6 +508,14 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session):
     )
     db_session.add(batch)
     db_session.commit()
+
+    sent_email = {}
+
+    def fake_send_batch_rejected_email(**kwargs):
+        sent_email.update(kwargs)
+        return True
+
+    monkeypatch.setattr("src.api.uploads.send_batch_rejected_email", fake_send_batch_rejected_email)
 
     app.dependency_overrides[get_current_user] = override_get_chief_user
     try:
@@ -464,6 +534,10 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session):
     rejected_batch = db_session.get(DocumentBatch, batch.id)
     assert rejected_batch.status == "rejected"
     assert rejected_batch.rejection_note == "Sai số lượng GRN so với hóa đơn."
+    assert sent_email["to_email"] == user.email
+    assert sent_email["recipient_name"] == user.full_name
+    assert sent_email["batch_number"] == batch.batch_number
+    assert sent_email["rejection_note"] == "Sai số lượng GRN so với hóa đơn."
 
 
 @pytest.mark.asyncio

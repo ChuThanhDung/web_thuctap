@@ -10,6 +10,7 @@ import AuditTrail from './pages/AuditTrail.jsx';
 import ChiefAccountantBatches from './pages/ChiefAccountantBatches.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
 import UserManagement from './pages/UserManagement.jsx';
+import { invalidateBatchCache } from './services/batchCache.js';
 import { repairTextDeep } from './text.js';
 
 const AUTH_STORAGE_KEY = 'docusync_auth';
@@ -51,6 +52,7 @@ export default function App() {
     function handleUnauthorized() {
       if (auth) {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        invalidateBatchCache();
         setAuth(null);
         // Hiển thị thông báo cho người dùng
         alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
@@ -79,12 +81,14 @@ export default function App() {
 
   function handleLogin(nextAuth) {
     const repairedAuth = repairTextDeep(nextAuth);
+    invalidateBatchCache();
     window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(repairedAuth));
     setAuth(repairedAuth);
   }
 
   function handleLogout() {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    invalidateBatchCache();
     setAuth(null);
   }
 

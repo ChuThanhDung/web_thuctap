@@ -33,6 +33,7 @@ const EMPTY_FORM = {
   address: '',
   date_of_birth: '',
 };
+const USERS_PER_PAGE = 5;
 
 function getInitials(fullName = '') {
   return repairVietnameseText(fullName)
@@ -117,6 +118,7 @@ export default function UserManagement({ token, currentUser }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -155,6 +157,22 @@ export default function UserManagement({ token, currentUser }) {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [roleFilter, searchQuery, statusFilter, users]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filteredUsers.slice((safePage - 1) * USERS_PER_PAGE, safePage * USERS_PER_PAGE);
+  const startIndex = filteredUsers.length === 0 ? 0 : (safePage - 1) * USERS_PER_PAGE + 1;
+  const endIndex = Math.min(safePage * USERS_PER_PAGE, filteredUsers.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [roleFilter, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   function openCreateModal() {
     setModalOpen(true);
@@ -346,7 +364,7 @@ export default function UserManagement({ token, currentUser }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/50">
                     <td className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
@@ -416,6 +434,34 @@ export default function UserManagement({ token, currentUser }) {
             </table>
             {filteredUsers.length === 0 && (
               <div className="py-16 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</div>
+            )}
+            {filteredUsers.length > USERS_PER_PAGE && (
+              <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  Hiển thị {startIndex}-{endIndex} / {filteredUsers.length} tài khoản
+                </span>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={safePage === 1}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Trước
+                  </button>
+                  <span className="min-w-[88px] text-center font-semibold text-slate-700 dark:text-slate-200">
+                    Trang {safePage}/{totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={safePage === totalPages}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Sau
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
