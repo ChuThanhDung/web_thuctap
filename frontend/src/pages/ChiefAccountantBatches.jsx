@@ -172,16 +172,6 @@ function getStatusIcon(status) {
   return ClipboardList;
 }
 
-// Badge cho kế toán trưởng - hiển thị "Được duyệt bởi [Tên]"
-function ApprovedByBadge({ approvedBy }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-      <CheckCircle2 size={14} />
-      Được duyệt bởi {approvedBy}
-    </span>
-  );
-}
-
 function MatchMeter({ value }) {
   const barColor = value >= 98 ? 'bg-emerald-500' : value >= 85 ? 'bg-amber-500' : value > 0 ? 'bg-rose-500' : 'bg-slate-300';
 
@@ -894,13 +884,6 @@ export default function ChiefAccountantBatches({ token }) {
                         <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                           {batch.batchNumber}
                         </h3>
-                        {/* Hiển thị badge "Được duyệt bởi [Tên]" */}
-                        {batch.status === 'approved' && batch.approvedBy && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                            <CheckCircle2 size={12} />
-                            Được duyệt bởi {batch.approvedBy}
-                          </span>
-                        )}
                         {batch.status === 'final_approved' && (
                           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                             <CheckCircle2 size={12} />
@@ -1042,12 +1025,6 @@ export default function ChiefAccountantBatches({ token }) {
                     {detailBatch.batchNumber}
                   </h2>
                   <div className="mt-2.5 flex items-center gap-3">
-                    {detailBatch.status === 'approved' && detailBatch.approvedBy && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                        <CheckCircle2 size={12} />
-                        Được duyệt bởi {detailBatch.approvedBy}
-                      </span>
-                    )}
                     {detailBatch.status === 'final_approved' && (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <CheckCircle2 size={12} />

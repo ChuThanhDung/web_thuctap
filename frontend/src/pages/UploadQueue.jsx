@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   Eye,
@@ -173,6 +173,9 @@ function buildXmlPreviewHtml(filename, xmlText) {
 
 export default function UploadQueue({ token }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedBatchId = searchParams.get('batchId');
+  const isSupplementMode = Boolean(requestedBatchId && searchParams.get('mode') === 'supplement');
   const cached = getCachedBatches();
   const [batches, setBatches] = useState(() => cached?.items || []);
   const [loading, setLoading] = useState(() => !cached);
@@ -180,16 +183,21 @@ export default function UploadQueue({ token }) {
   const [activeDropType, setActiveDropType] = useState(null);
   const [selectedDocType, setSelectedDocType] = useState('po');
   const [selectedBatchId, setSelectedBatchId] = useState(() => {
+    if (requestedBatchId) {
+      const requestedBatch = (cached?.items || []).find((batch) => String(batch.id) === String(requestedBatchId));
+      return requestedBatch?.id || requestedBatchId;
+    }
     const pendingItems = (cached?.items || []).filter((batch) => !isBatchReady(batch));
     return pendingItems[0]?.id || cached?.items?.[0]?.id || null;
   });
-  const [batchFilterTab, setBatchFilterTab] = useState('incomplete'); // 'incomplete' | 'ready' | 'all'
+  const [batchFilterTab, setBatchFilterTab] = useState(() => (requestedBatchId ? 'all' : 'incomplete')); // 'incomplete' | 'ready' | 'all'
   const [batchPage, setBatchPage] = useState(1);
   const [deletingBatchIds, setDeletingBatchIds] = useState([]);
   const [batchNoteDraft, setBatchNoteDraft] = useState('');
   const [lastSavedBatchNote, setLastSavedBatchNote] = useState('');
   const [batchNoteSaving, setBatchNoteSaving] = useState(false);
   const [batchNoteError, setBatchNoteError] = useState('');
+  const [supplementUploadedFileIds, setSupplementUploadedFileIds] = useState(() => new Set());
 
   // Ref to always have the real-time selected batch ID without stale closure
   const selectedBatchIdRef = useRef(selectedBatchId);
@@ -221,14 +229,14 @@ export default function UploadQueue({ token }) {
   const selectedBatch = useMemo(() => {
     const targetId = selectedBatchId || selectedBatchIdRef.current;
     if (targetId) {
-      const match = batches.find((batch) => batch.id === targetId);
+      const match = batches.find((batch) => String(batch.id) === String(targetId));
       if (match) return match;
     }
     return activeBatches[0] || batches[0] || null;
   }, [batches, selectedBatchId, activeBatches]);
 
   // In-flight files for selected batch
-  const selectedBatchInFlight = inFlightFiles.filter((inf) => inf.batchId === selectedBatch?.id);
+  const selectedBatchInFlight = inFlightFiles.filter((inf) => String(inf.batchId) === String(selectedBatch?.id));
   const selectedBatchFiles = selectedBatch?.files || [];
 
   useEffect(() => {
@@ -241,7 +249,11 @@ export default function UploadQueue({ token }) {
   // Group files by doc_type for the selected batch
   const uploadedFilesByType = useMemo(() => {
     return DOC_TYPES.reduce((acc, type) => {
-      const completed = selectedBatchFiles.filter((f) => f.doc_type === type.value);
+      const completed = selectedBatchFiles.filter((f) => {
+        if (f.doc_type !== type.value) return false;
+        if (!isSupplementMode) return true;
+        return supplementUploadedFileIds.has(String(f.id));
+      });
       const inFlight = selectedBatchInFlight
         .filter((inf) => inf.docType === type.value)
         .map((inf) => ({
@@ -259,7 +271,7 @@ export default function UploadQueue({ token }) {
       acc[type.value] = inFlight.length > 0 ? inFlight : completed;
       return acc;
     }, {});
-  }, [selectedBatchFiles, selectedBatchInFlight]);
+  }, [isSupplementMode, selectedBatchFiles, selectedBatchInFlight, supplementUploadedFileIds]);
 
   // Filtering batches for list based on tab
   const filteredBatches = useMemo(() => {
@@ -310,9 +322,12 @@ export default function UploadQueue({ token }) {
       setSelectedBatchId((currentId) => {
         const activeId = currentId || selectedBatchIdRef.current;
         // If current selected batch is valid in items, keep it locked
-        if (activeId && items.some((batch) => batch.id === activeId)) {
-          selectedBatchIdRef.current = activeId;
-          return activeId;
+        if (activeId) {
+          const activeBatch = items.find((batch) => String(batch.id) === String(activeId));
+          if (activeBatch) {
+            selectedBatchIdRef.current = activeBatch.id;
+            return activeBatch.id;
+          }
         }
         // If activeId was locally set (e.g. freshly created), retain it
         if (activeId) {
@@ -335,6 +350,23 @@ export default function UploadQueue({ token }) {
   useEffect(() => {
     fetchBatches(true);
   }, [fetchBatches]);
+
+  useEffect(() => {
+    if (!requestedBatchId) return;
+    const requestedBatch = batches.find((batch) => String(batch.id) === String(requestedBatchId));
+    const nextId = requestedBatch?.id || requestedBatchId;
+    setSelectedBatchId(nextId);
+    selectedBatchIdRef.current = nextId;
+    setBatchFilterTab('all');
+    setBatchPage(1);
+    window.setTimeout(() => {
+      documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, [batches, requestedBatchId]);
+
+  useEffect(() => {
+    setSupplementUploadedFileIds(new Set());
+  }, [requestedBatchId, isSupplementMode]);
 
   useEffect(() => {
     if (batchPage > totalBatchPages) {
@@ -468,7 +500,7 @@ export default function UploadQueue({ token }) {
   const upsertUploadedFileIntoBatch = (uploadedFile) => {
     setBatches((prev) =>
       prev.map((batch) => {
-        if (batch.id !== uploadedFile.batch_id) return batch;
+        if (String(batch.id) !== String(uploadedFile.batch_id)) return batch;
 
         const nextFiles = [
           uploadedFile,
@@ -485,6 +517,12 @@ export default function UploadQueue({ token }) {
           extracted_doc_types: extractedDocTypes,
           missing_doc_types: missingDocTypes,
           pending_extraction_doc_types: pendingExtractionDocTypes,
+          approved_by_id: batch.status === 'rejected' ? null : batch.approved_by_id,
+          approved_by_name: batch.status === 'rejected' ? null : batch.approved_by_name,
+          chief_approved_by_id: batch.status === 'rejected' ? null : batch.chief_approved_by_id,
+          chief_approved_by_name: batch.status === 'rejected' ? null : batch.chief_approved_by_name,
+          rejection_note: batch.status === 'rejected' ? null : batch.rejection_note,
+          rejectionNote: batch.status === 'rejected' ? null : batch.rejectionNote,
           status: isReady ? 'ready' : 'incomplete',
         };
         updateCachedBatchItem(updated);
@@ -526,6 +564,13 @@ export default function UploadQueue({ token }) {
 
       try {
         const uploadedFile = await uploadDocument(token, fileObj, docType, targetBatchId);
+        if (isSupplementMode) {
+          setSupplementUploadedFileIds((prev) => {
+            const next = new Set(prev);
+            next.add(String(uploadedFile.id));
+            return next;
+          });
+        }
 
         // Xóa khỏi in-flight khi hoàn thành
         setInFlightFiles((prev) => prev.filter((item) => item.tempId !== trackingItem.tempId));
@@ -1024,7 +1069,7 @@ export default function UploadQueue({ token }) {
               const batchDocState = getBatchDocState(batch);
               const missingCount = batchDocState.missingDocTypes.length;
               const isReady = isBatchReady(batch);
-              const batchInFlight = inFlightFiles.filter((inf) => inf.batchId === batch.id);
+              const batchInFlight = inFlightFiles.filter((inf) => String(inf.batchId) === String(batch.id));
               const hasInFlight = batchInFlight.some((inf) => inf.status === 'processing');
 
               return (

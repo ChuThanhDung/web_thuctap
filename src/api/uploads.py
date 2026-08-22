@@ -3,9 +3,9 @@ import os
 from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.api.auth import get_current_user
@@ -31,6 +31,7 @@ from src.models.schemas import (
 from src.models.user import User
 from src.services.auth import write_audit_log
 from src.services.document_ai_extractor import DocumentAiAnalysis, analyze_uploaded_document
+from src.services.email import send_batch_rejected_email
 from src.services.reconciliation_engine import reconcile_documents
 from src.services.s3_service import (
     delete_file_from_object_storage,
@@ -125,6 +126,26 @@ def require_accountant(current_user: User) -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Chỉ Kế toán viên mới có quyền duyệt batch đối soát.",
+        )
+
+
+def can_access_batch(current_user: User, batch: DocumentBatch) -> bool:
+    if current_user.role.code == "chief_accountant":
+        return True
+    if current_user.role.code == "accountant":
+        return (
+            batch.created_by_id == current_user.public_id
+            or batch.approved_by_id == current_user.public_id
+            or any(upload.uploaded_by_id == current_user.public_id for upload in batch.files)
+        )
+    return False
+
+
+def require_batch_access(current_user: User, batch: DocumentBatch) -> None:
+    if not can_access_batch(current_user, batch):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khong tim thay bo doi soat.",
         )
 
 
@@ -557,6 +578,14 @@ async def list_upload_batches(
         )
         .order_by(DocumentBatch.updated_at.desc(), DocumentBatch.created_at.desc())
     )
+    if current_user.role.code == "accountant":
+        stmt = stmt.where(
+            or_(
+                DocumentBatch.created_by_id == current_user.public_id,
+                DocumentBatch.approved_by_id == current_user.public_id,
+                DocumentBatch.files.any(UploadedFile.uploaded_by_id == current_user.public_id),
+            )
+        )
     batches = db.scalars(stmt).all()
     items = [to_document_batch_out(batch) for batch in batches]
     return DocumentBatchListResponse(items=items, total=len(items))
@@ -572,6 +601,7 @@ async def update_upload_batch(
     batch = db.get(DocumentBatch, batch_id)
     if batch is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+    require_batch_access(current_user, batch)
 
     next_note = payload.note.strip() if payload.note else None
     batch.note = next_note or None
@@ -606,6 +636,7 @@ async def approve_upload_batch(
     batch = db.get(DocumentBatch, batch_id)
     if batch is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+    require_batch_access(current_user, batch)
 
     if batch.status == "approved":
         return to_document_batch_out(batch)
@@ -728,6 +759,7 @@ async def final_approve_upload_batch(
 async def reject_upload_batch(
     batch_id: int,
     payload: DocumentBatchRejectRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DocumentBatchOut:
@@ -765,6 +797,21 @@ async def reject_upload_batch(
     batch.rejection_note = rejection_note
     batch.updated_at = datetime.now()
     db.add(batch)
+    db.flush()
+
+    recipient = batch.approved_by or batch.created_by
+    email_queued = False
+    if recipient and recipient.email:
+        email_queued = True
+        background_tasks.add_task(
+            send_batch_rejected_email,
+            to_email=recipient.email,
+            recipient_name=recipient.full_name,
+            batch_number=batch.batch_number,
+            rejected_by=current_user.full_name,
+            rejection_note=rejection_note,
+            rejected_at=batch.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+        )
 
     reconciliation_case = find_batch_reconciliation_case(db, batch)
     write_audit_log(
@@ -778,6 +825,8 @@ async def reject_upload_batch(
             "case_id": str(reconciliation_case.id) if reconciliation_case else None,
             "case_number": reconciliation_case.case_number if reconciliation_case else None,
             "note": rejection_note,
+            "notification_email": recipient.email if recipient else None,
+            "notification_queued": email_queued,
         },
         ip_address=None,
         user_agent=None,
@@ -796,6 +845,7 @@ async def delete_upload_batch(
     batch = db.get(DocumentBatch, batch_id)
     if batch is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+    require_batch_access(current_user, batch)
 
     has_uploaded_files = (
         db.query(UploadedFile.id)
@@ -841,6 +891,14 @@ async def list_uploads(
         )
         .order_by(UploadedFile.created_at.desc())
     )
+    if current_user.role.code == "accountant":
+        stmt = stmt.outerjoin(DocumentBatch, UploadedFile.batch_id == DocumentBatch.id).where(
+            or_(
+                UploadedFile.uploaded_by_id == current_user.public_id,
+                DocumentBatch.created_by_id == current_user.public_id,
+                DocumentBatch.approved_by_id == current_user.public_id,
+            )
+        )
     uploads = db.scalars(stmt).all()
 
     items = [to_uploaded_file_out(up) for up in uploads]
@@ -856,6 +914,10 @@ async def view_uploaded_file(
     upload = db.get(UploadedFile, upload_id)
     if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
+    if upload.batch_id:
+        batch = db.get(DocumentBatch, upload.batch_id)
+        if batch is not None:
+            require_batch_access(current_user, batch)
 
     settings = get_settings()
     if settings.storage_provider in {"r2", "s3"}:
@@ -896,6 +958,8 @@ async def delete_uploaded_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay file da tai len.")
 
     batch = db.get(DocumentBatch, upload.batch_id) if upload.batch_id else None
+    if batch is not None:
+        require_batch_access(current_user, batch)
     deleted_filename = Path(upload.storage_key).name
     try:
         delete_uploaded_file_from_storage(upload)
@@ -942,6 +1006,12 @@ async def upload_document(
     filename = file.filename or "unknown_file"
     selected_doc_type = normalize_selected_doc_type(doc_type)
     batch = get_or_create_document_batch(db, batch_id, current_user)
+    require_batch_access(current_user, batch)
+    is_supplemental_rejected_upload = batch.status == "rejected"
+    if is_supplemental_rejected_upload:
+        batch.rejection_note = None
+        batch.approved_by_id = None
+        batch.chief_approved_by_id = None
 
     content = await file.read()
     content_type = file.content_type or "application/octet-stream"
@@ -990,6 +1060,7 @@ async def upload_document(
             "batch_number": batch.batch_number,
             "storage_key": db_upload.storage_key,
             "storage_provider": get_settings().storage_provider,
+            "supplemental_rejected_batch_upload": is_supplemental_rejected_upload,
             "note": "File uploaded and linked to a document batch.",
         },
         ip_address=None,

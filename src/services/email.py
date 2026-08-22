@@ -2,6 +2,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from html import escape
 
 from src.config import get_settings
 
@@ -71,6 +72,69 @@ def send_password_changed_email(to_email: str) -> bool:
       <h2>Mật khẩu vừa được thay đổi</h2>
       <p>Mật khẩu của tài khoản <strong>{to_email}</strong> đã được cập nhật thành công.</p>
       <p style="color:#b42318">Nếu bạn không thực hiện thao tác này, hãy liên hệ quản trị viên ngay.</p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_batch_rejected_email(
+    to_email: str,
+    recipient_name: str,
+    batch_number: str,
+    rejected_by: str,
+    rejection_note: str,
+    rejected_at: str,
+) -> bool:
+    settings = get_settings()
+    subject = f"[{settings.app_name}] Batch {batch_number} đã bị từ chối"
+    text_body = (
+        f"Xin chào {recipient_name},\n\n"
+        f"Batch {batch_number} đã bị Kế toán trưởng {rejected_by} từ chối.\n\n"
+        f"Lý do từ chối:\n{rejection_note}\n\n"
+        f"Thời gian từ chối: {rejected_at}\n\n"
+        "Vui lòng kiểm tra lại chứng từ và cập nhật batch nếu cần."
+    )
+    html_body = f"""
+    <div style="margin:0;padding:28px;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #dbe4f0;border-radius:14px;overflow:hidden;box-shadow:0 12px 30px rgba(15,23,42,0.08)">
+        <div style="padding:22px 28px;background:#1e293b;color:#ffffff">
+          <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#cbd5e1;font-weight:700">DocusyncAI - AI Đối soát</div>
+          <h1 style="margin:10px 0 0;font-size:24px;line-height:1.3;font-weight:800">Thông báo batch bị từ chối</h1>
+        </div>
+
+        <div style="padding:28px">
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.65">Xin chào <strong>{escape(recipient_name)}</strong>,</p>
+          <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#334155">
+            Batch đối soát dưới đây đã được Kế toán trưởng <strong style="color:#0f172a">{escape(rejected_by)}</strong> từ chối.
+            Vui lòng kiểm tra lại chứng từ và cập nhật thông tin cần thiết.
+          </p>
+
+          <table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 22px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+            <tr>
+              <td style="padding:14px 16px;width:38%;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:#64748b;font-weight:700;border-bottom:1px solid #e2e8f0">Mã batch</td>
+              <td style="padding:14px 16px;font-size:15px;color:#0f172a;font-weight:800;border-bottom:1px solid #e2e8f0">{escape(batch_number)}</td>
+            </tr>
+            <tr>
+              <td style="padding:14px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:#64748b;font-weight:700">Thời gian từ chối</td>
+              <td style="padding:14px 16px;font-size:15px;color:#0f172a;font-weight:600">{escape(rejected_at)}</td>
+            </tr>
+          </table>
+
+          <div style="margin:0 0 24px;padding:18px 20px;border:1px solid #fecdd3;border-left:5px solid #e11d48;background:#fff1f2;border-radius:10px">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;font-weight:800;color:#be123c">Lý do từ chối</p>
+            <p style="margin:0;font-size:16px;line-height:1.65;white-space:pre-wrap;color:#881337;font-weight:600">{escape(rejection_note)}</p>
+          </div>
+
+          <div style="padding:14px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;color:#1e3a8a;font-size:14px;line-height:1.6">
+            Đây là email tự động từ hệ thống. Anh/chị vui lòng đăng nhập DocusyncAI để xem chi tiết batch và xử lý lại chứng từ.
+          </div>
+        </div>
+
+        <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;line-height:1.5">
+          DocusyncAI - Hóa đơn & Chứng từ<br>
+          Vui lòng không trả lời trực tiếp email này.
+        </div>
+      </div>
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
