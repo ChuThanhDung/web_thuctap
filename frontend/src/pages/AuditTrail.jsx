@@ -860,6 +860,7 @@ function mapApiBatchToAuditBatch(batch) {
     rawStatus: batch.status,
     batchNumber: batch.batch_number,
     note: batch.note || '',
+    rejectionNote: batch.rejection_note || '',
     status: isRejected ? 'rejected' : isFinalApproved ? 'final_approved' : isApproved ? 'approved' : summary.status,
     isApproved,
     isFinalApproved,
@@ -997,6 +998,7 @@ export default function AuditTrail({ token, role }) {
       const haystack = [
         batch.batchNumber,
         batch.note,
+        batch.rejectionNote,
         batch.owner,
         ...DOC_TYPES.map((type) => batch.docs[type.key]?.filename || ''),
       ].join(' ').toLowerCase();
@@ -1271,6 +1273,14 @@ export default function AuditTrail({ token, role }) {
                             title={batch.note}
                           >
                             Note: {batch.note}
+                          </p>
+                        )}
+                        {batch.rejectionNote && (
+                          <p
+                            className="mt-1 max-w-xl truncate text-xs font-semibold text-rose-700 dark:text-rose-300"
+                            title={batch.rejectionNote}
+                          >
+                            Lý do từ chối: {batch.rejectionNote}
                           </p>
                         )}
                       </div>

@@ -308,6 +308,7 @@ class DocumentBatchOut(BaseModel):
     id: int
     batch_number: str
     note: str | None = None
+    rejection_note: str | None = None
     status: str
     created_by_id: int | None = None
     created_by_name: str | None = None
@@ -333,3 +334,7 @@ class DocumentBatchListResponse(BaseModel):
 
 class DocumentBatchUpdateRequest(BaseModel):
     note: str | None = Field(default=None, max_length=500)
+
+
+class DocumentBatchRejectRequest(BaseModel):
+    rejection_note: str = Field(..., min_length=1, max_length=1000)

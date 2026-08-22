@@ -43,6 +43,11 @@ def override_get_current_user(db: Session = Depends(get_db)):
     return user
 
 
+def override_get_chief_user(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == "chief.accountant@docusync.ai").first()
+    return user
+
+
 @pytest.fixture(autouse=True)
 def auth_override():
     app.dependency_overrides[get_current_user] = override_get_current_user
@@ -428,6 +433,37 @@ async def test_upload_batch_note_is_optional_and_updateable(client, db_session):
 
     assert clear_response.status_code == 200
     assert clear_response.json()["note"] is None
+
+
+@pytest.mark.asyncio
+async def test_chief_accountant_rejects_batch_with_reason(client, db_session):
+    user = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
+    batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_99",
+        created_by_id=user.public_id,
+        approved_by_id=user.public_id,
+        status="approved",
+    )
+    db_session.add(batch)
+    db_session.commit()
+
+    app.dependency_overrides[get_current_user] = override_get_chief_user
+    try:
+        response = await client.post(
+            f"/api/v1/uploads/batches/{batch.id}/reject",
+            json={"rejection_note": "Sai số lượng GRN so với hóa đơn."},
+        )
+    finally:
+        app.dependency_overrides[get_current_user] = override_get_current_user
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "rejected"
+    assert data["rejection_note"] == "Sai số lượng GRN so với hóa đơn."
+    db_session.expire_all()
+    rejected_batch = db_session.get(DocumentBatch, batch.id)
+    assert rejected_batch.status == "rejected"
+    assert rejected_batch.rejection_note == "Sai số lượng GRN so với hóa đơn."
 
 
 @pytest.mark.asyncio

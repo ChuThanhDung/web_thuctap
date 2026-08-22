@@ -197,9 +197,10 @@ export async function finalApproveDocumentBatch(token, batchId) {
   return parseResponse(response);
 }
 
-export async function rejectDocumentBatch(token, batchId) {
+export async function rejectDocumentBatch(token, batchId, payload = {}) {
   const response = await authFetch(`/uploads/batches/${batchId}/reject`, token, {
     method: 'POST',
+    body: JSON.stringify(payload),
   });
   return parseResponse(response);
 }
