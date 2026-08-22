@@ -859,6 +859,7 @@ function mapApiBatchToAuditBatch(batch) {
     id: batch.id,
     rawStatus: batch.status,
     batchNumber: batch.batch_number,
+    note: batch.note || '',
     status: isRejected ? 'rejected' : isFinalApproved ? 'final_approved' : isApproved ? 'approved' : summary.status,
     isApproved,
     isFinalApproved,
@@ -995,6 +996,7 @@ export default function AuditTrail({ token, role }) {
       const matchesDateRange = isWithinDateRange(batch, overviewDateRange);
       const haystack = [
         batch.batchNumber,
+        batch.note,
         batch.owner,
         ...DOC_TYPES.map((type) => batch.docs[type.key]?.filename || ''),
       ].join(' ').toLowerCase();
@@ -1177,7 +1179,7 @@ export default function AuditTrail({ token, role }) {
               type="text"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Tìm theo mã batch, người xử lý, tên file..."
+              placeholder="Tìm theo mã batch, note, người xử lý, tên file..."
               className="input-field pl-9"
             />
             {searchQuery && (
@@ -1262,6 +1264,14 @@ export default function AuditTrail({ token, role }) {
                           {role !== 'chief_accountant' && <StatusBadge status={batch.status} />}
                         </div>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Cập nhật: {batch.updatedAt}</p>
+                        {batch.note && (
+                          <p
+                            className="mt-1 max-w-xl truncate text-xs font-semibold text-slate-700 dark:text-slate-300"
+                            title={batch.note}
+                          >
+                            Note: {batch.note}
+                          </p>
+                        )}
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2 text-right">
                         <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">{batch.matchRate}%</p>

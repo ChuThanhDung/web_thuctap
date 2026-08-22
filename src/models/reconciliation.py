@@ -201,6 +201,7 @@ class DocumentBatch(Base):
     chief_approved_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
     )
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="incomplete")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
