@@ -21,6 +21,7 @@ from src.models.reconciliation import (
 from src.models.schemas import (
     DocumentBatchListResponse,
     DocumentBatchOut,
+    DocumentBatchUpdateRequest,
     MessageResponse,
     UploadedDocumentExtractionOut,
     UploadedFileListResponse,
@@ -509,6 +510,7 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
     return DocumentBatchOut(
         id=batch.id,
         batch_number=batch.batch_number,
+        note=batch.note,
         status=batch.status,
         created_by_id=batch.created_by_id,
         created_by_name=batch.created_by.full_name if batch.created_by else None,
@@ -556,6 +558,39 @@ async def list_upload_batches(
     batches = db.scalars(stmt).all()
     items = [to_document_batch_out(batch) for batch in batches]
     return DocumentBatchListResponse(items=items, total=len(items))
+
+
+@router.patch("/batches/{batch_id}", response_model=DocumentBatchOut)
+async def update_upload_batch(
+    batch_id: int,
+    payload: DocumentBatchUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DocumentBatchOut:
+    batch = db.get(DocumentBatch, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
+
+    next_note = payload.note.strip() if payload.note else None
+    batch.note = next_note or None
+    batch.updated_at = datetime.now()
+    db.add(batch)
+    write_audit_log(
+        db=db,
+        action="DOCUMENT_BATCH_NOTE_UPDATED",
+        user=current_user,
+        target_type="DOCUMENT_BATCH",
+        target_id=str(batch_id),
+        details={
+            "batch_number": batch.batch_number,
+            "note": batch.note,
+        },
+        ip_address=None,
+        user_agent=None,
+    )
+    db.commit()
+    db.refresh(batch)
+    return to_document_batch_out(batch)
 
 
 @router.post("/batches/{batch_id}/approve", response_model=DocumentBatchOut)

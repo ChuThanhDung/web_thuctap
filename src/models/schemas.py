@@ -307,6 +307,7 @@ class UploadedFileListResponse(BaseModel):
 class DocumentBatchOut(BaseModel):
     id: int
     batch_number: str
+    note: str | None = None
     status: str
     created_by_id: int | None = None
     created_by_name: str | None = None
@@ -328,3 +329,7 @@ class DocumentBatchOut(BaseModel):
 class DocumentBatchListResponse(BaseModel):
     items: list[DocumentBatchOut]
     total: int
+
+
+class DocumentBatchUpdateRequest(BaseModel):
+    note: str | None = Field(default=None, max_length=500)

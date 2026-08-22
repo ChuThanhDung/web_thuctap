@@ -382,6 +382,7 @@ async def test_upload_batches_group_files_and_track_missing_documents(client):
     assert batch["batch_number"].startswith(f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_")
     assert batch["batch_number"].split("_")[-1].isdigit()
     assert len(batch["batch_number"].split("_")[-1]) == 2
+    assert batch["note"] is None
     assert batch["status"] == "incomplete"
     assert batch["missing_doc_types"] == ["po", "invoice", "grn"]
 
@@ -404,6 +405,29 @@ async def test_upload_batches_group_files_and_track_missing_documents(client):
     assert selected["uploaded_doc_types"] == ["po"]
     assert selected["missing_doc_types"] == ["invoice", "grn"]
     assert selected["files"][0]["filename"].startswith("po_")
+
+
+@pytest.mark.asyncio
+async def test_upload_batch_note_is_optional_and_updateable(client, db_session):
+    batch_response = await client.post("/api/v1/uploads/batches")
+    assert batch_response.status_code == 200
+    batch = batch_response.json()
+    assert batch["note"] is None
+
+    note_response = await client.patch(
+        f"/api/v1/uploads/batches/{batch['id']}",
+        json={"note": "  Batch đối chiếu hóa đơn công ty A  "},
+    )
+
+    assert note_response.status_code == 200
+    assert note_response.json()["note"] == "Batch đối chiếu hóa đơn công ty A"
+    db_session.expire_all()
+    assert db_session.get(DocumentBatch, batch["id"]).note == "Batch đối chiếu hóa đơn công ty A"
+
+    clear_response = await client.patch(f"/api/v1/uploads/batches/{batch['id']}", json={"note": ""})
+
+    assert clear_response.status_code == 200
+    assert clear_response.json()["note"] is None
 
 
 @pytest.mark.asyncio

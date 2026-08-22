@@ -20,11 +20,11 @@ import {
   deleteUploadedFile,
   fetchUploadFileBlob,
   uploadDocument,
+  updateDocumentBatch,
 } from '../api.js';
 import {
   fetchDocumentBatchesWithCache,
   getCachedBatches,
-  invalidateBatchCache,
   removeCachedBatchItem,
   subscribeBatchCache,
   updateCachedBatchItem,
@@ -36,6 +36,7 @@ const DOC_TYPES = [
   { value: 'grn', label: 'Phiếu nhập kho (GRN)', icon: PackageCheck },
 ];
 const BATCHES_PER_PAGE = 5;
+const BATCH_NOTE_MAX_LENGTH = 500;
 
 function isBatchReady(batch) {
   if (batch?.status === 'ready' || batch?.status === 'approved' || batch?.status === 'final_approved') return true;
@@ -185,6 +186,10 @@ export default function UploadQueue({ token }) {
   const [batchFilterTab, setBatchFilterTab] = useState('incomplete'); // 'incomplete' | 'ready' | 'all'
   const [batchPage, setBatchPage] = useState(1);
   const [deletingBatchIds, setDeletingBatchIds] = useState([]);
+  const [batchNoteDraft, setBatchNoteDraft] = useState('');
+  const [lastSavedBatchNote, setLastSavedBatchNote] = useState('');
+  const [batchNoteSaving, setBatchNoteSaving] = useState(false);
+  const [batchNoteError, setBatchNoteError] = useState('');
 
   // Ref to always have the real-time selected batch ID without stale closure
   const selectedBatchIdRef = useRef(selectedBatchId);
@@ -225,6 +230,13 @@ export default function UploadQueue({ token }) {
   // In-flight files for selected batch
   const selectedBatchInFlight = inFlightFiles.filter((inf) => inf.batchId === selectedBatch?.id);
   const selectedBatchFiles = selectedBatch?.files || [];
+
+  useEffect(() => {
+    const selectedNote = selectedBatch?.note || '';
+    setBatchNoteDraft(selectedNote);
+    setLastSavedBatchNote(selectedNote);
+    setBatchNoteError('');
+  }, [selectedBatch?.id]);
 
   // Group files by doc_type for the selected batch
   const uploadedFilesByType = useMemo(() => {
@@ -375,6 +387,49 @@ export default function UploadQueue({ token }) {
     filePickerDocTypeRef.current = docType;
     setSelectedDocType(docType);
     fileInputRef.current?.click();
+  };
+
+  const persistBatchNote = useCallback(async (batchId, note) => {
+    const currentBatch = batches.find((batch) => String(batch.id) === String(batchId));
+    const normalizedNote = note.trim();
+    if (!currentBatch || (currentBatch.note || '') === normalizedNote) return;
+
+    setBatchNoteSaving(true);
+    setBatchNoteError('');
+    try {
+      const updatedBatch = await updateDocumentBatch(token, batchId, {
+        note: normalizedNote || null,
+      });
+      updateCachedBatchItem(updatedBatch);
+      setBatches((prev) =>
+        prev.map((batch) => (String(batch.id) === String(batchId) ? { ...batch, ...updatedBatch } : batch))
+      );
+      setLastSavedBatchNote(updatedBatch.note || '');
+    } catch (err) {
+      setBatchNoteError(err.message || 'Không thể lưu ghi chú.');
+    } finally {
+      setBatchNoteSaving(false);
+    }
+  }, [batches, token]);
+
+  useEffect(() => {
+    if (!selectedBatch?.id || batchNoteDraft === lastSavedBatchNote) return undefined;
+
+    const timer = window.setTimeout(() => {
+      persistBatchNote(selectedBatch.id, batchNoteDraft);
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, [batchNoteDraft, lastSavedBatchNote, persistBatchNote, selectedBatch?.id]);
+
+  const handleBatchNoteChange = (event) => {
+    setBatchNoteDraft(event.target.value.slice(0, BATCH_NOTE_MAX_LENGTH));
+  };
+
+  const handleBatchNoteBlur = () => {
+    if (selectedBatch?.id && batchNoteDraft !== lastSavedBatchNote) {
+      persistBatchNote(selectedBatch.id, batchNoteDraft);
+    }
   };
 
   const handleCreateBatch = async () => {
@@ -856,6 +911,42 @@ export default function UploadQueue({ token }) {
         />
       </div>
 
+      <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <label htmlFor="batch-note" className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Note
+            </label>
+          </div>
+          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+            {batchNoteDraft.length}/{BATCH_NOTE_MAX_LENGTH}
+          </span>
+        </div>
+        <textarea
+          id="batch-note"
+          value={batchNoteDraft}
+          onChange={handleBatchNoteChange}
+          onBlur={handleBatchNoteBlur}
+          disabled={!selectedBatch}
+          rows={2}
+          maxLength={BATCH_NOTE_MAX_LENGTH}
+          placeholder="Ví dụ: Batch đối chiếu hóa đơn công ty A..."
+          className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:bg-slate-900 dark:focus:ring-brand-950"
+        />
+        <div className="mt-2 min-h-[18px] text-xs">
+          {batchNoteError ? (
+            <span className="font-semibold text-rose-600 dark:text-rose-300">{batchNoteError}</span>
+          ) : batchNoteSaving ? (
+            <span className="inline-flex items-center gap-1.5 font-semibold text-brand-600 dark:text-brand-300">
+              <Loader2 size={12} className="animate-spin" />
+              Đang lưu ghi chú...
+            </span>
+          ) : selectedBatch && batchNoteDraft === lastSavedBatchNote ? (
+            <span className="font-medium text-slate-400 dark:text-slate-500">Ghi chú được tự động lưu.</span>
+          ) : null}
+        </div>
+      </div>
+
       {/* Batches Queue Table */}
       <div className="card overflow-hidden">
         <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -980,6 +1071,11 @@ export default function UploadQueue({ token }) {
                       <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                         Cập nhật: {batch.updated_at || batch.created_at}
                       </p>
+                      {batch.note && (
+                        <p className="mt-1 max-w-sm truncate text-xs font-medium text-slate-600 dark:text-slate-300" title={batch.note}>
+                          {batch.note}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid min-w-0 flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3">

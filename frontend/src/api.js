@@ -163,6 +163,14 @@ export async function createDocumentBatch(token) {
   return parseResponse(response);
 }
 
+export async function updateDocumentBatch(token, batchId, payload) {
+  const response = await authFetch(`/uploads/batches/${batchId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
 export async function getDocumentBatches(token) {
   const response = await authFetch('/uploads/batches', token);
   return parseResponse(response);
