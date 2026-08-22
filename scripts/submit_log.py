@@ -27,6 +27,30 @@ try:
 except ImportError:
     pass
 
+
+def _load_ai_log_env_from_dotenv() -> None:
+    """Fallback for Git hooks where shell-exported env is not inherited by Python."""
+    env_file = Path(".env")
+    if not env_file.exists():
+        return
+
+    allowed_keys = {"AI_LOG_SERVER", "AI_LOG_API_KEY", "AI_LOG_DIR"}
+    try:
+        with env_file.open(encoding="utf-8-sig") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                if key in allowed_keys and not os.environ.get(key):
+                    os.environ[key] = value.strip().strip('"').strip("'")
+    except OSError:
+        return
+
+
+_load_ai_log_env_from_dotenv()
+
 SERVER_URL = os.environ.get("AI_LOG_SERVER", "")
 API_KEY = os.environ.get("AI_LOG_API_KEY", "")
 LOG_DIR = Path(os.environ.get("AI_LOG_DIR", ".ai-log"))
