@@ -498,6 +498,35 @@ async def test_accountant_cannot_access_other_accountants_batch(client, db_sessi
 
 
 @pytest.mark.asyncio
+async def test_uploading_to_rejected_batch_resets_rejection_state(client, db_session):
+    user = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
+    batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_83",
+        created_by_id=user.public_id,
+        approved_by_id=user.public_id,
+        chief_approved_by_id=user.public_id,
+        rejection_note="Cần upload lại hóa đơn.",
+        status="rejected",
+    )
+    db_session.add(batch)
+    db_session.commit()
+
+    response = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "invoice", "batch_id": str(batch.id)},
+        files={"file": ("invoice.pdf", b"%PDF-1.4 mock", "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    db_session.expire_all()
+    updated_batch = db_session.get(DocumentBatch, batch.id)
+    assert updated_batch.status == "incomplete"
+    assert updated_batch.rejection_note is None
+    assert updated_batch.approved_by_id is None
+    assert updated_batch.chief_approved_by_id is None
+
+
+@pytest.mark.asyncio
 async def test_chief_accountant_rejects_batch_with_reason(client, db_session, monkeypatch):
     user = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
     batch = DocumentBatch(

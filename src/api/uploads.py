@@ -1007,6 +1007,11 @@ async def upload_document(
     selected_doc_type = normalize_selected_doc_type(doc_type)
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
+    is_supplemental_rejected_upload = batch.status == "rejected"
+    if is_supplemental_rejected_upload:
+        batch.rejection_note = None
+        batch.approved_by_id = None
+        batch.chief_approved_by_id = None
 
     content = await file.read()
     content_type = file.content_type or "application/octet-stream"
@@ -1055,6 +1060,7 @@ async def upload_document(
             "batch_number": batch.batch_number,
             "storage_key": db_upload.storage_key,
             "storage_provider": get_settings().storage_provider,
+            "supplemental_rejected_batch_upload": is_supplemental_rejected_upload,
             "note": "File uploaded and linked to a document batch.",
         },
         ip_address=None,

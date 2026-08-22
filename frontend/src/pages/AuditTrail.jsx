@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -14,6 +14,7 @@ import {
   Search,
   ShoppingCart,
   SlidersHorizontal,
+  UploadCloud,
   X,
 } from 'lucide-react';
 import { approveDocumentBatch, fetchUploadFileBlob, finalApproveDocumentBatch } from '../api.js';
@@ -891,6 +892,7 @@ function mapApiBatchToAuditBatch(batch) {
 }
 
 export default function AuditTrail({ token, role }) {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedBatchId = searchParams.get('batchId');
   const overviewFilter = searchParams.get('overviewFilter') || 'all';
@@ -1116,6 +1118,11 @@ export default function AuditTrail({ token, role }) {
       previewTab.close();
       alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
     }
+  };
+
+  const handleUploadSupplement = (batch) => {
+    if (!batch?.id) return;
+    navigate(`/upload?batchId=${encodeURIComponent(batch.id)}&mode=supplement`);
   };
 
   if (loading) {
@@ -1548,6 +1555,18 @@ export default function AuditTrail({ token, role }) {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {role !== 'chief_accountant' && modalBatch.status === 'rejected' && (
+                  <button
+                    type="button"
+                    onClick={() => handleUploadSupplement(modalBatch)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    title="Upload bổ sung vào batch này"
+                    aria-label={`Upload bổ sung vào batch ${modalBatch.batchNumber}`}
+                  >
+                    <UploadCloud size={14} />
+                    Upload bổ sung
+                  </button>
+                )}
                 {modalBatch.status === 'matched' && (
                   <button
                     type="button"
