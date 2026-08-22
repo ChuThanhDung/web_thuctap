@@ -491,6 +491,7 @@ function mapApiBatchToAuditBatch(batch) {
   return {
     id: String(batch.id),
     batchNumber: batch.batch_number,
+    note: batch.note || '',
     status,
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống',
@@ -640,6 +641,7 @@ export default function ChiefAccountantBatches({ token }) {
       const query = searchQuery.toLowerCase();
       result = result.filter((batch) =>
         batch.batchNumber.toLowerCase().includes(query) ||
+        batch.note.toLowerCase().includes(query) ||
         batch.owner.toLowerCase().includes(query) ||
         batch.approvedBy?.toLowerCase().includes(query)
       );
@@ -714,7 +716,7 @@ export default function ChiefAccountantBatches({ token }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
               type="text"
-              placeholder="Tìm theo mã batch, người tạo, người duyệt..."
+              placeholder="Tìm theo mã batch, note, người tạo, người duyệt..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field w-full pl-10"
@@ -891,6 +893,14 @@ export default function ChiefAccountantBatches({ token }) {
                         <span>•</span>
                         <span>Tạo bởi: {batch.owner}</span>
                       </div>
+                      {batch.note && (
+                        <p
+                          className="mt-1 max-w-3xl truncate text-sm font-semibold text-slate-700 dark:text-slate-300"
+                          title={batch.note}
+                        >
+                          Note: {batch.note}
+                        </p>
+                      )}
                       
                       {/* Document files */}
                       <div className="mt-3 flex flex-wrap gap-2">

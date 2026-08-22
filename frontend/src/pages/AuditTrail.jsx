@@ -1203,6 +1203,7 @@ export default function AuditTrail({ token, role }) {
               <option value="all">Tất cả trạng thái</option>
               <option value="matched">Khớp hoàn toàn</option>
               <option value="approved">Đã duyệt</option>
+              <option value="rejected">Đã từ chối</option>
               <option value="mismatch">Lệch</option>
               <option value="missing">Thiếu dữ liệu</option>
             </select>
