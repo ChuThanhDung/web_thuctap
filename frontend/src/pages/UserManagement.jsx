@@ -366,7 +366,7 @@ export default function UserManagement({ token, currentUser }) {
                         <span className="truncate">{user.phone || '-'}</span>
                       </span>
                     </td>
-                    <td className="truncate px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">{user.citizen_id || '-'}</td>
+                    <td className="truncate px-4 py-3 text-slate-600 dark:text-slate-300">{user.citizen_id || '-'}</td>
                     <td className="max-w-[260px] px-4 py-3 text-slate-600 dark:text-slate-300">
                       <span className="inline-flex min-w-0 items-center gap-1">
                         <MapPin size={13} className="shrink-0" />

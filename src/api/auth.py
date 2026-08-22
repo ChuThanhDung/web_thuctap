@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.database import get_db
+from src.models.role import Role
 from src.models.schemas import (
     AuthUser,
     LoginRequest,
@@ -21,7 +22,6 @@ from src.models.schemas import (
     UserUpdateRequest,
 )
 from src.models.user import User
-from src.models.role import Role
 from src.services.auth import (
     PasswordChangeError,
     authenticate_user,
