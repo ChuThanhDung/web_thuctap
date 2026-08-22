@@ -9,6 +9,7 @@ import UploadQueue from './pages/UploadQueue.jsx';
 import AuditTrail from './pages/AuditTrail.jsx';
 import ChiefAccountantBatches from './pages/ChiefAccountantBatches.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
+import UserManagement from './pages/UserManagement.jsx';
 import { repairTextDeep } from './text.js';
 
 const AUTH_STORAGE_KEY = 'docusync_auth';
@@ -176,6 +177,14 @@ export default function App() {
                   ? <ChiefAccountantBatches token={auth.access_token} />
                   : <AuditTrail token={auth.access_token} role={role} />
               } 
+            />
+            <Route
+              path="/users"
+              element={
+                <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
+                  <UserManagement token={auth.access_token} currentUser={auth.user} />
+                </RoleRoute>
+              }
             />
             <Route
               path="/settings"

@@ -245,4 +245,29 @@ export async function getUserAccounts(token) {
   return parseResponse(response);
 }
 
+export async function updateUserAccount(token, userId, userData) {
+  const response = await authFetch(`/auth/users/${userId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(userData),
+  });
+
+  return parseResponse(response);
+}
+
+export async function deactivateUserAccount(token, userId) {
+  const response = await authFetch(`/auth/users/${userId}`, token, {
+    method: 'DELETE',
+  });
+
+  return parseResponse(response);
+}
+
+export async function activateUserAccount(token, userId) {
+  const response = await authFetch(`/auth/users/${userId}/activate`, token, {
+    method: 'PATCH',
+  });
+
+  return parseResponse(response);
+}
+
 

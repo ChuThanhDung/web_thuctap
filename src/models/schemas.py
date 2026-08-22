@@ -32,6 +32,7 @@ class AuthUser(BaseModel):
     full_name: str
     role: str
     role_name: str
+    status: str = "ACTIVE"
     department: str | None = None
     employee_code: str | None = None
     date_of_birth: date | None = None
@@ -74,10 +75,25 @@ class UserCreateRequest(BaseModel):
     email: EmailStr = Field(..., description="Email phải đúng định dạng hợp lệ")
     password: str = Field(..., min_length=6, max_length=128)
     full_name: str = Field(..., min_length=2, max_length=100)
-    role_code: str = Field(..., description="'chief_accountant' hoặc 'accountant'")
+    role_code: str = Field(..., pattern="^(chief_accountant|accountant)$")
+    department: str | None = Field(default="Phòng Kế toán - Tài chính", max_length=100)
+    employee_code: str | None = Field(default=None, max_length=50)
+    phone: str = Field(..., pattern=r"^\d{10}$")
+    citizen_id: str = Field(..., pattern=r"^\d{12}$")
+    address: str = Field(..., min_length=1, max_length=255)
+    date_of_birth: date | None = None
+
+
+class UserUpdateRequest(BaseModel):
+    email: EmailStr | None = None
+    full_name: str | None = Field(default=None, min_length=2, max_length=100)
+    role_code: str | None = Field(default=None, pattern="^(chief_accountant|accountant)$")
     department: str | None = Field(default=None, max_length=100)
     employee_code: str | None = Field(default=None, max_length=50)
-    phone: str | None = Field(default=None, max_length=20)
+    phone: str | None = Field(default=None, pattern=r"^\d{10}$")
+    citizen_id: str | None = Field(default=None, pattern=r"^\d{12}$")
+    address: str | None = Field(default=None, min_length=1, max_length=255)
+    date_of_birth: date | None = None
 
 
 class UserListResponse(BaseModel):
