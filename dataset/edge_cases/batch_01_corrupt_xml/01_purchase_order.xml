@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0270</SoDon>
+  <NgayLap>2026-07-01</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE</Ten>
+    <MST>0312945768</MST>
+    <DiaChi>Số 88 Nguyễn Văn Trỗi, Phường 8, Quận Phú Nhuận, TP. Hồ Chí Minh</DiaChi>
+    <NguoiDaiDien>Lê Thị Minh Hằng</NguoiDaiDien>
+    <DienThoai>028 3844 7799</DienThoai>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH MAY MẶC THIÊN PHÚ</Ten>
+    <MST>0313567892</MST>
+    <DiaChi>Số 12 Trường Chinh, Phường Tân Hưng Thuận, Quận 12, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>DP-BH28</MaHang>
+      <TenHang>Balo giao hàng chống nước 45L</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>300</SoLuong>
+      <DonGia>185000</DonGia>
+      <ThanhTien>55500000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>DP-TX28</MaHang>
+      <TenHang>Túi giữ nhiệt giao đồ ăn 30L</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>250</SoLuong>
+      <DonGia>145000</DonGia>
+      <ThanhTien>36250000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>91750000</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>7340000</TienThueGTGT>
+  <TongTienThanhToan>99090000</TongTienThanhToan>
+  <BangChu>Chín mươi chín triệu không trăm chín mươi nghìn đồng chẵn.</BangChu>
+  <DiaDiemGiaoHang>Kho VRide, 88 Nguyễn Văn Trỗi, Phú Nhuận, TP.HCM</DiaDiemGiaoHang>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

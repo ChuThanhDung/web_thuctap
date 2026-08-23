@@ -1,0 +1,50 @@
+{
+  "batch_id": "edge_02",
+  "format": "pdf",
+  "expected_result": "ERROR_UNREADABLE_FILE",
+  "affected_file": "03_invoice.pdf",
+  "defect_kind": "truncated_pdf",
+  "defect_note": "File PDF hóa đơn bị cắt còn ~55% dung lượng và ghi đè bytes ngẫu nhiên ở giữa, không mở/không trích text được",
+  "expected_agent_behavior": "Báo lỗi không đọc được file, đưa hóa đơn vào danh sách xử lý tay; không được bịa dữ liệu",
+  "documents": {
+    "purchase_order": "PO-2026-0275",
+    "goods_receipt": "PNK-0278",
+    "invoice": "1C26TDL-00001688"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VĂN PHÒNG PHẨM ĐĂNG LÂM",
+  "true_content_for_scoring": {
+    "note": "Dữ liệu thật của chứng từ (trước khi làm hỏng/mờ) — dùng để chấm xem agent có bịa số liệu không. Nội dung 3 chứng từ khớp 100%.",
+    "lines": [
+      {
+        "code": "VPP-TN12",
+        "name": "Túi niêm phong chứng từ A4 (hộp 100)",
+        "unit": "Hộp",
+        "qty": 80,
+        "price": 125000,
+        "amount": 10000000
+      },
+      {
+        "code": "VPP-DC03",
+        "name": "Dao rọc giấy lưỡi lớn",
+        "unit": "Chiếc",
+        "qty": 60,
+        "price": 22000,
+        "amount": 1320000
+      },
+      {
+        "code": "VPP-BK05",
+        "name": "Băng keo trong 5cm (cây 6 cuộn)",
+        "unit": "Cây",
+        "qty": 150,
+        "price": 48000,
+        "amount": 7200000
+      }
+    ],
+    "sub": 18520000,
+    "vat_rate": 8,
+    "vat": 1481600,
+    "total": 20001600
+  },
+  "discrepancies": []
+}

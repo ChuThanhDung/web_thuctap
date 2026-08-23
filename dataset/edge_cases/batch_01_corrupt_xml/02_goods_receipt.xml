@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0272</SoPhieu>
+  <NgayLap>2026-07-08</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0270 ngày 01/07/2026</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE</Ten>
+    <MST>0312945768</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Võ Thị Kim Loan - CÔNG TY TNHH MAY MẶC THIÊN PHÚ</NguoiGiaoHang>
+  <NhapTaiKho>Kho VRide, 88 Nguyễn Văn Trỗi, Phú Nhuận, TP.HCM</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>DP-BH28</MaHang>
+      <TenHang>Balo giao hàng chống nước 45L</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>300</SoLuongTheoChungTu>
+      <SoLuongThucNhap>300</SoLuongThucNhap>
+      <DonGia>185000</DonGia>
+      <ThanhTien>55500000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>DP-TX28</MaHang>
+      <TenHang>Túi giữ nhiệt giao đồ ăn 30L</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>250</SoLuongTheoChungTu>
+      <SoLuongThucNhap>250</SoLuongThucNhap>
+      <DonGia>145000</DonGia>
+      <ThanhTien>36250000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>91750000</TongTien>
+  <BangChu>Chín mươi mốt triệu bảy trăm năm mươi nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0270)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTP</KHHDon>
+      <SHDon>00001034</SHDon>
+      <NLap>2026-07-08</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH MAY MẶC THIÊN PHÚ</Ten>
+        <MST>0313567892</MST>
+        <DChi>Số 12 Trường Chinh, Phường Tân Hưng Thuận, Quận 12, TP. Hồ Chí Minh</DChi>
+        <SDThoai>028 3719 4455</SDThoai>
+        <STKNHang>060223344556</STKNHang>
+        <TNHang>ACB – CN Trường Chinh</TNHang>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY TNHH DỊCH VỤ VẬN CHUYỂN VRIDE</Ten>
+        <MST>0312945768</MST>
+        <DChi>Số 88 Nguyễn Văn Trỗi, Phường 8, Quận Phú Nhuận, TP. Hồ Chí Minh</DChi>
+        <HVTNMHang>Lê Thị Minh Hằng</HVTNMHang>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>DP-BH28</MHHDVu>
+          <THHDVu>Balo giao hàng chống nước 45L</THHDVu>
+          <DV
