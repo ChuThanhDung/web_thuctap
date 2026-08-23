@@ -22,8 +22,6 @@
 
 ### 2.1. Cập nhật giao diện người dùng
 
-- Tiếp tục điều chỉnh bố cục, màu sắc, khoảng cách và cách hiển thị thông tin để giao diện rõ ràng, nhất quán hơn.
-- Tối ưu các màn hình chính gồm dashboard, danh sách hồ sơ đối soát và chi tiết hồ sơ.
 - Làm nổi bật trạng thái xử lý
 - Hiển thị cảnh báo khi upload sai file.
 
@@ -31,7 +29,6 @@
 
 - Thiết kế khu vực nhập và hiển thị ghi chú tại hồ sơ đối soát.
 - Cho phép kế toán lưu nội dung cần kiểm tra, lý do xử lý hoặc thông tin cần chuyển tiếp cho kế toán trưởng.
-- Dự kiến lưu kèm người tạo và thời gian tạo để hỗ trợ tra soát.
 - Kiểm tra phân quyền xem/thêm ghi chú giữa kế toán viên và kế toán trưởng.
 
 
@@ -40,7 +37,6 @@
 - Hoàn thiện chức năng thêm và hiển thị ghi chú cho kế toán.
 - Bổ sung kiểm thử cho chức năng ghi chú và phân quyền người dùng.
 - Tiếp tục tinh chỉnh UI theo phản hồi của thành viên nhóm và người dùng thử.
-- Kiểm thử lại toàn bộ luồng từ tải chứng từ, đối soát, ghi chú đến phê duyệt hoặc từ chối.
 
 ## 6. Demo
 
