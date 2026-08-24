@@ -53,7 +53,7 @@ export default function Login({ onLogin }) {
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Kế toán trưởng</p>
-              <p className="mt-2 text-sm text-slate-700">Tổng quan, phê duyệt, cấu hình ngưỡng.</p>
+              <p className="mt-2 text-sm text-slate-700">Tổng quan, phê duyệt batch đối soát và quản lý người dùng.</p>
             </div>
           </div>
         </div>

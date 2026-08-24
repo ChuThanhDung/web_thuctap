@@ -205,6 +205,33 @@ export async function rejectDocumentBatch(token, batchId, payload = {}) {
   return parseResponse(response);
 }
 
+export async function getNotifications(token, limit = 30) {
+  const response = await authFetch(`/notifications?limit=${limit}`, token);
+  return parseResponse(response);
+}
+
+export async function markNotificationRead(token, notificationId) {
+  const response = await authFetch(`/notifications/${notificationId}/read`, token, {
+    method: 'POST',
+  });
+  return parseResponse(response);
+}
+
+export async function markAllNotificationsRead(token) {
+  const response = await authFetch('/notifications/read-all', token, {
+    method: 'POST',
+  });
+  return parseResponse(response);
+}
+
+export function getNotificationWebSocketUrl() {
+  const url = new URL(API_BASE_URL, window.location.origin);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/notifications/ws`;
+  url.search = '';
+  return url.toString();
+}
+
 export async function fetchUploadFileBlob(token, file) {
   const fileUrl = getUploadFileViewUrl(file);
   if (!fileUrl) {

@@ -28,6 +28,7 @@ import {
   compareDocumentField,
   comparisonStatusToResult,
   compareValues as compareRawValues,
+  getComparisonCellClass,
   getGrnTotalAdjustment,
   inferVatRate,
   toNumber,
@@ -244,7 +245,7 @@ function ResultPill({ severity, text }) {
     danger: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
   }[severity];
 
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
 }
 
 const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá'];
@@ -353,7 +354,7 @@ function buildComparisons(docs) {
     if (key === 'total_amount') {
       const grnAdjustment = getGrnTotalAdjustment(docs);
       if (grnAdjustment) {
-        values[2] = `${formatDisplayValue(grnAdjustment.baseTotal)} + ${grnAdjustment.vatRate}%`;
+        values[2] = formatDisplayValue(grnAdjustment.adjustedTotal);
       }
     }
     const result = comparisonStatusToResult(compareDocumentField(docs, key));
@@ -364,7 +365,7 @@ function buildComparisons(docs) {
       grn: values[2],
       ...result,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function findItemByIdentity(items, sourceItem, index) {
@@ -436,10 +437,17 @@ function buildLineItems(docs) {
       grnAmount: formatDisplayValue(grnAmount),
       vat: formatVatRate(inferVatRate({ extractedData: baseItem })),
       amount: formatDisplayValue(invoiceAmount || poAmount || grnAmount),
-      result: qtyResult.result || priceResult.result || amountResult.result || 'Khớp',
+      result: severity === 'danger'
+        ? 'Có chênh lệch'
+        : severity === 'warning'
+          ? 'Thiếu dữ liệu'
+          : 'Khớp',
       severity,
+      qtySeverity: qtyResult.severity,
+      priceSeverity: priceResult.severity,
+      amountSeverity: amountResult.severity,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function mapApiBatchToAuditBatch(batch) {
@@ -508,6 +516,7 @@ function filterChiefBatches(items) {
 
 export default function ChiefAccountantBatches({ token }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedBatchId = searchParams.get('batchId');
   const cached = getCachedBatches();
   const [batches, setBatches] = useState(() => filterChiefBatches(cached?.items));
   const [isLoading, setIsLoading] = useState(() => !cached);
@@ -580,6 +589,15 @@ export default function ChiefAccountantBatches({ token }) {
       loadBatches();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!requestedBatchId) return;
+    const requestedBatch = batches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+    if (requestedBatch) {
+      setDetailBatchId(requestedBatch.id);
+      setDetailPanelOpen(true);
+    }
+  }, [batches, requestedBatchId]);
 
   const handleApproveBatch = async (batch) => {
     if (!window.confirm('Bạn có muốn duyệt không?')) return;
@@ -1123,15 +1141,15 @@ export default function ChiefAccountantBatches({ token }) {
                               <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                             </td>
                             <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poPrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.invoicePrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnPrice || '-'}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poAmount || '-'}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.amount}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnAmount || '-'}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.grnPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.grnPrice || '-'}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount || '-'}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.amount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.amount}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount || '-'}</td>
                             <td className="px-3 py-2.5 text-center whitespace-nowrap">
                               <ResultPill severity={item.severity} text={item.result} />
                             </td>
@@ -1168,10 +1186,10 @@ export default function ChiefAccountantBatches({ token }) {
                       {detailBatch.comparisons.map((item, idx) => (
                         <tr key={idx} className="table-row-hover">
                           <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
-                          <td className="px-4 py-3">
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3">
                             <ResultPill severity={item.severity} text={item.result} />
                           </td>
                         </tr>

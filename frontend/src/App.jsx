@@ -34,7 +34,7 @@ function getInitialTheme() {
 }
 
 function getHomePath(role) {
-  return role === 'chief_accountant' ? '/audit-trail' : '/accountant';
+  return '/accountant';
 }
 
 function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {

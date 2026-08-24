@@ -354,3 +354,19 @@ class DocumentBatchUpdateRequest(BaseModel):
 
 class DocumentBatchRejectRequest(BaseModel):
     rejection_note: str = Field(..., min_length=1, max_length=1000)
+
+
+class NotificationOut(BaseModel):
+    id: int
+    kind: str
+    title: str
+    message: str
+    batch_id: int | None = None
+    action_url: str | None = None
+    is_read: bool
+    created_at: datetime
+
+
+class NotificationListResponse(BaseModel):
+    items: list[NotificationOut]
+    unread_count: int

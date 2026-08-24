@@ -29,6 +29,7 @@ import {
   compareDocumentField,
   comparisonStatusToResult,
   compareValues as compareRawValues,
+  getComparisonCellClass,
   getGrnTotalAdjustment,
   inferVatRate,
   toNumber,
@@ -526,8 +527,9 @@ function isWithinDateRange(batch, range) {
 function matchesOverviewFilter(batch, overviewFilter) {
   if (!overviewFilter || overviewFilter === 'all') return true;
   if (overviewFilter === 'ready') return batch.isReady;
-  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved'].includes(batch.status);
-  if (overviewFilter === 'review') return batch.isReady && !['matched', 'approved'].includes(batch.status);
+  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved', 'final_approved'].includes(batch.status);
+  if (overviewFilter === 'review') return batch.isReady && ['mismatch', 'missing'].includes(batch.status);
+  if (overviewFilter === 'rejected') return batch.isReady && batch.status === 'rejected';
   if (overviewFilter === 'incomplete') return false;
   return true;
 }
@@ -537,6 +539,7 @@ function getOverviewFilterLabel(overviewFilter) {
     ready: 'Tổng hồ sơ',
     matched: 'Đã khớp',
     review: 'Cần xem',
+    rejected: 'Từ chối',
     incomplete: 'Batch chưa có hồ sơ',
   };
   return labels[overviewFilter] || null;
@@ -558,22 +561,6 @@ function StatusBadge({ status }) {
       <Icon size={14} />
       {meta.label}
     </span>
-  );
-}
-
-function MatchMeter({ value }) {
-  const barColor = value >= 98 ? 'bg-emerald-500' : value >= 85 ? 'bg-amber-500' : value > 0 ? 'bg-rose-500' : 'bg-slate-300';
-
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tỉ lệ khớp</span>
-        <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{value}%</span>
-      </div>
-      <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
-        <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${value}%` }} />
-      </div>
-    </div>
   );
 }
 
@@ -636,7 +623,7 @@ function ResultPill({ severity, text }) {
     danger: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
   }[severity];
 
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
 }
 
 const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá'];
@@ -749,7 +736,7 @@ function buildComparisons(docs) {
     if (key === 'total_amount') {
       const grnAdjustment = getGrnTotalAdjustment(docs);
       if (grnAdjustment) {
-        values[2] = `${formatDisplayValue(grnAdjustment.baseTotal)} + ${grnAdjustment.vatRate}%`;
+        values[2] = formatDisplayValue(grnAdjustment.adjustedTotal);
       }
     }
     const result = comparisonStatusToResult(compareDocumentField(docs, key));
@@ -760,7 +747,7 @@ function buildComparisons(docs) {
       grn: values[2],
       ...result,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function findItemByIdentity(items, sourceItem, index) {
@@ -836,8 +823,11 @@ function buildLineItems(docs) {
           ? 'Thiếu dữ liệu'
           : 'Khớp',
       severity,
+      qtySeverity: qtyResult.severity,
+      priceSeverity: priceResult.severity,
+      amountSeverity: amountResult.severity,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function mapApiBatchToAuditBatch(batch) {
@@ -1400,25 +1390,6 @@ export default function AuditTrail({ token, role }) {
               </button>
             </div>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {[
-                  ['Đã đối chiếu', selectedBatch.checkedFields, 'text-slate-900 dark:text-slate-100'],
-                  ['Khớp', selectedBatch.matchedFields, 'text-emerald-700 dark:text-emerald-300'],
-                  ['Lệch', selectedBatch.mismatchFields, 'text-rose-700 dark:text-rose-300'],
-                  ['Thiếu', selectedBatch.missingFields, 'text-amber-700 dark:text-amber-300'],
-                ].map(([label, value, color]) => (
-                  <div key={label} className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-                    <p className={`mt-1 text-xl font-bold tabular-nums ${color}`}>{value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-                <MatchMeter value={selectedBatch.matchRate} />
-              </div>
-            </div>
-
             <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
               <p className="text-xs font-semibold uppercase text-slate-400">Kết luận</p>
               <p className="mt-1 text-sm font-medium leading-6 text-slate-800 dark:text-slate-200">{selectedBatch.decision}</p>
@@ -1454,10 +1425,10 @@ export default function AuditTrail({ token, role }) {
                     documentComparisons.map((item) => (
                       <tr key={`${selectedBatch.id}-${item.field}`} className="table-row-hover">
                         <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
-                        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
-                        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
-                        <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                        <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                       </tr>
                     ))
                   ) : (
@@ -1505,14 +1476,14 @@ export default function AuditTrail({ token, role }) {
                           <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.poQty}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.poPrice}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
-                        <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poAmount}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceAmount}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnAmount}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                        <td className={`border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
                         <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                       </tr>
                     ))
@@ -1597,25 +1568,6 @@ export default function AuditTrail({ token, role }) {
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-                  {[
-                    ['Đã đối chiếu', modalBatch.checkedFields, 'text-slate-900 dark:text-slate-100'],
-                    ['Khớp', modalBatch.matchedFields, 'text-emerald-700 dark:text-emerald-300'],
-                    ['Lệch', modalBatch.mismatchFields, 'text-rose-700 dark:text-rose-300'],
-                    ['Thiếu dữ liệu', modalBatch.missingFields, 'text-amber-700 dark:text-amber-300'],
-                  ].map(([label, value, color]) => (
-                    <div key={label} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
-                      <p className={`mt-0.5 text-lg font-bold tabular-nums ${color}`}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
-                  <MatchMeter value={modalBatch.matchRate} />
-                </div>
-              </div>
-
               <div className="grid gap-3 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => (
                   <DocumentCard key={type.key} type={type} doc={modalBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
@@ -1653,15 +1605,15 @@ export default function AuditTrail({ token, role }) {
                               <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                             </td>
                             <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poPrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.invoicePrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnPrice}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poAmount}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.invoiceAmount}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnAmount}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.grnPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.grnPrice}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
                             <td className="px-3 py-2.5 text-center whitespace-nowrap"><ResultPill severity={item.severity} text={item.result} /></td>
                           </tr>
                         ))
@@ -1696,10 +1648,10 @@ export default function AuditTrail({ token, role }) {
                       {modalComparisons.map((item) => (
                         <tr key={`${modalBatch.id}-modal-${item.field}`} className="table-row-hover">
                           <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
-                          <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                         </tr>
                       ))}
                     </tbody>

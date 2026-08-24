@@ -91,6 +91,12 @@ function getBatchDocState(batch) {
   return { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes };
 }
 
+function isBatchEmpty(batch) {
+  if (!batch || ['ready', 'approved', 'final_approved', 'rejected'].includes(batch.status)) return false;
+  const { uploadedDocTypes } = getBatchDocState(batch);
+  return uploadedDocTypes.length === 0 && (batch.files || []).length === 0;
+}
+
 function hasExtractedData(file) {
   if (!file) return false;
   if (file.ai_extraction) {
@@ -187,8 +193,8 @@ export default function UploadQueue({ token }) {
       const requestedBatch = (cached?.items || []).find((batch) => String(batch.id) === String(requestedBatchId));
       return requestedBatch?.id || requestedBatchId;
     }
-    const pendingItems = (cached?.items || []).filter((batch) => !isBatchReady(batch));
-    return pendingItems[0]?.id || cached?.items?.[0]?.id || null;
+    const emptyBatch = (cached?.items || []).find(isBatchEmpty);
+    return emptyBatch?.id || null;
   });
   const [batchFilterTab, setBatchFilterTab] = useState(() => (requestedBatchId ? 'all' : 'incomplete')); // 'incomplete' | 'ready' | 'all'
   const [batchPage, setBatchPage] = useState(1);
@@ -198,6 +204,9 @@ export default function UploadQueue({ token }) {
   const [batchNoteSaving, setBatchNoteSaving] = useState(false);
   const [batchNoteError, setBatchNoteError] = useState('');
   const [supplementUploadedFileIds, setSupplementUploadedFileIds] = useState(() => new Set());
+  const [uploadWorkspaceReady, setUploadWorkspaceReady] = useState(false);
+  const [uploadWorkspaceError, setUploadWorkspaceError] = useState('');
+  const uploadWorkspaceInitKeyRef = useRef(null);
 
   // Ref to always have the real-time selected batch ID without stale closure
   const selectedBatchIdRef = useRef(selectedBatchId);
@@ -230,10 +239,10 @@ export default function UploadQueue({ token }) {
     const targetId = selectedBatchId || selectedBatchIdRef.current;
     if (targetId) {
       const match = batches.find((batch) => String(batch.id) === String(targetId));
-      if (match) return match;
+      return match || null;
     }
-    return activeBatches[0] || batches[0] || null;
-  }, [batches, selectedBatchId, activeBatches]);
+    return null;
+  }, [batches, selectedBatchId]);
 
   // In-flight files for selected batch
   const selectedBatchInFlight = inFlightFiles.filter((inf) => String(inf.batchId) === String(selectedBatch?.id));
@@ -334,8 +343,8 @@ export default function UploadQueue({ token }) {
           selectedBatchIdRef.current = activeId;
           return activeId;
         }
-        const pendingItems = items.filter((batch) => !isBatchReady(batch));
-        const fallbackId = pendingItems[0]?.id || items[0]?.id || null;
+        const emptyBatch = items.find(isBatchEmpty);
+        const fallbackId = emptyBatch?.id || null;
         selectedBatchIdRef.current = fallbackId;
         return fallbackId;
       });
@@ -346,10 +355,58 @@ export default function UploadQueue({ token }) {
     }
   }, [syncReadyBatchNotice, token]);
 
-  // Load danh sách lần đầu khi render
+  const initializeUploadWorkspace = useCallback(async ({ force = false } = {}) => {
+    const initializationKey = requestedBatchId ? `requested:${requestedBatchId}` : 'default';
+    if (!force && uploadWorkspaceInitKeyRef.current === initializationKey) return;
+
+    uploadWorkspaceInitKeyRef.current = initializationKey;
+    setLoading(true);
+    setUploadWorkspaceReady(false);
+    setUploadWorkspaceError('');
+
+    try {
+      const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
+      let items = data?.items || [];
+      syncReadyBatchNotice(items);
+
+      if (requestedBatchId) {
+        const requestedBatch = items.find((batch) => String(batch.id) === String(requestedBatchId));
+        if (!requestedBatch) {
+          throw new Error('Không tìm thấy batch cần tải bổ sung hoặc bạn không còn quyền truy cập.');
+        }
+        const nextId = requestedBatch.id;
+        setBatches(items);
+        setSelectedBatchId(nextId);
+        selectedBatchIdRef.current = nextId;
+        setUploadWorkspaceReady(true);
+        return;
+      }
+
+      let uploadBatch = items.find(isBatchEmpty);
+      if (!uploadBatch) {
+        uploadBatch = await createDocumentBatch(token);
+        updateCachedBatchItem(uploadBatch);
+        items = [uploadBatch, ...items.filter((batch) => String(batch.id) !== String(uploadBatch.id))];
+      }
+
+      setBatches(items);
+      setSelectedBatchId(uploadBatch.id);
+      selectedBatchIdRef.current = uploadBatch.id;
+      setBatchFilterTab('incomplete');
+      setBatchPage(1);
+      setUploadWorkspaceReady(true);
+    } catch (err) {
+      uploadWorkspaceInitKeyRef.current = null;
+      setUploadWorkspaceError(err.message || 'Không thể chuẩn bị bộ chứng từ để tải lên.');
+    } finally {
+      setLoading(false);
+    }
+  }, [requestedBatchId, syncReadyBatchNotice, token]);
+
+  // Mỗi lần vào trang, đảm bảo có một batch rỗng an toàn để bắt đầu tải lên.
   useEffect(() => {
-    fetchBatches(true);
-  }, [fetchBatches]);
+    initializeUploadWorkspace();
+  }, [initializeUploadWorkspace]);
 
   useEffect(() => {
     if (!requestedBatchId) return;
@@ -416,6 +473,7 @@ export default function UploadQueue({ token }) {
   };
 
   const handleChooseFiles = (docType) => {
+    if (!uploadWorkspaceReady) return;
     filePickerDocTypeRef.current = docType;
     setSelectedDocType(docType);
     fileInputRef.current?.click();
@@ -477,6 +535,8 @@ export default function UploadQueue({ token }) {
       selectedBatchIdRef.current = batch.id;
       setBatchFilterTab('incomplete');
       setBatchPage(1);
+      setUploadWorkspaceError('');
+      setUploadWorkspaceReady(true);
       documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return batch;
     } catch (err) {
@@ -492,8 +552,15 @@ export default function UploadQueue({ token }) {
 
   const ensureSelectedBatch = async () => {
     const currentId = selectedBatchIdRef.current || selectedBatchId;
-    const existing = batches.find((b) => b.id === currentId) || selectedBatch;
+    const existing = batches.find((batch) => String(batch.id) === String(currentId));
     if (existing) return existing;
+
+    const emptyBatch = batches.find(isBatchEmpty);
+    if (emptyBatch) {
+      setSelectedBatchId(emptyBatch.id);
+      selectedBatchIdRef.current = emptyBatch.id;
+      return emptyBatch;
+    }
     return handleCreateBatch();
   };
 
@@ -534,9 +601,10 @@ export default function UploadQueue({ token }) {
   // Upload file lên BE với trạng thái in-flight độc lập
   const uploadFiles = async (fileList, docType = selectedDocType, batchId = null) => {
     const filesArray = Array.from(fileList);
-    if (filesArray.length === 0) return;
+    if (filesArray.length === 0 || !uploadWorkspaceReady) return;
 
-    const targetBatchId = batchId || selectedBatchIdRef.current || selectedBatch?.id || (await ensureSelectedBatch())?.id;
+    const ensuredBatch = batchId ? null : await ensureSelectedBatch();
+    const targetBatchId = batchId || ensuredBatch?.id;
     if (!targetBatchId) return;
 
     // Lock the selected batch to this target batch
@@ -601,17 +669,20 @@ export default function UploadQueue({ token }) {
     e.preventDefault();
     e.stopPropagation();
     resetDragState();
+    if (!uploadWorkspaceReady) return;
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       setSelectedDocType(docType);
-      const targetId = selectedBatchIdRef.current || selectedBatch?.id;
-      uploadFiles(e.dataTransfer.files, docType, targetId);
+      uploadFiles(e.dataTransfer.files, docType);
     }
   };
 
   const handleFileSelect = (e) => {
+    if (!uploadWorkspaceReady) {
+      e.target.value = '';
+      return;
+    }
     if (e.target.files && e.target.files.length > 0) {
-      const targetId = selectedBatchIdRef.current || selectedBatch?.id;
-      uploadFiles(e.target.files, filePickerDocTypeRef.current, targetId);
+      uploadFiles(e.target.files, filePickerDocTypeRef.current);
       e.target.value = '';
     }
   };
@@ -696,7 +767,8 @@ export default function UploadQueue({ token }) {
       const remainingBatches = batches.filter((item) => item.id !== batch.id);
       setBatches(remainingBatches);
       setSelectedBatchId((currentId) => {
-        const nextId = currentId === batch.id ? remainingBatches[0]?.id || null : currentId;
+        const nextEmptyBatch = remainingBatches.find(isBatchEmpty);
+        const nextId = String(currentId) === String(batch.id) ? nextEmptyBatch?.id || null : currentId;
         selectedBatchIdRef.current = nextId;
         return nextId;
       });
@@ -727,7 +799,8 @@ export default function UploadQueue({ token }) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => fetchBatches(true, true)}
+            onClick={() => initializeUploadWorkspace({ force: true })}
+            disabled={!uploadWorkspaceReady && !uploadWorkspaceError}
             className="btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3"
             title="Làm mới dữ liệu"
           >
@@ -737,7 +810,8 @@ export default function UploadQueue({ token }) {
           <button
             type="button"
             onClick={handleCreateBatch}
-            className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5"
+            disabled={!uploadWorkspaceReady}
+            className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Plus size={14} />
             Tạo bộ mới
@@ -745,7 +819,34 @@ export default function UploadQueue({ token }) {
         </div>
       </div>
 
+      {!uploadWorkspaceReady && (
+        <div
+          role={uploadWorkspaceError ? 'alert' : 'status'}
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            uploadWorkspaceError
+              ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300'
+              : 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2 font-semibold">
+            {uploadWorkspaceError ? <AlertCircle size={16} /> : <Loader2 size={16} className="animate-spin" />}
+            {uploadWorkspaceError || 'Đang chuẩn bị một bộ chứng từ trống để tải lên...'}
+          </span>
+          {uploadWorkspaceError && (
+            <button
+              type="button"
+              onClick={() => initializeUploadWorkspace({ force: true })}
+              className="btn-secondary px-3 py-1.5 text-xs"
+            >
+              <RefreshCw size={13} />
+              Thử lại
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Selected Batch Status Banner */}
+      {uploadWorkspaceReady && (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
@@ -782,6 +883,7 @@ export default function UploadQueue({ token }) {
           )}
         </div>
       </div>
+      )}
 
       {/* Select Document Type with Drop Zones */}
       <div ref={documentTypesRef} className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3.5 scroll-mt-6">
@@ -796,7 +898,8 @@ export default function UploadQueue({ token }) {
             <div
               key={type.value}
               role="button"
-              tabIndex={0}
+              tabIndex={uploadWorkspaceReady ? 0 : -1}
+              aria-disabled={!uploadWorkspaceReady}
               data-testid={`drop-zone-${type.value}`}
               onClick={() => handleChooseFiles(type.value)}
               onKeyDown={(event) => {
@@ -810,6 +913,8 @@ export default function UploadQueue({ token }) {
               onDragLeave={handleTypeDragLeave}
               onDrop={(event) => handleDrop(event, type.value)}
               className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                !uploadWorkspaceReady ? 'pointer-events-none opacity-60 ' : ''
+              }${
                 isDropActive
                   ? 'border-brand-500 bg-brand-50 shadow-md ring-4 ring-brand-100 dark:border-brand-400 dark:bg-brand-950/30 dark:ring-brand-950'
                   : isReadingThisType
@@ -952,6 +1057,7 @@ export default function UploadQueue({ token }) {
           multiple
           accept=".xml,.pdf,.png,.jpg,.jpeg"
           onChange={handleFileSelect}
+          disabled={!uploadWorkspaceReady}
           className="hidden"
         />
       </div>

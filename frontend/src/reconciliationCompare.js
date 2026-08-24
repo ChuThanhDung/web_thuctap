@@ -147,6 +147,21 @@ export function comparisonStatusToResult(status) {
   return { result: 'Có chênh lệch', severity: 'danger' };
 }
 
+export function getComparisonCellClass(status, value, peerValues = [value]) {
+  const normalizedDisplayValue = normalizeComparableValue(value);
+  const hasValue = normalizedDisplayValue !== '' && normalizedDisplayValue !== '-';
+  if (status === 'danger' && hasValue) {
+    const normalizedValue = normalizedDisplayValue;
+    const matchingValues = peerValues
+      .map(normalizeComparableValue)
+      .filter(Boolean)
+      .filter((peerValue) => peerValue === normalizedValue);
+    if (matchingValues.length === 1) return 'text-rose-600 dark:text-rose-400';
+  }
+  if (status === 'warning' && !hasValue) return 'text-amber-700 dark:text-amber-400';
+  return 'text-slate-600 dark:text-slate-300';
+}
+
 const SUMMARY_FIELDS = ['supplier_name', 'supplier_tax_id', 'vat_rate_pct', 'total_amount'];
 
 function findItemByIdentity(items, sourceItem, index) {

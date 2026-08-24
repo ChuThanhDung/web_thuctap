@@ -1,0 +1,50 @@
+{
+  "batch_id": "edge_03",
+  "format": "img",
+  "expected_result": "ERROR_UNREADABLE_FILE",
+  "affected_file": "03_invoice.jpg",
+  "defect_kind": "truncated_jpg",
+  "defect_note": "File ảnh hóa đơn bị đứt còn ~45% dung lượng, decode lỗi/mất nửa dưới ảnh",
+  "expected_agent_behavior": "Báo lỗi không đọc được file, đưa hóa đơn vào danh sách xử lý tay; không được bịa dữ liệu",
+  "documents": {
+    "purchase_order": "PO-2026-0281",
+    "goods_receipt": "PNK-0283",
+    "invoice": "1C26TVM-00002391"
+  },
+  "buyer": "CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST",
+  "seller": "CÔNG TY CỔ PHẦN PHỤ TÙNG VIỆT MOTO",
+  "true_content_for_scoring": {
+    "note": "Dữ liệu thật của chứng từ (trước khi làm hỏng/mờ) — dùng để chấm xem agent có bịa số liệu không. Nội dung 3 chứng từ khớp 100%.",
+    "lines": [
+      {
+        "code": "PT-GG09",
+        "name": "Gác chân xe máy cao cấp (cặp)",
+        "unit": "Cặp",
+        "qty": 200,
+        "price": 95000,
+        "amount": 19000000
+      },
+      {
+        "code": "PT-CK04",
+        "name": "Chân chống nghiêng gia cố",
+        "unit": "Chiếc",
+        "qty": 180,
+        "price": 68000,
+        "amount": 12240000
+      },
+      {
+        "code": "PT-OK11",
+        "name": "Ốp két nước tản nhiệt",
+        "unit": "Chiếc",
+        "qty": 150,
+        "price": 55000,
+        "amount": 8250000
+      }
+    ],
+    "sub": 39490000,
+    "vat_rate": 10,
+    "vat": 3949000,
+    "total": 43439000
+  },
+  "discrepancies": []
+}
