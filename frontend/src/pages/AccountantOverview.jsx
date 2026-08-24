@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   FileSearch,
+  XCircle,
 } from 'lucide-react';
 import {
   Bar,
@@ -156,6 +157,10 @@ function analyzeBatch(batch) {
     return acc;
   }, {});
   const summary = calculateMatchSummary(docs);
+  const comparisonStatus = summary.status === 'matched' ? 'matched' : summary.status;
+  const status = ['approved', 'final_approved', 'rejected'].includes(batch.status)
+    ? batch.status
+    : comparisonStatus;
 
   return {
     id: batch.id,
@@ -166,7 +171,7 @@ function analyzeBatch(batch) {
     missing: summary.warningFields,
     mismatch: summary.mismatchFields,
     matchRate: summary.matchRate,
-    status: summary.status === 'matched' ? 'matched' : 'review',
+    status,
   };
 }
 
@@ -283,17 +288,21 @@ export default function AccountantOverview({ token, role }) {
       };
     }
     
-    // Kế toán viên: Logic cũ
+    // Kế toán viên: giữ trạng thái nghiệp vụ để các nhóm không chồng lấn nhau.
     const readyBatches = filteredBatches.filter(isBatchReady).map(analyzeBatch);
-    const matched = readyBatches.filter((batch) => batch.status === 'matched').length;
-    const review = readyBatches.filter((batch) => batch.status === 'review').length;
-    const missingData = readyBatches.filter((batch) => batch.status === 'review' && batch.missing > 0).length;
-    const mismatch = readyBatches.filter((batch) => batch.status === 'review' && batch.mismatch > 0).length;
+    const matchedStatuses = ['matched', 'approved', 'final_approved'];
+    const reviewStatuses = ['mismatch', 'missing'];
+    const matched = readyBatches.filter((batch) => matchedStatuses.includes(batch.status)).length;
+    const review = readyBatches.filter((batch) => reviewStatuses.includes(batch.status)).length;
+    const rejected = readyBatches.filter((batch) => batch.status === 'rejected').length;
+    const missingData = readyBatches.filter((batch) => batch.status === 'missing').length;
+    const mismatch = readyBatches.filter((batch) => batch.status === 'mismatch').length;
 
     return {
       total: readyBatches.length,
       matched,
       review,
+      rejected,
       missingData,
       mismatch,
       incomplete: filteredBatches.filter((batch) => !isBatchReady(batch)).length,
@@ -307,16 +316,18 @@ export default function AccountantOverview({ token, role }) {
   const statusChartData = [
     { name: 'Đã khớp', value: summary.matched, color: '#14b8a6' },
     { name: 'Cần xem', value: summary.review, color: '#f59e0b' },
+    { name: 'Từ chối', value: summary.rejected, color: '#e11d48' },
   ];
 
   const fieldChartData = [
-    { name: 'Khớp hoàn toàn', value: summary.matched, fill: '#14b8a6' },
+    { name: 'Đã khớp', value: summary.matched, fill: '#14b8a6' },
     { name: 'Thiếu dữ liệu', value: summary.missingData, fill: '#f59e0b' },
     { name: 'Lệch', value: summary.mismatch, fill: '#fb7185' },
+    { name: 'Từ chối', value: summary.rejected, fill: '#e11d48' },
   ];
 
   const reviewBatches = useMemo(() => (
-    summary.readyBatches.filter((batch) => batch.status === 'review')
+    summary.readyBatches.filter((batch) => ['mismatch', 'missing'].includes(batch.status))
   ), [summary.readyBatches]);
   const totalReviewPages = Math.max(1, Math.ceil(reviewBatches.length / REVIEW_BATCHES_PER_PAGE));
   const safeReviewPage = Math.min(reviewPage, totalReviewPages);
@@ -438,7 +449,7 @@ export default function AccountantOverview({ token, role }) {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className={`grid grid-cols-2 gap-3 ${role === 'chief_accountant' ? 'xl:grid-cols-3' : 'lg:grid-cols-3 xl:grid-cols-5'}`}>
         {role === 'chief_accountant' ? (
           <>
             <MetricCard 
@@ -469,8 +480,9 @@ export default function AccountantOverview({ token, role }) {
         ) : (
           <>
             <MetricCard icon={ClipboardList} label="Tổng hồ sơ" value={formatDisplayNumber(summary.total)} detail="Batch đã đủ PO, Invoice và GRN trong khoảng lọc" tone="brand" onClick={() => navigateToBatchFilter('ready')} />
-            <MetricCard icon={CheckCircle2} label="Đã khớp" value={formatDisplayNumber(summary.matched)} detail="Batch có tỉ lệ khớp 100%" tone="emerald" onClick={() => navigateToBatchFilter('matched')} />
-            <MetricCard icon={AlertTriangle} label="Cần xem" value={formatDisplayNumber(summary.review)} detail="Batch chưa khớp hoặc còn thiếu dữ liệu" tone="amber" onClick={() => navigateToBatchFilter('review')} />
+            <MetricCard icon={CheckCircle2} label="Đã khớp" value={formatDisplayNumber(summary.matched)} detail="Batch đã khớp hoặc đã được duyệt, không gồm batch bị từ chối" tone="emerald" onClick={() => navigateToBatchFilter('matched')} />
+            <MetricCard icon={AlertTriangle} label="Cần xem" value={formatDisplayNumber(summary.review)} detail="Batch có chênh lệch hoặc thiếu dữ liệu" tone="amber" onClick={() => navigateToBatchFilter('review')} />
+            <MetricCard icon={XCircle} label="Từ chối" value={formatDisplayNumber(summary.rejected)} detail="Batch đã bị kế toán trưởng từ chối" tone="rose" onClick={() => navigateToBatchFilter('rejected')} />
             <MetricCard icon={FileSearch} label="Batch chưa có hồ sơ" value={formatDisplayNumber(summary.incomplete)} detail="Batch còn thiếu PO, Invoice hoặc GRN trong khoảng lọc" tone="brand" onClick={() => navigate('/upload')} />
           </>
         )}
@@ -481,7 +493,7 @@ export default function AccountantOverview({ token, role }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-4">
             <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Phân bổ trạng thái</h2>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Tỷ trọng hồ sơ đã khớp và cần xem.</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Tỷ trọng hồ sơ đã khớp, cần xem và bị từ chối.</p>
           </div>
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -495,7 +507,7 @@ export default function AccountantOverview({ token, role }) {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {statusChartData.map((item) => (
               <div key={item.name} className="rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/50">
                 <div className="flex items-center gap-2">
@@ -511,7 +523,7 @@ export default function AccountantOverview({ token, role }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-4">
             <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Thống kê theo batch</h2>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Số lượng batch khớp hoàn toàn, thiếu dữ liệu hoặc có chênh lệch.</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Số lượng batch theo kết quả đối soát và quyết định của kế toán trưởng.</p>
           </div>
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">

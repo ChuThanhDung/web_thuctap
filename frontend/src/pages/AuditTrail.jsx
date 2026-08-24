@@ -527,8 +527,9 @@ function isWithinDateRange(batch, range) {
 function matchesOverviewFilter(batch, overviewFilter) {
   if (!overviewFilter || overviewFilter === 'all') return true;
   if (overviewFilter === 'ready') return batch.isReady;
-  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved'].includes(batch.status);
-  if (overviewFilter === 'review') return batch.isReady && !['matched', 'approved'].includes(batch.status);
+  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved', 'final_approved'].includes(batch.status);
+  if (overviewFilter === 'review') return batch.isReady && ['mismatch', 'missing'].includes(batch.status);
+  if (overviewFilter === 'rejected') return batch.isReady && batch.status === 'rejected';
   if (overviewFilter === 'incomplete') return false;
   return true;
 }
@@ -538,6 +539,7 @@ function getOverviewFilterLabel(overviewFilter) {
     ready: 'Tổng hồ sơ',
     matched: 'Đã khớp',
     review: 'Cần xem',
+    rejected: 'Từ chối',
     incomplete: 'Batch chưa có hồ sơ',
   };
   return labels[overviewFilter] || null;
