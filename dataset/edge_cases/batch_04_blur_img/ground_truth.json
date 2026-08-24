@@ -1,0 +1,50 @@
+{
+  "batch_id": "edge_04",
+  "format": "img",
+  "expected_result": "LOW_CONFIDENCE_OCR",
+  "affected_file": "ALL_IMAGES",
+  "defect_kind": "blur",
+  "defect_note": "Cả 3 ảnh scan mờ (PO, phiếu nhập mờ vừa; hóa đơn mờ nặng + nghiêng + tối) — OCR đọc được một phần, confidence thấp",
+  "expected_agent_behavior": "Cảnh báo độ tin cậy trích xuất thấp, yêu cầu người kiểm tra lại; không được tự suy diễn giá trị",
+  "documents": {
+    "purchase_order": "PO-2026-0288",
+    "goods_receipt": "PNK-0290",
+    "invoice": "1C26TAB-00001967"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH SẢN XUẤT THƯƠNG MẠI NHỰA AN BẢO",
+  "true_content_for_scoring": {
+    "note": "Dữ liệu thật của chứng từ (trước khi làm hỏng/mờ) — dùng để chấm xem agent có bịa số liệu không. Nội dung 3 chứng từ khớp 100%.",
+    "lines": [
+      {
+        "code": "NH-KN33",
+        "name": "Két nhựa đựng hàng 60x40cm",
+        "unit": "Chiếc",
+        "qty": 400,
+        "price": 72000,
+        "amount": 28800000
+      },
+      {
+        "code": "NH-PL18",
+        "name": "Pallet nhựa 1m x 1.2m",
+        "unit": "Chiếc",
+        "qty": 60,
+        "price": 385000,
+        "amount": 23100000
+      },
+      {
+        "code": "NH-MN22",
+        "name": "Màng PE quấn hàng 3kg",
+        "unit": "Cuộn",
+        "qty": 200,
+        "price": 88000,
+        "amount": 17600000
+      }
+    ],
+    "sub": 69500000,
+    "vat_rate": 10,
+    "vat": 6950000,
+    "total": 76450000
+  },
+  "discrepancies": []
+}

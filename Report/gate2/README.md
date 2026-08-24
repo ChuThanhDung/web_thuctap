@@ -17,8 +17,8 @@
 | Frontend | React 18, Vite 5, React Router, Tailwind CSS, Recharts |
 | Backend | Python, FastAPI, Uvicorn, Pydantic |
 | AI workflow | LangGraph, LangChain, OpenAI API |
-| Database | PostgreSQL 16, SQLAlchemy, psycopg |
-| Storage | Local filesystem hoặc S3/Cloudflare R2 qua boto3 |
+| Database | PostgreSQL 16 |
+| Storage | Cloudflare R2  |
 | Testing | pytest, pytest-asyncio, HTTPX |
 | Deployment | Docker, Docker Compose, Nginx, Vercel configuration |
 

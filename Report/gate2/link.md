@@ -5,6 +5,6 @@
 
 
 Demo: <https://docusyncai-frontend.vercel.app/login>
-- Kế toán viên: `accountant@docusync.ai`
-- Kế toán trưởng: `chief.accountant@docusync.ai`
+- Kế toán viên: `quyhslc11@gmail.com`
+- Kế toán trưởng: `skyticket.work@gmail.com`
 - Mật khẩu: `123456`
