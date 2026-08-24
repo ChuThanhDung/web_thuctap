@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import { calculateMatchSummary } from '../reconciliationCompare.js';
+import NotificationBell from '../components/NotificationBell.jsx';
 import { fetchDocumentBatchesWithCache, getCachedBatches, subscribeBatchCache } from '../services/batchCache.js';
 import { repairTextDeep } from '../text.js';
 
@@ -387,7 +388,8 @@ export default function AccountantOverview({ token, role }) {
             Theo dõi tình trạng xử lý chứng từ và các batch cần ưu tiên xem lại.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2 self-start lg:self-auto">
+          <NotificationBell token={token} />
           <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
             Tỉ lệ khớp trung bình: {summary.avgMatchRate}%
           </div>

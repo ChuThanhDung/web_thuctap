@@ -1,4 +1,5 @@
 from src.models.audit_log import AuditLog
+from src.models.notification import Notification
 from src.models.password_reset_otp import PasswordResetOtp
 from src.models.reconciliation import (
     DocumentBatch,
@@ -22,6 +23,7 @@ __all__ = [
     "GoodsReceiptNote",
     "GoodsReceiptNoteItem",
     "LineItem",
+    "Notification",
     "PasswordResetOtp",
     "PurchaseOrder",
     "PurchaseOrderItem",

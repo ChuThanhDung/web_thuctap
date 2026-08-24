@@ -32,6 +32,11 @@ from src.models.user import User
 from src.services.auth import write_audit_log
 from src.services.document_ai_extractor import DocumentAiAnalysis, analyze_uploaded_document
 from src.services.email import send_batch_rejected_email
+from src.services.notifications import (
+    create_notification,
+    create_notifications_for_role,
+    publish_notifications,
+)
 from src.services.reconciliation_engine import reconcile_documents
 from src.services.s3_service import (
     delete_file_from_object_storage,
@@ -665,6 +670,16 @@ async def approve_upload_batch(
     batch.approved_by_id = current_user.public_id
     batch.updated_at = datetime.now()
     db.add(batch)
+    notifications = create_notifications_for_role(
+        db,
+        role_code="chief_accountant",
+        actor=current_user,
+        batch_id=batch.id,
+        kind="batch_submitted",
+        title="Batch mới chờ duyệt",
+        message=f"{current_user.full_name} đã duyệt {batch.batch_number} và gửi sang Kế toán trưởng.",
+        action_url=f"/audit-trail?status=unapproved&batchId={batch.id}",
+    )
     write_audit_log(
         db=db,
         action="DOCUMENT_BATCH_APPROVED",
@@ -682,6 +697,7 @@ async def approve_upload_batch(
     )
     db.commit()
     db.refresh(batch)
+    await publish_notifications(db, notifications)
     return to_document_batch_out(batch)
 
 
@@ -800,6 +816,20 @@ async def reject_upload_batch(
     db.flush()
 
     recipient = batch.approved_by or batch.created_by
+    notifications = []
+    if recipient:
+        notifications.append(
+            create_notification(
+                db,
+                recipient=recipient,
+                actor=current_user,
+                batch_id=batch.id,
+                kind="batch_rejected",
+                title="Batch đã bị từ chối",
+                message=f"{current_user.full_name} đã từ chối {batch.batch_number}: {rejection_note}",
+                action_url=f"/audit-trail?overviewFilter=rejected&batchId={batch.id}",
+            )
+        )
     email_queued = False
     if recipient and recipient.email:
         email_queued = True
@@ -833,6 +863,7 @@ async def reject_upload_batch(
     )
     db.commit()
     db.refresh(batch)
+    await publish_notifications(db, notifications)
     return to_document_batch_out(batch)
 
 

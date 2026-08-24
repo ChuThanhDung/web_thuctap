@@ -164,6 +164,21 @@ textarea {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0); }
+  12% { transform: rotate(18deg); }
+  24% { transform: rotate(-16deg); }
+  36% { transform: rotate(13deg); }
+  48% { transform: rotate(-10deg); }
+  60% { transform: rotate(6deg); }
+  72% { transform: rotate(-3deg); }
+}
+
+.animate-bell-ring {
+  animation: bell-ring 0.8s ease-in-out 2;
+  transform-origin: 50% 10%;
+}
+
 /* ── Upload dropzone ── */
 .dropzone-active {
   @apply border-brand-500 bg-brand-50;

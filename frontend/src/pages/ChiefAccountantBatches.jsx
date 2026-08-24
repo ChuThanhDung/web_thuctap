@@ -516,6 +516,7 @@ function filterChiefBatches(items) {
 
 export default function ChiefAccountantBatches({ token }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedBatchId = searchParams.get('batchId');
   const cached = getCachedBatches();
   const [batches, setBatches] = useState(() => filterChiefBatches(cached?.items));
   const [isLoading, setIsLoading] = useState(() => !cached);
@@ -588,6 +589,15 @@ export default function ChiefAccountantBatches({ token }) {
       loadBatches();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!requestedBatchId) return;
+    const requestedBatch = batches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+    if (requestedBatch) {
+      setDetailBatchId(requestedBatch.id);
+      setDetailPanelOpen(true);
+    }
+  }, [batches, requestedBatchId]);
 
   const handleApproveBatch = async (batch) => {
     if (!window.confirm('Bạn có muốn duyệt không?')) return;
