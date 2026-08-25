@@ -24,6 +24,7 @@ import {
   subscribeBatchCache,
   updateCachedBatchItem,
 } from '../services/batchCache.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -750,13 +751,68 @@ function buildComparisons(docs) {
   }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
-function findItemByIdentity(items, sourceItem, index) {
-  const sku = sourceItem?.sku;
-  if (sku) {
-    const foundBySku = items.find((item) => item?.sku && item.sku === sku);
+function normalizeItemText(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeItemSku(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getItemIdentityKey(item) {
+  const sku = normalizeItemSku(item?.sku);
+  if (sku) return `sku:${sku}`;
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function getItemNameKey(item) {
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function collectLineItemBases(...itemGroups) {
+  const byIdentity = new Map();
+  const anonymous = [];
+
+  itemGroups.forEach((items) => {
+    items.forEach((item) => {
+      const key = getItemIdentityKey(item);
+      if (!key) {
+        anonymous.push(item);
+        return;
+      }
+      const nameKey = getItemNameKey(item);
+      if (key.startsWith('sku:') && nameKey && byIdentity.has(nameKey)) {
+        return;
+      }
+      if (key.startsWith('name:')) {
+        const sameNameSkuKey = [...byIdentity.keys()].find((existingKey) => (
+          existingKey.startsWith('sku:') && getItemNameKey(byIdentity.get(existingKey)) === key
+        ));
+        if (sameNameSkuKey) return;
+      }
+      if (!byIdentity.has(key)) byIdentity.set(key, item);
+    });
+  });
+
+  return [...byIdentity.values(), ...anonymous];
+}
+
+function findItemByIdentity(items, sourceItem) {
+  const sourceSku = normalizeItemSku(sourceItem?.sku);
+  if (sourceSku) {
+    const foundBySku = items.find((item) => normalizeItemSku(item?.sku) === sourceSku);
     if (foundBySku) return foundBySku;
   }
-  return items[index] || {};
+
+  const sourceName = normalizeItemText(sourceItem?.item_name);
+  if (sourceName) {
+    const foundByName = items.find((item) => normalizeItemText(item?.item_name) === sourceName);
+    if (foundByName) return foundByName;
+  }
+
+  return {};
 }
 
 function getLineAmount(item) {
@@ -773,13 +829,12 @@ function buildLineItems(docs) {
   const poItems = docs.po?.extractedData?.line_items || [];
   const invoiceItems = docs.invoice?.extractedData?.line_items || [];
   const grnItems = docs.grn?.extractedData?.line_items || [];
-  const maxLength = Math.max(poItems.length, invoiceItems.length, grnItems.length);
+  const baseItems = collectLineItemBases(poItems, invoiceItems, grnItems);
 
-  return Array.from({ length: maxLength }).map((_, index) => {
-    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
-    const poItem = findItemByIdentity(poItems, baseItem, index);
-    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
-    const grnItem = findItemByIdentity(grnItems, baseItem, index);
+  return baseItems.map((baseItem, index) => {
+    const poItem = findItemByIdentity(poItems, baseItem);
+    const invoiceItem = findItemByIdentity(invoiceItems, baseItem);
+    const grnItem = findItemByIdentity(grnItems, baseItem);
     const qtyResult = compareValues([
       formatDisplayValue(poItem.qty),
       formatDisplayValue(invoiceItem.qty),
@@ -844,7 +899,16 @@ function mapApiBatchToAuditBatch(batch) {
   const missingDataFields = missingCount + summary.warningFields;
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
-  const isRejected = batch.status === 'rejected';
+  const hasRejection = Boolean(batch.rejection_note);
+  const isRejected = batch.status === 'rejected' || hasRejection;
+  const backendReconciliationStatus = batch.reconciliation_status;
+  const displayStatus = isRejected
+    ? 'rejected'
+    : isFinalApproved
+      ? 'final_approved'
+      : isApproved
+        ? 'approved'
+        : summary.status;
 
   return {
     id: batch.id,
@@ -852,7 +916,9 @@ function mapApiBatchToAuditBatch(batch) {
     batchNumber: batch.batch_number,
     note: batch.note || '',
     rejectionNote: batch.rejection_note || '',
-    status: isRejected ? 'rejected' : isFinalApproved ? 'final_approved' : isApproved ? 'approved' : summary.status,
+    status: displayStatus,
+    reconciliationStatus: backendReconciliationStatus || null,
+    reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
     isApproved,
     isFinalApproved,
     isRejected,
@@ -911,6 +977,7 @@ export default function AuditTrail({ token, role }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [batchPage, setBatchPage] = useState(1);
   const [approvingBatchIds, setApprovingBatchIds] = useState([]);
+  const [approveConfirm, setApproveConfirm] = useState(null);
   const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
 
@@ -932,7 +999,7 @@ export default function AuditTrail({ token, role }) {
           setLoading(true);
         }
         setError('');
-        const data = await fetchDocumentBatchesWithCache(token);
+        const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
         const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
         if (!isMounted) return;
         setBatches(mappedBatches);
@@ -959,6 +1026,41 @@ export default function AuditTrail({ token, role }) {
     fetchBatches();
     return () => {
       isMounted = false;
+    };
+  }, [token, requestedBatchId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function refreshBatches() {
+      try {
+        const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
+        if (!isMounted) return;
+        const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
+        setBatches(mappedBatches);
+        if (requestedBatchId) {
+          const requestedBatch = mappedBatches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+          if (requestedBatch) setModalBatchId(requestedBatch.id);
+        }
+      } catch (err) {
+        console.error('Không thể làm mới trạng thái batch:', err);
+      }
+    }
+
+    const handleFocus = () => {
+      refreshBatches();
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshBatches();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [token, requestedBatchId]);
 
@@ -1040,28 +1142,32 @@ export default function AuditTrail({ token, role }) {
   const modalComparisons = modalBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
   const modalLineItems = modalBatch?.lineItems || [];
 
-  const handleApproveBatch = async (batch, options = {}) => {
+  const requestApproveBatch = (batch, options = {}) => {
     // Kiểm tra điều kiện theo role
     const isChiefAccountant = role === 'chief_accountant';
     
     // Kế toán trưởng: có thể duyệt batch 'approved' (đã qua KTV) hoặc 'matched' (duyệt trực tiếp)
     // Kế toán viên: chỉ duyệt batch 'matched'
-    const canApprove = isChiefAccountant 
-      ? (batch.status === 'approved' || batch.status === 'matched')
-      : batch.status === 'matched';
+    const canApprove = !batch?.rejectionNote && (
+      isChiefAccountant 
+        ? (batch.status === 'approved' || batch.status === 'matched')
+        : batch.status === 'matched'
+    );
     
     if (!batch?.id || !canApprove || approvingBatchIds.includes(batch.id)) return;
+    setApproveConfirm({ batch, options });
+  };
 
-    const confirmMessage = isChiefAccountant
-      ? 'Bạn có muốn duyệt không?'
-      : `Bạn có chắc chắn muốn duyệt batch "${batch.batchNumber}" không?`;
-    
-    const confirmed = window.confirm(confirmMessage);
-    if (!confirmed) return;
+  const handleApproveBatch = async () => {
+    const batch = approveConfirm?.batch;
+    const options = approveConfirm?.options || {};
+    if (!batch?.id || approvingBatchIds.includes(batch.id)) return;
 
+    setError('');
     setApprovingBatchIds((prev) => [...prev, batch.id]);
     try {
       // Gọi API phù hợp theo role
+      const isChiefAccountant = role === 'chief_accountant';
       const approveFunc = isChiefAccountant ? finalApproveDocumentBatch : approveDocumentBatch;
       const approvedBatch = repairTextDeep(await approveFunc(token, batch.id));
       updateCachedBatchItem(approvedBatch);
@@ -1071,8 +1177,9 @@ export default function AuditTrail({ token, role }) {
       if (!options.keepModalOpen) {
         setModalBatchId(null);
       }
+      setApproveConfirm(null);
     } catch (err) {
-      alert(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
+      setError(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
     } finally {
       setApprovingBatchIds((prev) => prev.filter((id) => !isSameBatchId(id, batch.id)));
     }
@@ -1156,6 +1263,12 @@ export default function AuditTrail({ token, role }) {
         </button>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ['Tổng batch', summary.total, 'text-slate-900 dark:text-slate-100'],
@@ -1226,9 +1339,11 @@ export default function AuditTrail({ token, role }) {
               const hasMissingData = batch.status === 'missing';
               // Kế toán viên: duyệt batch matched
               // Kế toán trưởng: duyệt batch approved hoặc matched
-              const canApprove = role === 'chief_accountant' 
-                ? (batch.status === 'approved' || batch.status === 'matched')
-                : batch.status === 'matched';
+              const canApprove = !batch.rejectionNote && (
+                role === 'chief_accountant' 
+                  ? (batch.status === 'approved' || batch.status === 'matched')
+                  : batch.status === 'matched'
+              );
               const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
 
               return (
@@ -1289,7 +1404,7 @@ export default function AuditTrail({ token, role }) {
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleApproveBatch(batch);
+                              requestApproveBatch(batch);
                             }}
                             disabled={isApproving}
                             className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1538,10 +1653,10 @@ export default function AuditTrail({ token, role }) {
                     Upload bổ sung
                   </button>
                 )}
-                {modalBatch.status === 'matched' && (
+                {!modalBatch.rejectionNote && modalBatch.status === 'matched' && (
                   <button
                     type="button"
-                    onClick={() => handleApproveBatch(modalBatch, { keepModalOpen: true })}
+                    onClick={() => requestApproveBatch(modalBatch, { keepModalOpen: true })}
                     disabled={approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id))}
                     className="inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
                     title="Duyệt batch"
@@ -1662,6 +1777,25 @@ export default function AuditTrail({ token, role }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(approveConfirm)}
+        tone="success"
+        title={role === 'chief_accountant' ? 'Xác nhận duyệt cuối' : 'Xác nhận duyệt batch'}
+        description={
+          approveConfirm
+            ? `Bạn có chắc chắn muốn duyệt batch "${approveConfirm.batch.batchNumber}" không?`
+            : ''
+        }
+        confirmLabel="Xác nhận duyệt"
+        cancelLabel="Hủy"
+        loading={Boolean(approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id)))}
+        onCancel={() => {
+          if (approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id))) return;
+          setApproveConfirm(null);
+        }}
+        onConfirm={handleApproveBatch}
+      />
     </div>
   );
 }

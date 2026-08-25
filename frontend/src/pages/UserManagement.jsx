@@ -21,6 +21,7 @@ import {
   getUserAccounts,
   updateUserAccount,
 } from '../api.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { repairVietnameseText } from '../text.js';
 
 const EMPTY_FORM = {
@@ -123,6 +124,8 @@ export default function UserManagement({ token, currentUser }) {
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [accountAction, setAccountAction] = useState(null);
+  const [accountActionLoading, setAccountActionLoading] = useState(false);
 
   async function loadUsers() {
     setLoading(true);
@@ -257,31 +260,38 @@ export default function UserManagement({ token, currentUser }) {
     }
   }
 
-  async function handleDeactivate(user) {
-    const confirmed = window.confirm(`Bạn có chắc muốn vô hiệu hóa tài khoản "${repairVietnameseText(user.full_name)}" không?`);
-    if (!confirmed) return;
-
-    try {
-      setError('');
-      await deactivateUserAccount(token, user.id);
-      setMessage('Đã chuyển tài khoản sang Deactive.');
-      await loadUsers();
-    } catch (err) {
-      setError(err.message || 'Không thể vô hiệu hóa tài khoản.');
-    }
+  function requestDeactivate(user) {
+    setAccountAction({ type: 'deactivate', user });
   }
 
-  async function handleActivate(user) {
-    const confirmed = window.confirm(`Bạn có chắc muốn kích hoạt lại tài khoản "${repairVietnameseText(user.full_name)}" không?`);
-    if (!confirmed) return;
+  function requestActivate(user) {
+    setAccountAction({ type: 'activate', user });
+  }
+
+  async function handleAccountActionConfirm() {
+    if (!accountAction?.user) return;
 
     try {
+      setAccountActionLoading(true);
       setError('');
-      await activateUserAccount(token, user.id);
-      setMessage('Đã kích hoạt lại tài khoản.');
+      if (accountAction.type === 'deactivate') {
+        await deactivateUserAccount(token, accountAction.user.id);
+        setMessage('Đã chuyển tài khoản sang Deactive.');
+      } else {
+        await activateUserAccount(token, accountAction.user.id);
+        setMessage('Đã kích hoạt lại tài khoản.');
+      }
+      setAccountAction(null);
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Không thể kích hoạt tài khoản.');
+      setError(
+        err.message ||
+          (accountAction.type === 'deactivate'
+            ? 'Không thể vô hiệu hóa tài khoản.'
+            : 'Không thể kích hoạt tài khoản.')
+      );
+    } finally {
+      setAccountActionLoading(false);
     }
   }
 
@@ -407,7 +417,7 @@ export default function UserManagement({ token, currentUser }) {
                         {user.status === 'ACTIVE' ? (
                           <button
                             type="button"
-                            onClick={() => handleDeactivate(user)}
+                            onClick={() => requestDeactivate(user)}
                             disabled={String(user.id) === String(currentUser?.id)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                             title="Chuyển sang Deactive"
@@ -418,7 +428,7 @@ export default function UserManagement({ token, currentUser }) {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleActivate(user)}
+                            onClick={() => requestActivate(user)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-700"
                             title="Kích hoạt lại"
                             aria-label={`Kích hoạt lại ${repairVietnameseText(user.full_name)}`}
@@ -577,6 +587,27 @@ export default function UserManagement({ token, currentUser }) {
           </form>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(accountAction)}
+        tone={accountAction?.type === 'deactivate' ? 'danger' : 'success'}
+        title={accountAction?.type === 'deactivate' ? 'Xác nhận vô hiệu hóa tài khoản' : 'Xác nhận kích hoạt tài khoản'}
+        description={
+          accountAction?.user
+            ? accountAction.type === 'deactivate'
+              ? `Bạn có chắc muốn vô hiệu hóa tài khoản "${repairVietnameseText(accountAction.user.full_name)}" không?`
+              : `Bạn có chắc muốn kích hoạt lại tài khoản "${repairVietnameseText(accountAction.user.full_name)}" không?`
+            : ''
+        }
+        confirmLabel={accountAction?.type === 'deactivate' ? 'Vô hiệu hóa' : 'Kích hoạt'}
+        cancelLabel="Hủy"
+        loading={accountActionLoading}
+        onCancel={() => {
+          if (accountActionLoading) return;
+          setAccountAction(null);
+        }}
+        onConfirm={handleAccountActionConfirm}
+      />
     </div>
   );
 }

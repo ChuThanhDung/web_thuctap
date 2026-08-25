@@ -1,6 +1,8 @@
+import hashlib
 import mimetypes
 import os
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
@@ -30,7 +32,11 @@ from src.models.schemas import (
 )
 from src.models.user import User
 from src.services.auth import write_audit_log
-from src.services.document_ai_extractor import DocumentAiAnalysis, analyze_uploaded_document
+from src.services.document_ai_extractor import (
+    DocumentAiAnalysis,
+    UnreadableDocumentError,
+    analyze_uploaded_document,
+)
 from src.services.email import send_batch_rejected_email
 from src.services.notifications import (
     create_notification,
@@ -47,7 +53,9 @@ from src.services.s3_service import (
 
 router = APIRouter(prefix="/uploads", tags=["Uploads & Ingestion"])
 ALLOWED_DOC_TYPES = {"invoice", "po", "grn"}
+AUTO_DOC_TYPE = "auto"
 REQUIRED_DOC_TYPES = ["po", "invoice", "grn"]
+DUPLICATE_UPLOAD_MESSAGE = "File này đã được tải lên trong bộ chứng từ hiện tại. Vui lòng kiểm tra lại."
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_STORAGE_ROOT = PROJECT_ROOT / "storage" / "upload"
 INLINE_CONTENT_TYPES_BY_EXT = {
@@ -64,6 +72,13 @@ def normalize_selected_doc_type(doc_type: str | None) -> str:
     if storage_doc_type not in ALLOWED_DOC_TYPES:
         raise ValueError("Loai tai lieu khong hop le. Vui long chon invoice, po hoac grn.")
     return storage_doc_type
+
+
+def normalize_upload_doc_type(doc_type: str | None) -> str:
+    requested_doc_type = (doc_type or "invoice").lower().strip()
+    if requested_doc_type == AUTO_DOC_TYPE:
+        return AUTO_DOC_TYPE
+    return normalize_selected_doc_type(requested_doc_type)
 
 
 def build_next_batch_number(db: Session) -> str:
@@ -107,6 +122,12 @@ def get_or_create_document_batch(
 
 
 def update_batch_status(db: Session, batch: DocumentBatch) -> None:
+    if batch.rejection_note:
+        batch.status = "rejected"
+        batch.updated_at = datetime.now()
+        db.add(batch)
+        return
+
     uploads = (
         db.query(UploadedFile)
         .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
@@ -269,6 +290,31 @@ def delete_uploaded_file_from_storage(upload: UploadedFile) -> None:
     file_path.unlink(missing_ok=True)
 
 
+def calculate_content_hash(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def read_existing_upload_content(upload: UploadedFile) -> bytes | None:
+    settings = get_settings()
+    try:
+        if settings.storage_provider in {"r2", "s3"}:
+            content, _content_type = download_file_from_object_storage(upload.storage_key)
+            return content
+
+        file_path = resolve_uploaded_file_path(upload.storage_key)
+        return file_path.read_bytes()
+    except Exception:
+        return None
+
+
+def find_duplicate_upload_by_content(batch: DocumentBatch, content_hash: str) -> UploadedFile | None:
+    for upload in batch.files or []:
+        existing_content = read_existing_upload_content(upload)
+        if existing_content is not None and calculate_content_hash(existing_content) == content_hash:
+            return upload
+    return None
+
+
 def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
     settings = get_settings()
     storage_path = Path(upload.storage_key)
@@ -388,6 +434,128 @@ def normalize_extracted_document(doc_type: str, extracted_data: dict | None) -> 
     return normalized
 
 
+def to_decimal_or_none(value) -> Decimal | None:
+    if value in (None, ""):
+        return None
+    try:
+        return Decimal(str(value).replace(",", ""))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def unique_join(values: list, max_length: int | None = None) -> str | None:
+    seen: list[str] = []
+    for value in values:
+        if value in (None, ""):
+            continue
+        text = str(value).strip()
+        if text and text not in seen:
+            seen.append(text)
+    if not seen:
+        return None
+    joined = ", ".join(seen)
+    if max_length and len(joined) > max_length:
+        suffix = "..."
+        return f"{joined[: max_length - len(suffix)].rstrip(', ')}{suffix}"
+    return joined
+
+
+def normalize_item_key(item: dict) -> tuple[str, str]:
+    sku = str(item.get("sku") or "").strip().lower()
+    name = " ".join(str(item.get("item_name") or "").strip().lower().split())
+    return (sku, "") if sku else ("", name)
+
+
+def aggregate_line_items(line_items: list[dict]) -> list[dict]:
+    grouped: dict[tuple[str, str], dict] = {}
+    passthrough: list[dict] = []
+    for item in line_items:
+        key = normalize_item_key(item)
+        if not key[0] and not key[1]:
+            passthrough.append({**item, "row_index": len(passthrough) + 1})
+            continue
+
+        qty = to_decimal_or_none(item.get("qty")) or Decimal("0")
+        amount = to_decimal_or_none(item.get("amount"))
+        price = to_decimal_or_none(item.get("price"))
+        if amount is None and price is not None:
+            amount = qty * price
+
+        if key not in grouped:
+            grouped[key] = {
+                **item,
+                "qty": qty,
+                "amount": amount,
+                "_weighted_price_amount": amount or Decimal("0"),
+                "_weighted_price_qty": qty if amount is not None else Decimal("0"),
+            }
+            continue
+
+        current = grouped[key]
+        current["qty"] = (to_decimal_or_none(current.get("qty")) or Decimal("0")) + qty
+        current_amount = to_decimal_or_none(current.get("amount"))
+        if current_amount is not None or amount is not None:
+            current["amount"] = (current_amount or Decimal("0")) + (amount or Decimal("0"))
+        current["_weighted_price_amount"] = current.get("_weighted_price_amount", Decimal("0")) + (amount or Decimal("0"))
+        current["_weighted_price_qty"] = current.get("_weighted_price_qty", Decimal("0")) + (qty if amount is not None else Decimal("0"))
+
+    aggregated = list(grouped.values()) + passthrough
+    for idx, item in enumerate(aggregated, 1):
+        weighted_qty = item.pop("_weighted_price_qty", Decimal("0"))
+        weighted_amount = item.pop("_weighted_price_amount", Decimal("0"))
+        if weighted_qty > 0:
+            item["price"] = weighted_amount / weighted_qty
+        item["row_index"] = idx
+    return aggregated
+
+
+def aggregate_extracted_documents(doc_type: str, uploads: list[UploadedFile]) -> dict:
+    normalized_docs = [
+        normalize_extracted_document(doc_type, upload.ai_extraction.extracted_data)
+        for upload in uploads
+        if upload.ai_extraction and upload.ai_extraction.is_correct_type and upload.ai_extraction.extracted_data
+    ]
+    if not normalized_docs:
+        return normalize_extracted_document(doc_type, None)
+
+    total_amounts = [to_decimal_or_none(doc.get("total_amount")) for doc in normalized_docs]
+    total_amount = sum((amount for amount in total_amounts if amount is not None), Decimal("0"))
+    has_total_amount = any(amount is not None for amount in total_amounts)
+
+    line_items = []
+    for doc in normalized_docs:
+        document_number = doc.get("document_number") or doc.get(f"{doc_type}_number")
+        for item in doc.get("line_items", []):
+            next_item = dict(item)
+            next_item["row_index"] = len(line_items) + 1
+            if document_number:
+                next_item["source_document_number"] = document_number
+            line_items.append(next_item)
+
+    aggregated = {
+        "type": doc_type,
+        "document_number": unique_join([doc.get("document_number") for doc in normalized_docs], max_length=50),
+        "po_number": unique_join([doc.get("po_number") for doc in normalized_docs], max_length=50),
+        "invoice_number": unique_join([doc.get("invoice_number") for doc in normalized_docs], max_length=50),
+        "grn_number": unique_join([doc.get("grn_number") for doc in normalized_docs], max_length=50),
+        "supplier_name": None,
+        "supplier_tax_id": None,
+        "buyer_name": None,
+        "total_amount": total_amount if has_total_amount else None,
+        "vat_rate_pct": next((doc.get("vat_rate_pct") for doc in normalized_docs if doc.get("vat_rate_pct") not in (None, "")), None),
+        "line_items": aggregate_line_items(line_items),
+    }
+    for key in ("supplier_name", "supplier_tax_id", "buyer_name"):
+        aggregated[key] = next((doc.get(key) for doc in normalized_docs if doc.get(key) not in (None, "")), None)
+    if doc_type == "invoice":
+        aggregated["document_number"] = aggregated["invoice_number"] or aggregated["document_number"]
+    elif doc_type == "po":
+        aggregated["document_number"] = aggregated["po_number"] or aggregated["document_number"]
+    elif doc_type == "grn":
+        aggregated["document_number"] = aggregated["grn_number"] or aggregated["document_number"]
+    return aggregated
+
+
 def build_next_case_number(db: Session) -> str:
     existing_case_numbers = db.scalars(
         select(ReconciliationCase.case_number).where(ReconciliationCase.case_number.like("DOC-%"))
@@ -465,43 +633,48 @@ def reconcile_ready_batch(db: Session, batch: DocumentBatch) -> ReconciliationCa
     if batch.status != "ready":
         return None
 
-    latest_by_type = get_latest_valid_uploads_by_type(db, batch)
-    if any(doc_type not in latest_by_type for doc_type in REQUIRED_DOC_TYPES):
+    uploads_by_type = get_valid_uploads_by_type(db, batch)
+    if any(not uploads_by_type.get(doc_type) for doc_type in REQUIRED_DOC_TYPES):
         return None
 
-    po_data = normalize_extracted_document("po", latest_by_type["po"].ai_extraction.extracted_data)
-    invoice_data = normalize_extracted_document("invoice", latest_by_type["invoice"].ai_extraction.extracted_data)
-    grn_data = normalize_extracted_document("grn", latest_by_type["grn"].ai_extraction.extracted_data)
+    po_data = aggregate_extracted_documents("po", uploads_by_type["po"])
+    invoice_data = aggregate_extracted_documents("invoice", uploads_by_type["invoice"])
+    grn_data = aggregate_extracted_documents("grn", uploads_by_type["grn"])
     result = reconcile_documents(invoice_data, po_data, grn_data, db)
     return save_reconciliation_result(db, result)
 
 
-def get_latest_valid_uploads_by_type(db: Session, batch: DocumentBatch) -> dict[str, UploadedFile]:
+def get_valid_uploads_by_type(db: Session, batch: DocumentBatch) -> dict[str, list[UploadedFile]]:
     uploads = (
         db.query(UploadedFile)
         .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
-        .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
+        .order_by(UploadedFile.created_at.asc(), UploadedFile.id.asc())
         .all()
     )
-    latest_by_type: dict[str, UploadedFile] = {}
+    uploads_by_type: dict[str, list[UploadedFile]] = {doc_type: [] for doc_type in REQUIRED_DOC_TYPES}
     for upload in uploads:
         if (
-            upload.doc_type not in latest_by_type
+            upload.doc_type in uploads_by_type
             and upload.ai_extraction
             and upload.ai_extraction.is_correct_type
             and upload.ai_extraction.extracted_data
         ):
-            latest_by_type[upload.doc_type] = upload
-    return latest_by_type
+            uploads_by_type[upload.doc_type].append(upload)
+    return uploads_by_type
+
+
+def get_latest_valid_uploads_by_type(db: Session, batch: DocumentBatch) -> dict[str, UploadedFile]:
+    uploads_by_type = get_valid_uploads_by_type(db, batch)
+    return {doc_type: uploads[-1] for doc_type, uploads in uploads_by_type.items() if uploads}
 
 
 def find_batch_reconciliation_case(db: Session, batch: DocumentBatch) -> ReconciliationCase | None:
-    latest_by_type = get_latest_valid_uploads_by_type(db, batch)
-    if any(doc_type not in latest_by_type for doc_type in REQUIRED_DOC_TYPES):
+    uploads_by_type = get_valid_uploads_by_type(db, batch)
+    if any(not uploads_by_type.get(doc_type) for doc_type in REQUIRED_DOC_TYPES):
         return None
 
     extracted_docs = {
-        doc_type: normalize_extracted_document(doc_type, latest_by_type[doc_type].ai_extraction.extracted_data)
+        doc_type: aggregate_extracted_documents(doc_type, uploads_by_type[doc_type])
         for doc_type in REQUIRED_DOC_TYPES
     }
     return find_existing_reconciliation_case(
@@ -514,7 +687,21 @@ def find_batch_reconciliation_case(db: Session, batch: DocumentBatch) -> Reconci
     )
 
 
-def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
+def build_reconciliation_not_matched_message(reconciliation_case: ReconciliationCase) -> str:
+    detail = reconciliation_case.ai_summary or reconciliation_case.ai_note
+    if not detail:
+        diff_lines = [
+            line.diff_note
+            for line in reconciliation_case.line_items
+            if line.diff_type and line.diff_type != "MATCH" and line.diff_note
+        ]
+        detail = "; ".join(diff_lines[:3])
+    if detail:
+        return f"Backend đang ghi nhận batch chưa khớp hoàn toàn: {detail}"
+    return "Chỉ có thể duyệt batch đã khớp hoàn toàn."
+
+
+def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> DocumentBatchOut:
     files = [to_uploaded_file_out(upload) for upload in batch.files]
     uploaded_doc_types = sorted({file.doc_type for file in files if file.doc_type})
     missing_doc_types = [doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type not in uploaded_doc_types]
@@ -529,6 +716,12 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
             )
         }
     )
+    if batch.rejection_note:
+        effective_status = "rejected"
+    elif batch.status == "rejected":
+        effective_status = "ready" if all(doc_type in extracted_doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
+    else:
+        effective_status = batch.status
     pending_extraction_doc_types = [
         doc_type
         for doc_type in REQUIRED_DOC_TYPES
@@ -539,7 +732,7 @@ def to_document_batch_out(batch: DocumentBatch) -> DocumentBatchOut:
         batch_number=batch.batch_number,
         note=batch.note,
         rejection_note=batch.rejection_note,
-        status=batch.status,
+        status=effective_status,
         created_by_id=batch.created_by_id,
         created_by_name=batch.created_by.full_name if batch.created_by else None,
         approved_by_id=batch.approved_by_id,
@@ -564,7 +757,7 @@ async def create_upload_batch(
     batch = create_document_batch(db, current_user)
     db.commit()
     db.refresh(batch)
-    return to_document_batch_out(batch)
+    return to_document_batch_out(batch, db)
 
 
 @router.get("/batches", response_model=DocumentBatchListResponse)
@@ -592,7 +785,7 @@ async def list_upload_batches(
             )
         )
     batches = db.scalars(stmt).all()
-    items = [to_document_batch_out(batch) for batch in batches]
+    items = [to_document_batch_out(batch, db) for batch in batches]
     return DocumentBatchListResponse(items=items, total=len(items))
 
 
@@ -627,7 +820,7 @@ async def update_upload_batch(
     )
     db.commit()
     db.refresh(batch)
-    return to_document_batch_out(batch)
+    return to_document_batch_out(batch, db)
 
 
 @router.post("/batches/{batch_id}/approve", response_model=DocumentBatchOut)
@@ -643,8 +836,17 @@ async def approve_upload_batch(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
     require_batch_access(current_user, batch)
 
+    if batch.rejection_note:
+        batch.status = "rejected"
+        db.add(batch)
+        db.flush()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Batch đã bị kế toán trưởng từ chối. Vui lòng upload bổ sung chứng từ trước khi duyệt lại.",
+        )
+
     if batch.status == "approved":
-        return to_document_batch_out(batch)
+        return to_document_batch_out(batch, db)
 
     update_batch_status(db, batch)
     db.flush()
@@ -654,7 +856,7 @@ async def approve_upload_batch(
             detail="Chỉ có thể duyệt batch đã đủ chứng từ và trích xuất xong.",
         )
 
-    reconciliation_case = find_batch_reconciliation_case(db, batch) or reconcile_ready_batch(db, batch)
+    reconciliation_case = reconcile_ready_batch(db, batch) or find_batch_reconciliation_case(db, batch)
     if reconciliation_case is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -663,7 +865,7 @@ async def approve_upload_batch(
     if reconciliation_case.status != "matched":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Chỉ có thể duyệt batch đã khớp hoàn toàn.",
+            detail=build_reconciliation_not_matched_message(reconciliation_case),
         )
 
     batch.status = "approved"
@@ -698,7 +900,7 @@ async def approve_upload_batch(
     db.commit()
     db.refresh(batch)
     await publish_notifications(db, notifications)
-    return to_document_batch_out(batch)
+    return to_document_batch_out(batch, db)
 
 
 @router.post("/batches/{batch_id}/final-approve", response_model=DocumentBatchOut)
@@ -718,6 +920,15 @@ async def final_approve_upload_batch(
     if batch is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
 
+    if batch.rejection_note:
+        batch.status = "rejected"
+        db.add(batch)
+        db.flush()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Batch đã bị từ chối. Vui lòng chờ kế toán viên upload bổ sung trước khi duyệt.",
+        )
+
     # Batch phải ở trạng thái matched (khớp 100%) hoặc approved (đã qua kế toán viên)
     if batch.status not in ["matched", "approved"]:
         raise HTTPException(
@@ -727,7 +938,7 @@ async def final_approve_upload_batch(
 
     # Nếu đã duyệt rồi thì trả về luôn
     if batch.status == "final_approved":
-        return to_document_batch_out(batch)
+        return to_document_batch_out(batch, db)
 
     # Nếu batch là 'matched', cần kiểm tra reconciliation case
     if batch.status == "matched":
@@ -738,11 +949,15 @@ async def final_approve_upload_batch(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Batch chưa sẵn sàng để duyệt.",
             )
-        reconciliation_case = find_batch_reconciliation_case(db, batch) or reconcile_ready_batch(db, batch)
+        reconciliation_case = reconcile_ready_batch(db, batch) or find_batch_reconciliation_case(db, batch)
         if reconciliation_case is None or reconciliation_case.status != "matched":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Chỉ có thể duyệt batch đã khớp hoàn toàn.",
+                detail=(
+                    build_reconciliation_not_matched_message(reconciliation_case)
+                    if reconciliation_case is not None
+                    else "Chỉ có thể duyệt batch đã khớp hoàn toàn."
+                ),
             )
 
     batch.status = "final_approved"
@@ -768,7 +983,7 @@ async def final_approve_upload_batch(
     )
     db.commit()
     db.refresh(batch)
-    return to_document_batch_out(batch)
+    return to_document_batch_out(batch, db)
 
 
 @router.post("/batches/{batch_id}/reject", response_model=DocumentBatchOut)
@@ -799,7 +1014,7 @@ async def reject_upload_batch(
 
     # Nếu đã từ chối rồi thì trả về luôn
     if batch.status == "rejected":
-        return to_document_batch_out(batch)
+        return to_document_batch_out(batch, db)
 
     rejection_note = payload.rejection_note.strip()
     if not rejection_note:
@@ -864,7 +1079,7 @@ async def reject_upload_batch(
     db.commit()
     db.refresh(batch)
     await publish_notifications(db, notifications)
-    return to_document_batch_out(batch)
+    return to_document_batch_out(batch, db)
 
 
 @router.delete("/batches/{batch_id}", response_model=MessageResponse)
@@ -1035,25 +1250,60 @@ async def upload_document(
     db: Session = Depends(get_db),
 ) -> UploadedFileOut:
     filename = file.filename or "unknown_file"
-    selected_doc_type = normalize_selected_doc_type(doc_type)
+    try:
+        requested_doc_type = normalize_upload_doc_type(doc_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
-    is_supplemental_rejected_upload = batch.status == "rejected"
+    is_supplemental_rejected_upload = batch.status == "rejected" or bool(batch.rejection_note)
     if is_supplemental_rejected_upload:
         batch.rejection_note = None
+        batch.status = "incomplete"
         batch.approved_by_id = None
         batch.chief_approved_by_id = None
 
     content = await file.read()
     content_type = file.content_type or "application/octet-stream"
+    content_hash = calculate_content_hash(content)
+    duplicate_upload = find_duplicate_upload_by_content(batch, content_hash)
+    if duplicate_upload is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_UPLOAD_MESSAGE,
+        )
 
     try:
-        ai_analysis = analyze_uploaded_document(content, filename, content_type, selected_doc_type)
+        ai_analysis = analyze_uploaded_document(content, filename, content_type, requested_doc_type)
+    except UnreadableDocumentError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+
+    if requested_doc_type == AUTO_DOC_TYPE:
+        selected_doc_type = ai_analysis.detected_doc_type
+        if selected_doc_type not in ALLOWED_DOC_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Chưa nhận diện được file chứng từ. Vui lòng kiểm tra lại và kéo thả đúng file PO/Invoice hoặc GRN.",
+            )
+        ai_analysis.expected_doc_type = selected_doc_type
+        ai_analysis.is_correct_type = True
+        if ai_analysis.status != "low_quality":
+            ai_analysis.status = "validated"
+        ai_analysis.validation_message = (
+            ai_analysis.validation_message
+            or "He thong da tu nhan dien va gan chung tu vao dung o."
+        )
+    else:
+        selected_doc_type = requested_doc_type
 
     try:
         storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type)

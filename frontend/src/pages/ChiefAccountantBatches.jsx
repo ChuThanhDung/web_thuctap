@@ -23,6 +23,7 @@ import {
   subscribeBatchCache,
   updateCachedBatchItem,
 } from '../services/batchCache.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -475,12 +476,16 @@ function mapApiBatchToAuditBatch(batch) {
   const comparisons = isReady ? buildComparisons(docs) : [];
   const lineItems = isReady ? buildLineItems(docs) : [];
   const summary = isReady ? calculateMatchSummary(comparisons, lineItems) : { matchRate: 0, checkedFields: 0, matchedFields: 0, mismatchFields: 0, missingFields: 3 };
+  const rejectionNote = batch.rejection_note || '';
+  const backendReconciliationStatus = batch.reconciliation_status;
 
   // Xác định trạng thái batch
-  let status = batch.status || 'missing';
+  let status = rejectionNote ? 'rejected' : batch.status || 'missing';
   
   // Nếu backend trả về status rõ ràng, sử dụng luôn
-  if (['matched', 'approved', 'final_approved', 'rejected', 'mismatch'].includes(batch.status)) {
+  if (rejectionNote) {
+    status = 'rejected';
+  } else if (['matched', 'approved', 'final_approved', 'rejected', 'mismatch'].includes(batch.status)) {
     status = batch.status;
   } else if (isReady) {
     status = summary.matchRate === 100 ? 'matched' : summary.matchRate > 0 ? 'mismatch' : 'matching';
@@ -490,7 +495,9 @@ function mapApiBatchToAuditBatch(batch) {
     id: String(batch.id),
     batchNumber: batch.batch_number,
     note: batch.note || '',
-    rejectionNote: batch.rejection_note || '',
+    rejectionNote,
+    reconciliationStatus: backendReconciliationStatus || null,
+    reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
     status,
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống',
@@ -529,6 +536,9 @@ export default function ChiefAccountantBatches({ token }) {
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionError, setRejectionError] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [approveConfirm, setApproveConfirm] = useState(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [dateRange, setDateRange] = useState(() => {
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
@@ -568,7 +578,7 @@ export default function ChiefAccountantBatches({ token }) {
     } catch (error) {
       console.error('Failed to load batches:', error);
       if (!getCachedBatches()) {
-        alert(error.message || 'Không thể tải danh sách batch');
+        setActionError(error.message || 'Không thể tải danh sách batch');
       }
     } finally {
       setIsLoading(false);
@@ -599,16 +609,25 @@ export default function ChiefAccountantBatches({ token }) {
     }
   }, [batches, requestedBatchId]);
 
-  const handleApproveBatch = async (batch) => {
-    if (!window.confirm('Bạn có muốn duyệt không?')) return;
+  const requestApproveBatch = (batch) => {
+    if (!canApproveBatch(batch)) return;
+    setApproveConfirm(batch);
+  };
 
+  const handleApproveBatch = async () => {
+    if (!canApproveBatch(approveConfirm)) return;
+    setIsApproving(true);
+    setActionError('');
     try {
-      const updated = await finalApproveDocumentBatch(token, batch.id);
+      const updated = await finalApproveDocumentBatch(token, approveConfirm.id);
       updateCachedBatchItem(updated);
       setDetailPanelOpen(false);
+      setApproveConfirm(null);
     } catch (error) {
       console.error('Failed to approve batch:', error);
-      alert(error.message || 'Không thể duyệt batch');
+      setActionError(error.message || 'Không thể duyệt batch');
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -728,11 +747,11 @@ export default function ChiefAccountantBatches({ token }) {
   };
 
   const canApproveBatch = (batch) => {
-    return batch.status === 'matched' || batch.status === 'approved';
+    return !batch?.rejectionNote && (batch.status === 'matched' || batch.status === 'approved');
   };
 
   const canRejectBatch = (batch) => {
-    return batch.status === 'approved';
+    return !batch?.rejectionNote && batch.status === 'approved';
   };
 
   return (
@@ -875,6 +894,12 @@ export default function ChiefAccountantBatches({ token }) {
             )}
           </div>
         </div>
+
+        {actionError && (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+            {actionError}
+          </div>
+        )}
       </div>
 
       {/* Batch List */}
@@ -979,7 +1004,7 @@ export default function ChiefAccountantBatches({ token }) {
                       {canApproveBatch(batch) && (
                         <button
                           type="button"
-                          onClick={() => handleApproveBatch(batch)}
+                            onClick={() => requestApproveBatch(batch)}
                           className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                         >
                           <CheckCircle2 size={13} />
@@ -1067,7 +1092,7 @@ export default function ChiefAccountantBatches({ token }) {
                   {canApproveBatch(detailBatch) && (
                     <button
                       type="button"
-                      onClick={() => handleApproveBatch(detailBatch)}
+                      onClick={() => requestApproveBatch(detailBatch)}
                       className="inline-flex h-8.5 sm:h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                     >
                       <CheckCircle2 size={14} />
@@ -1208,7 +1233,7 @@ export default function ChiefAccountantBatches({ token }) {
           <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Lý do từ chối</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Xác nhận từ chối batch</h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{rejectingBatch.batchNumber}</p>
               </div>
               <button
@@ -1255,12 +1280,27 @@ export default function ChiefAccountantBatches({ token }) {
                 className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isRejecting && <Loader2 size={14} className="animate-spin" />}
-                OK
+                Xác nhận từ chối
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(approveConfirm)}
+        tone="success"
+        title="Xác nhận duyệt batch"
+        description={approveConfirm ? `Bạn có chắc chắn muốn duyệt batch "${approveConfirm.batchNumber}" không?` : ''}
+        confirmLabel="Xác nhận duyệt"
+        cancelLabel="Hủy"
+        loading={isApproving}
+        onCancel={() => {
+          if (isApproving) return;
+          setApproveConfirm(null);
+        }}
+        onConfirm={handleApproveBatch}
+      />
     </div>
   );
 }
