@@ -929,36 +929,16 @@ async def final_approve_upload_batch(
             detail="Batch đã bị từ chối. Vui lòng chờ kế toán viên upload bổ sung trước khi duyệt.",
         )
 
-    # Batch phải ở trạng thái matched (khớp 100%) hoặc approved (đã qua kế toán viên)
-    if batch.status not in ["matched", "approved"]:
+    # Batch phải ở trạng thái approved (đã qua kế toán viên duyệt)
+    if batch.status not in ["approved", "final_approved"]:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Chỉ có thể duyệt batch đã khớp hoàn toàn hoặc đã được kế toán viên duyệt."
+            detail="Chỉ có thể duyệt batch đã được kế toán viên duyệt."
         )
 
     # Nếu đã duyệt rồi thì trả về luôn
     if batch.status == "final_approved":
         return to_document_batch_out(batch, db)
-
-    # Nếu batch là 'matched', cần kiểm tra reconciliation case
-    if batch.status == "matched":
-        update_batch_status(db, batch)
-        db.flush()
-        if batch.status != "ready":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Batch chưa sẵn sàng để duyệt.",
-            )
-        reconciliation_case = reconcile_ready_batch(db, batch) or find_batch_reconciliation_case(db, batch)
-        if reconciliation_case is None or reconciliation_case.status != "matched":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    build_reconciliation_not_matched_message(reconciliation_case)
-                    if reconciliation_case is not None
-                    else "Chỉ có thể duyệt batch đã khớp hoàn toàn."
-                ),
-            )
 
     batch.status = "final_approved"
     batch.chief_approved_by_id = current_user.public_id

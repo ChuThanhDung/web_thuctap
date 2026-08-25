@@ -565,14 +565,13 @@ function StatusBadge({ status }) {
   );
 }
 
-function DocumentCard({ type, doc, onOpenFile }) {
+function DocumentCard({ type, doc, index, totalCount, onOpenFile }) {
   const Icon = type.icon;
   const normalizedVisibleFields = Object.entries(doc?.fields || {})
     .map(([label, value]) => [repairTextDeep(label), value])
-    .filter(([label]) => ['Số chứng từ', 'Ngày chứng từ'].includes(label));
-  const visibleFields = Object.entries(doc?.fields || {}).filter(([label]) =>
-    ['Số chứng từ', 'Ngày chứng từ'].includes(label)
-  );
+    .filter(([label]) => ['Số chứng từ', 'Ngày chứng từ', 'Tổng tiền'].includes(label));
+
+  const typeLabel = totalCount ? `${type.label} (${index}/${totalCount})` : type.label;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.06)] dark:border-slate-800 dark:bg-slate-900">
@@ -582,13 +581,13 @@ function DocumentCard({ type, doc, onOpenFile }) {
             <Icon size={18} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{type.label}</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{typeLabel}</p>
             <p className={`mt-1 truncate text-xs ${doc?.missing ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>
               {doc?.missing ? 'Chưa có chứng từ' : doc.filename}
             </p>
           </div>
         </div>
-        {!doc?.missing && (
+        {!doc?.missing && doc?.file && (
           <button
             type="button"
             onClick={() => onOpenFile?.(doc.file)}
@@ -602,16 +601,14 @@ function DocumentCard({ type, doc, onOpenFile }) {
       </div>
 
       {!doc?.missing && (
-        <>
-          <div className="mt-4 space-y-2.5">
-            {normalizedVisibleFields.map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-3 text-xs">
-                <span className="text-slate-500 dark:text-slate-400">{label}</span>
-                <span className="max-w-[58%] text-right font-semibold text-slate-800 dark:text-slate-200">{value}</span>
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="mt-4 space-y-2.5">
+          {normalizedVisibleFields.map(([label, value]) => (
+            <div key={label} className="flex items-start justify-between gap-3 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">{label}</span>
+              <span className="max-w-[58%] text-right font-semibold text-slate-800 dark:text-slate-200">{value}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -885,11 +882,135 @@ function buildLineItems(docs) {
   }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
+function aggregateExtractedData(files, docType) {
+  const validFiles = (files || []).filter(
+    (f) => f.doc_type === docType && (f.ai_extraction?.extracted_data || f.status === 'completed')
+  );
+  if (validFiles.length === 0) return null;
+
+  const docNumbers = [];
+  const docDates = [];
+  const suppliers = [];
+  const taxIds = [];
+  let totalAmount = 0;
+  let hasTotalAmount = false;
+  let vatRate = null;
+  const lineItemsMap = new Map();
+  const anonymousLineItems = [];
+
+  validFiles.forEach((file) => {
+    const data = getExtractionData(file) || {};
+    const docNum = getDocumentNumber(data, docType);
+    if (docNum && !docNumbers.includes(docNum)) docNumbers.push(docNum);
+
+    const docDate = getDocumentDate(data, docType);
+    if (docDate && !docDates.includes(docDate)) docDates.push(docDate);
+
+    if (data.supplier_name && !suppliers.includes(data.supplier_name)) suppliers.push(data.supplier_name);
+    if (data.supplier_tax_id && !taxIds.includes(data.supplier_tax_id)) taxIds.push(data.supplier_tax_id);
+
+    const fileTotal = toNumber(data.total_amount);
+    if (fileTotal !== null) {
+      totalAmount += fileTotal;
+      hasTotalAmount = true;
+    }
+
+    if (vatRate === null) {
+      const fileVat = toNumber(data.vat_rate_pct ?? data.tax_rate_pct);
+      if (fileVat !== null && fileVat > 0) vatRate = fileVat;
+    }
+
+    const items = Array.isArray(data.line_items) ? data.line_items : [];
+    items.forEach((item) => {
+      const key = getItemIdentityKey(item);
+      if (!key) {
+        anonymousLineItems.push({ ...item });
+        return;
+      }
+
+      const qty = toNumber(item.qty) || 0;
+      const price = toNumber(item.price);
+      const amount = toNumber(item.amount ?? item.line_total) ?? (price !== null ? qty * price : 0);
+
+      if (!lineItemsMap.has(key)) {
+        lineItemsMap.set(key, {
+          ...item,
+          qty,
+          price,
+          amount,
+          _weightedPriceAmount: amount,
+          _weightedPriceQty: qty,
+        });
+      } else {
+        const existing = lineItemsMap.get(key);
+        existing.qty += qty;
+        existing.amount += amount;
+        existing._weightedPriceAmount += amount;
+        existing._weightedPriceQty += qty;
+      }
+    });
+  });
+
+  const aggregatedLineItems = [...lineItemsMap.values()].map((item) => {
+    const itemCopy = { ...item };
+    if (itemCopy._weightedPriceQty > 0) {
+      itemCopy.price = itemCopy._weightedPriceAmount / itemCopy._weightedPriceQty;
+    }
+    delete itemCopy._weightedPriceAmount;
+    delete itemCopy._weightedPriceQty;
+    return itemCopy;
+  }).concat(anonymousLineItems);
+
+  return {
+    document_number: docNumbers.join(', '),
+    document_date: docDates.join(', '),
+    supplier_name: suppliers[0] || null,
+    supplier_tax_id: taxIds[0] || null,
+    total_amount: hasTotalAmount ? totalAmount : null,
+    vat_rate_pct: vatRate,
+    line_items: aggregatedLineItems,
+  };
+}
+
 function mapApiBatchToAuditBatch(batch) {
   const docs = getEmptyDocs();
+  const docList = { po: [], invoice: [], grn: [] };
+
   (batch.files || []).forEach((file) => {
-    if (!file.doc_type || !docs[file.doc_type]) return;
-    docs[file.doc_type] = mapFileToDocument(file, file.doc_type);
+    if (!file.doc_type || !docList[file.doc_type]) return;
+    const docObj = mapFileToDocument(file, file.doc_type);
+    docList[file.doc_type].push(docObj);
+  });
+
+  DOC_TYPES.forEach((type) => {
+    const filesOfType = (batch.files || []).filter((f) => f.doc_type === type.key);
+    if (filesOfType.length === 0) {
+      docs[type.key] = { filename: '', missing: true, fields: {} };
+    } else if (filesOfType.length === 1) {
+      docs[type.key] = docList[type.key][0];
+    } else {
+      const aggregatedData = aggregateExtractedData(filesOfType, type.key);
+      const fileNames = filesOfType.map((f) => f.filename).join(', ');
+      docs[type.key] = {
+        filename: `${filesOfType.length} file (${fileNames})`,
+        fileCount: filesOfType.length,
+        extractedAt: '-',
+        confidence: Math.round(
+          filesOfType.reduce((acc, f) => acc + (formatPercent(f.ai_extraction?.confidence) || 0), 0) / filesOfType.length
+        ),
+        fields: {
+          'Số chứng từ': formatDisplayValue(aggregatedData?.document_number),
+          'Nhà cung cấp': formatDisplayValue(aggregatedData?.supplier_name),
+          'Mã số thuế': formatDisplayValue(aggregatedData?.supplier_tax_id),
+          'Ngày chứng từ': formatDisplayValue(aggregatedData?.document_date),
+          'Tổng tiền': formatDisplayValue(aggregatedData?.total_amount),
+        },
+        extractedData: aggregatedData,
+        file: filesOfType[0],
+        isAggregated: true,
+        files: filesOfType,
+      };
+    }
   });
 
   const missingCount = DOC_TYPES.filter((type) => docs[type.key]?.missing).length;
@@ -939,6 +1060,7 @@ function mapApiBatchToAuditBatch(batch) {
           ? 'Batch còn thiếu dữ liệu trích xuất. Cần kiểm tra lại chứng từ hoặc chờ AI đọc đầy đủ.'
           : 'Các trường AI đã trích xuất đang khớp theo dữ liệu hiện có.',
     docs,
+    docList,
     comparisons,
     lineItems,
     issues: comparisons
@@ -1511,10 +1633,30 @@ export default function AuditTrail({ token, role }) {
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
-            {DOC_TYPES.map((type) => (
-              <DocumentCard key={type.key} type={type} doc={selectedBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {DOC_TYPES.flatMap((type) => {
+              const list = selectedBatch.docList?.[type.key] || [];
+              if (list.length === 0) {
+                return [
+                  <DocumentCard
+                    key={`${type.key}-missing`}
+                    type={type}
+                    doc={{ filename: '', missing: true, fields: {} }}
+                    onOpenFile={handleOpenUploadedFile}
+                  />,
+                ];
+              }
+              return list.map((doc, idx) => (
+                <DocumentCard
+                  key={`${type.key}-${doc.file?.id || idx}`}
+                  type={type}
+                  doc={doc}
+                  index={list.length > 1 ? idx + 1 : undefined}
+                  totalCount={list.length > 1 ? list.length : undefined}
+                  onOpenFile={handleOpenUploadedFile}
+                />
+              ));
+            })}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
@@ -1683,10 +1825,30 @@ export default function AuditTrail({ token, role }) {
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
-              <div className="grid gap-3 lg:grid-cols-3">
-                {DOC_TYPES.map((type) => (
-                  <DocumentCard key={type.key} type={type} doc={modalBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
-                ))}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {DOC_TYPES.flatMap((type) => {
+                  const list = modalBatch.docList?.[type.key] || [];
+                  if (list.length === 0) {
+                    return [
+                      <DocumentCard
+                        key={`${type.key}-missing`}
+                        type={type}
+                        doc={{ filename: '', missing: true, fields: {} }}
+                        onOpenFile={handleOpenUploadedFile}
+                      />,
+                    ];
+                  }
+                  return list.map((doc, idx) => (
+                    <DocumentCard
+                      key={`${type.key}-${doc.file?.id || idx}`}
+                      type={type}
+                      doc={doc}
+                      index={list.length > 1 ? idx + 1 : undefined}
+                      totalCount={list.length > 1 ? list.length : undefined}
+                      onOpenFile={handleOpenUploadedFile}
+                    />
+                  ));
+                })}
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">

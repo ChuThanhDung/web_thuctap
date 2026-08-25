@@ -7,6 +7,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../api.js';
+import { invalidateBatchCache } from '../services/batchCache.js';
 
 const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000];
 
@@ -127,6 +128,7 @@ export default function NotificationBell({ token }) {
         if (payload.event === 'notification') {
           setUnreadCount((count) => count + 1);
           ringBell();
+          invalidateBatchCache();
           loadNotifications({ silent: true });
         }
       });
@@ -199,6 +201,7 @@ export default function NotificationBell({ token }) {
       }
     }
     setIsOpen(false);
+    invalidateBatchCache();
     if (notification.action_url) navigate(notification.action_url);
   }
 
