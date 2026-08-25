@@ -1,0 +1,80 @@
+{
+  "batch_id": "1po_1invoice_3gr",
+  "format": "pdf",
+  "expected_result": "MATCH",
+  "scenario": "MULTI_DOCUMENT",
+  "structure": {
+    "purchase_orders": 1,
+    "goods_receipts": 3,
+    "invoices": 1
+  },
+  "note": "Một đơn hàng tách thành nhiều PO/nhiều lần nhập kho nhưng chỉ xuất 1 hóa đơn. Agent phải gộp dòng của tất cả PO (và tất cả phiếu nhập) rồi mới đối chiếu với hóa đơn.",
+  "allocation": {
+    "purchase_orders": {
+      "PO-2026-0315": [
+        "DP-AS01",
+        "DP-QT02",
+        "DP-AK03",
+        "DP-AT04",
+        "DP-MB05",
+        "DP-GB06",
+        "DP-TT07",
+        "DP-VN08",
+        "DP-CV09",
+        "DP-TD10"
+      ]
+    },
+    "goods_receipts": {
+      "PNK-0315": [
+        "DP-AS01",
+        "DP-QT02",
+        "DP-AK03",
+        "DP-AT04"
+      ],
+      "PNK-0318": [
+        "DP-MB05",
+        "DP-GB06",
+        "DP-TT07"
+      ],
+      "PNK-0321": [
+        "DP-VN08",
+        "DP-CV09",
+        "DP-TD10"
+      ]
+    },
+    "invoice": [
+      "DP-AS01",
+      "DP-QT02",
+      "DP-AK03",
+      "DP-AT04",
+      "DP-MB05",
+      "DP-GB06",
+      "DP-TT07",
+      "DP-VN08",
+      "DP-CV09",
+      "DP-TD10"
+    ]
+  },
+  "totals": {
+    "po_totals": {
+      "PO-2026-0315": 377136000
+    },
+    "sum_po_total": 377136000,
+    "grn_sub_sum": 349200000,
+    "invoice_total": 377136000
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH MAY MẶC THIÊN PHÚ",
+  "documents": {
+    "purchase_orders": [
+      "PO-2026-0315"
+    ],
+    "goods_receipts": [
+      "PNK-0315",
+      "PNK-0318",
+      "PNK-0321"
+    ],
+    "invoice": "1C26TTP-00001098"
+  },
+  "discrepancies": []
+}
