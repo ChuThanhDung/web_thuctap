@@ -1,3 +1,4 @@
+import base64
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -16,6 +17,28 @@ from src.models.notification import Notification
 from src.models.reconciliation import DocumentBatch, ReconciliationCase, UploadedFile
 from src.models.user import User
 from src.services.document_ai_extractor import DocumentAiAnalysis
+
+VALID_PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+)
+
+
+def valid_pdf_bytes(label: str = "test") -> bytes:
+    return f"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>
+endobj
+% {label}
+startxref
+0
+%%EOF
+""".encode()
 
 
 def assert_stored_filename(data, doc_type, file_ext):
@@ -102,25 +125,19 @@ async def test_upload_valid_invoice(client):
 
 
 @pytest.mark.asyncio
-async def test_upload_invalid_xml_still_saves_file(client):
+async def test_upload_invalid_xml_returns_error(client):
     response = await client.post(
         "/api/v1/uploads",
         files={"file": ("bad_file.xml", b"<InvalidXML>missing_close_tag", "text/xml")},
     )
 
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "completed"
-    assert data["error_message"] is None
-    assert data["uploaded_by_id"] is not None
-    assert_stored_filename(data, "invoice", "xml")
-    assert data["storage_key"].startswith("storage/upload/invoice/")
-    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+    assert response.status_code == 422
+    assert "không thể đọc" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_upload_pdf_invoice_only_stores_file(client):
-    pdf_content = b"%PDF-1.4 mock content"
+    pdf_content = valid_pdf_bytes("invoice only")
 
     response = await client.post(
         "/api/v1/uploads",
@@ -142,7 +159,7 @@ async def test_upload_pdf_invoice_only_stores_file(client):
 
 @pytest.mark.asyncio
 async def test_uploaded_file_can_be_opened_from_file_url(client):
-    pdf_content = b"%PDF-1.4 mock content"
+    pdf_content = valid_pdf_bytes("open inline")
     upload_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "invoice"},
@@ -166,7 +183,7 @@ async def test_uploaded_file_can_be_deleted_and_removed_from_batch(client):
     upload_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "po", "batch_id": str(batch["id"])},
-        files={"file": ("PO-DELETE.pdf", b"%PDF-1.4 delete me", "application/pdf")},
+        files={"file": ("PO-DELETE.pdf", valid_pdf_bytes("delete me"), "application/pdf")},
     )
 
     assert upload_response.status_code == 200
@@ -207,7 +224,7 @@ async def test_upload_batch_with_files_cannot_be_deleted(client, db_session):
     upload_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "po", "batch_id": str(batch["id"])},
-        files={"file": ("PO-KEEP.pdf", b"%PDF-1.4 keep me", "application/pdf")},
+        files={"file": ("PO-KEEP.pdf", valid_pdf_bytes("keep me"), "application/pdf")},
     )
     assert upload_response.status_code == 200
 
@@ -239,7 +256,7 @@ async def test_uploaded_xml_file_can_be_opened_inline(client):
 
 @pytest.mark.asyncio
 async def test_uploaded_image_file_can_be_opened_inline(client):
-    png_content = b"\x89PNG\r\n\x1a\n mock png content"
+    png_content = VALID_PNG_BYTES
     upload_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "po"},
@@ -311,7 +328,7 @@ async def test_uploaded_cloud_xml_file_uses_viewable_content_type(client, db_ses
 
 @pytest.mark.asyncio
 async def test_upload_po_png_only_stores_file(client):
-    png_content = b"\x89PNG\r\n\x1a\n mock png content"
+    png_content = VALID_PNG_BYTES
 
     response = await client.post(
         "/api/v1/uploads",
@@ -370,7 +387,7 @@ async def test_upload_saves_file_when_ai_detects_different_doc_type(client, db_s
     response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "po"},
-        files={"file": ("invoice-uploaded-as-po.pdf", b"%PDF-1.4 invoice", "application/pdf")},
+        files={"file": ("invoice-uploaded-as-po.pdf", valid_pdf_bytes("invoice uploaded as po"), "application/pdf")},
     )
 
     assert response.status_code == 200
@@ -397,7 +414,7 @@ async def test_upload_batches_group_files_and_track_missing_documents(client):
     po_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "po", "batch_id": str(batch["id"])},
-        files={"file": ("PO-2026-1.pdf", b"%PDF-1.4 po", "application/pdf")},
+        files={"file": ("PO-2026-1.pdf", valid_pdf_bytes("po 2026 1"), "application/pdf")},
     )
     assert po_response.status_code == 200
     po_file = po_response.json()
@@ -494,7 +511,7 @@ async def test_accountant_cannot_access_other_accountants_batch(client, db_sessi
     upload_response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "po", "batch_id": str(other_batch.id)},
-        files={"file": ("po.pdf", b"%PDF-1.4 mock", "application/pdf")},
+        files={"file": ("po.pdf", valid_pdf_bytes("other accountant po"), "application/pdf")},
     )
 
     assert upload_response.status_code == 404
@@ -517,7 +534,7 @@ async def test_uploading_to_rejected_batch_resets_rejection_state(client, db_ses
     response = await client.post(
         "/api/v1/uploads",
         data={"doc_type": "invoice", "batch_id": str(batch.id)},
-        files={"file": ("invoice.pdf", b"%PDF-1.4 mock", "application/pdf")},
+        files={"file": ("invoice.pdf", valid_pdf_bytes("rejected supplemental invoice"), "application/pdf")},
     )
 
     assert response.status_code == 200
@@ -655,7 +672,7 @@ async def test_upload_batch_becomes_ready_when_three_doc_types_exist(client):
         response = await client.post(
             "/api/v1/uploads",
             data={"doc_type": doc_type, "batch_id": str(batch["id"])},
-            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+            files={"file": (f"{doc_type}.pdf", valid_pdf_bytes(f"ready {doc_type}"), "application/pdf")},
         )
         assert response.status_code == 200
 
@@ -744,7 +761,7 @@ async def test_upload_ready_batch_creates_reconciliation_case_with_grn_tax_fallb
         response = await client.post(
             "/api/v1/uploads",
             data={"doc_type": doc_type, "batch_id": str(batch["id"])},
-            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+            files={"file": (f"{doc_type}.pdf", valid_pdf_bytes(f"tax fallback {doc_type}"), "application/pdf")},
         )
         assert response.status_code == 200
 
@@ -804,7 +821,7 @@ async def test_accountant_can_approve_fully_matched_batch(client, db_session, mo
         response = await client.post(
             "/api/v1/uploads",
             data={"doc_type": doc_type, "batch_id": str(batch["id"])},
-            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+            files={"file": (f"{doc_type}.pdf", valid_pdf_bytes(f"approve matched {doc_type}"), "application/pdf")},
         )
         assert response.status_code == 200
 
@@ -872,7 +889,7 @@ async def test_accountant_cannot_approve_batch_that_is_not_fully_matched(client,
         response = await client.post(
             "/api/v1/uploads",
             data={"doc_type": doc_type, "batch_id": str(batch["id"])},
-            files={"file": (f"{doc_type}.pdf", b"%PDF-1.4 mock", "application/pdf")},
+            files={"file": (f"{doc_type}.pdf", valid_pdf_bytes(f"approve mismatch {doc_type}"), "application/pdf")},
         )
         assert response.status_code == 200
 

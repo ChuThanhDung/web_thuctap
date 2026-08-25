@@ -262,7 +262,7 @@ def validate_readable_image(content: bytes, filename: str, content_type: str | N
     try:
         with Image.open(io.BytesIO(content)) as image:
             image.verify()
-    except (UnidentifiedImageError, OSError) as exc:
+    except (UnidentifiedImageError, OSError, SyntaxError) as exc:
         raise UnreadableDocumentError(UNREADABLE_IMAGE_MESSAGE) from exc
 
 
