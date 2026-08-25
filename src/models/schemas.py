@@ -337,6 +337,11 @@ class DocumentBatchOut(BaseModel):
     uploaded_doc_types: list[str] = []
     extracted_doc_types: list[str] = []
     pending_extraction_doc_types: list[str] = []
+    reconciliation_status: str | None = None
+    reconciliation_diff_type: str | None = None
+    reconciliation_diff_amount: Decimal | None = None
+    reconciliation_ai_note: str | None = None
+    reconciliation_ai_summary: str | None = None
     created_at: str
     updated_at: str | None = None
 
@@ -354,3 +359,19 @@ class DocumentBatchUpdateRequest(BaseModel):
 
 class DocumentBatchRejectRequest(BaseModel):
     rejection_note: str = Field(..., min_length=1, max_length=1000)
+
+
+class NotificationOut(BaseModel):
+    id: int
+    kind: str
+    title: str
+    message: str
+    batch_id: int | None = None
+    action_url: str | None = None
+    is_read: bool
+    created_at: datetime
+
+
+class NotificationListResponse(BaseModel):
+    items: list[NotificationOut]
+    unread_count: int

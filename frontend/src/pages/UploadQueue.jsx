@@ -13,6 +13,7 @@ import {
   RefreshCw,
   AlertCircle,
   ArrowRight,
+  UploadCloud,
 } from 'lucide-react';
 import {
   createDocumentBatch,
@@ -35,6 +36,9 @@ const DOC_TYPES = [
   { value: 'invoice', label: 'Hóa đơn (Invoice)', icon: FileText },
   { value: 'grn', label: 'Phiếu nhập kho (GRN)', icon: PackageCheck },
 ];
+const AUTO_DOC_TYPE = 'auto';
+const AUTO_UPLOAD_ERROR_MESSAGE =
+  'Chưa nhận diện được file chứng từ. Vui lòng kiểm tra lại và kéo thả đúng file PO/Invoice hoặc GRN.';
 const BATCHES_PER_PAGE = 5;
 const BATCH_NOTE_MAX_LENGTH = 500;
 
@@ -89,6 +93,12 @@ function getBatchDocState(batch) {
     ));
 
   return { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes };
+}
+
+function isBatchEmpty(batch) {
+  if (!batch || ['ready', 'approved', 'final_approved', 'rejected'].includes(batch.status)) return false;
+  const { uploadedDocTypes } = getBatchDocState(batch);
+  return uploadedDocTypes.length === 0 && (batch.files || []).length === 0;
 }
 
 function hasExtractedData(file) {
@@ -187,8 +197,8 @@ export default function UploadQueue({ token }) {
       const requestedBatch = (cached?.items || []).find((batch) => String(batch.id) === String(requestedBatchId));
       return requestedBatch?.id || requestedBatchId;
     }
-    const pendingItems = (cached?.items || []).filter((batch) => !isBatchReady(batch));
-    return pendingItems[0]?.id || cached?.items?.[0]?.id || null;
+    const emptyBatch = (cached?.items || []).find(isBatchEmpty);
+    return emptyBatch?.id || null;
   });
   const [batchFilterTab, setBatchFilterTab] = useState(() => (requestedBatchId ? 'all' : 'incomplete')); // 'incomplete' | 'ready' | 'all'
   const [batchPage, setBatchPage] = useState(1);
@@ -198,6 +208,9 @@ export default function UploadQueue({ token }) {
   const [batchNoteSaving, setBatchNoteSaving] = useState(false);
   const [batchNoteError, setBatchNoteError] = useState('');
   const [supplementUploadedFileIds, setSupplementUploadedFileIds] = useState(() => new Set());
+  const [uploadWorkspaceReady, setUploadWorkspaceReady] = useState(false);
+  const [uploadWorkspaceError, setUploadWorkspaceError] = useState('');
+  const uploadWorkspaceInitKeyRef = useRef(null);
 
   // Ref to always have the real-time selected batch ID without stale closure
   const selectedBatchIdRef = useRef(selectedBatchId);
@@ -230,10 +243,10 @@ export default function UploadQueue({ token }) {
     const targetId = selectedBatchId || selectedBatchIdRef.current;
     if (targetId) {
       const match = batches.find((batch) => String(batch.id) === String(targetId));
-      if (match) return match;
+      return match || null;
     }
-    return activeBatches[0] || batches[0] || null;
-  }, [batches, selectedBatchId, activeBatches]);
+    return null;
+  }, [batches, selectedBatchId]);
 
   // In-flight files for selected batch
   const selectedBatchInFlight = inFlightFiles.filter((inf) => String(inf.batchId) === String(selectedBatch?.id));
@@ -267,8 +280,7 @@ export default function UploadQueue({ token }) {
           isInFlight: true,
         }));
 
-      // In-flight files take visual precedence or appear alongside completed
-      acc[type.value] = inFlight.length > 0 ? inFlight : completed;
+      acc[type.value] = [...inFlight, ...completed];
       return acc;
     }, {});
   }, [isSupplementMode, selectedBatchFiles, selectedBatchInFlight, supplementUploadedFileIds]);
@@ -334,8 +346,8 @@ export default function UploadQueue({ token }) {
           selectedBatchIdRef.current = activeId;
           return activeId;
         }
-        const pendingItems = items.filter((batch) => !isBatchReady(batch));
-        const fallbackId = pendingItems[0]?.id || items[0]?.id || null;
+        const emptyBatch = items.find(isBatchEmpty);
+        const fallbackId = emptyBatch?.id || null;
         selectedBatchIdRef.current = fallbackId;
         return fallbackId;
       });
@@ -346,10 +358,58 @@ export default function UploadQueue({ token }) {
     }
   }, [syncReadyBatchNotice, token]);
 
-  // Load danh sách lần đầu khi render
+  const initializeUploadWorkspace = useCallback(async ({ force = false } = {}) => {
+    const initializationKey = requestedBatchId ? `requested:${requestedBatchId}` : 'default';
+    if (!force && uploadWorkspaceInitKeyRef.current === initializationKey) return;
+
+    uploadWorkspaceInitKeyRef.current = initializationKey;
+    setLoading(true);
+    setUploadWorkspaceReady(false);
+    setUploadWorkspaceError('');
+
+    try {
+      const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
+      let items = data?.items || [];
+      syncReadyBatchNotice(items);
+
+      if (requestedBatchId) {
+        const requestedBatch = items.find((batch) => String(batch.id) === String(requestedBatchId));
+        if (!requestedBatch) {
+          throw new Error('Không tìm thấy batch cần tải bổ sung hoặc bạn không còn quyền truy cập.');
+        }
+        const nextId = requestedBatch.id;
+        setBatches(items);
+        setSelectedBatchId(nextId);
+        selectedBatchIdRef.current = nextId;
+        setUploadWorkspaceReady(true);
+        return;
+      }
+
+      let uploadBatch = items.find(isBatchEmpty);
+      if (!uploadBatch) {
+        uploadBatch = await createDocumentBatch(token);
+        updateCachedBatchItem(uploadBatch);
+        items = [uploadBatch, ...items.filter((batch) => String(batch.id) !== String(uploadBatch.id))];
+      }
+
+      setBatches(items);
+      setSelectedBatchId(uploadBatch.id);
+      selectedBatchIdRef.current = uploadBatch.id;
+      setBatchFilterTab('incomplete');
+      setBatchPage(1);
+      setUploadWorkspaceReady(true);
+    } catch (err) {
+      uploadWorkspaceInitKeyRef.current = null;
+      setUploadWorkspaceError(err.message || 'Không thể chuẩn bị bộ chứng từ để tải lên.');
+    } finally {
+      setLoading(false);
+    }
+  }, [requestedBatchId, syncReadyBatchNotice, token]);
+
+  // Mỗi lần vào trang, đảm bảo có một batch rỗng an toàn để bắt đầu tải lên.
   useEffect(() => {
-    fetchBatches(true);
-  }, [fetchBatches]);
+    initializeUploadWorkspace();
+  }, [initializeUploadWorkspace]);
 
   useEffect(() => {
     if (!requestedBatchId) return;
@@ -416,6 +476,7 @@ export default function UploadQueue({ token }) {
   };
 
   const handleChooseFiles = (docType) => {
+    if (!uploadWorkspaceReady) return;
     filePickerDocTypeRef.current = docType;
     setSelectedDocType(docType);
     fileInputRef.current?.click();
@@ -477,6 +538,8 @@ export default function UploadQueue({ token }) {
       selectedBatchIdRef.current = batch.id;
       setBatchFilterTab('incomplete');
       setBatchPage(1);
+      setUploadWorkspaceError('');
+      setUploadWorkspaceReady(true);
       documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return batch;
     } catch (err) {
@@ -492,8 +555,15 @@ export default function UploadQueue({ token }) {
 
   const ensureSelectedBatch = async () => {
     const currentId = selectedBatchIdRef.current || selectedBatchId;
-    const existing = batches.find((b) => b.id === currentId) || selectedBatch;
+    const existing = batches.find((batch) => String(batch.id) === String(currentId));
     if (existing) return existing;
+
+    const emptyBatch = batches.find(isBatchEmpty);
+    if (emptyBatch) {
+      setSelectedBatchId(emptyBatch.id);
+      selectedBatchIdRef.current = emptyBatch.id;
+      return emptyBatch;
+    }
     return handleCreateBatch();
   };
 
@@ -504,7 +574,7 @@ export default function UploadQueue({ token }) {
 
         const nextFiles = [
           uploadedFile,
-          ...(batch.files || []).filter((file) => file.id !== uploadedFile.id && file.doc_type !== uploadedFile.doc_type),
+          ...(batch.files || []).filter((file) => file.id !== uploadedFile.id),
         ];
         const nextBatchState = { ...batch, files: nextFiles };
         const { uploadedDocTypes, extractedDocTypes, missingDocTypes, pendingExtractionDocTypes } = getBatchDocState(nextBatchState);
@@ -534,9 +604,10 @@ export default function UploadQueue({ token }) {
   // Upload file lên BE với trạng thái in-flight độc lập
   const uploadFiles = async (fileList, docType = selectedDocType, batchId = null) => {
     const filesArray = Array.from(fileList);
-    if (filesArray.length === 0) return;
+    if (filesArray.length === 0 || !uploadWorkspaceReady) return;
 
-    const targetBatchId = batchId || selectedBatchIdRef.current || selectedBatch?.id || (await ensureSelectedBatch())?.id;
+    const ensuredBatch = batchId ? null : await ensureSelectedBatch();
+    const targetBatchId = batchId || ensuredBatch?.id;
     if (!targetBatchId) return;
 
     // Lock the selected batch to this target batch
@@ -601,17 +672,20 @@ export default function UploadQueue({ token }) {
     e.preventDefault();
     e.stopPropagation();
     resetDragState();
+    if (!uploadWorkspaceReady) return;
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       setSelectedDocType(docType);
-      const targetId = selectedBatchIdRef.current || selectedBatch?.id;
-      uploadFiles(e.dataTransfer.files, docType, targetId);
+      uploadFiles(e.dataTransfer.files, docType);
     }
   };
 
   const handleFileSelect = (e) => {
+    if (!uploadWorkspaceReady) {
+      e.target.value = '';
+      return;
+    }
     if (e.target.files && e.target.files.length > 0) {
-      const targetId = selectedBatchIdRef.current || selectedBatch?.id;
-      uploadFiles(e.target.files, filePickerDocTypeRef.current, targetId);
+      uploadFiles(e.target.files, filePickerDocTypeRef.current);
       e.target.value = '';
     }
   };
@@ -696,7 +770,8 @@ export default function UploadQueue({ token }) {
       const remainingBatches = batches.filter((item) => item.id !== batch.id);
       setBatches(remainingBatches);
       setSelectedBatchId((currentId) => {
-        const nextId = currentId === batch.id ? remainingBatches[0]?.id || null : currentId;
+        const nextEmptyBatch = remainingBatches.find(isBatchEmpty);
+        const nextId = String(currentId) === String(batch.id) ? nextEmptyBatch?.id || null : currentId;
         selectedBatchIdRef.current = nextId;
         return nextId;
       });
@@ -714,6 +789,10 @@ export default function UploadQueue({ token }) {
     navigate(`/audit-trail?batchId=${batch.id}`);
   };
 
+  const autoUploadFiles = selectedBatchInFlight.filter((inf) => inf.docType === AUTO_DOC_TYPE);
+  const isAutoDropActive = activeDropType === AUTO_DOC_TYPE;
+  const isAutoReading = autoUploadFiles.some((file) => file.status === 'processing');
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -727,7 +806,8 @@ export default function UploadQueue({ token }) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => fetchBatches(true, true)}
+            onClick={() => initializeUploadWorkspace({ force: true })}
+            disabled={!uploadWorkspaceReady && !uploadWorkspaceError}
             className="btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3"
             title="Làm mới dữ liệu"
           >
@@ -737,7 +817,8 @@ export default function UploadQueue({ token }) {
           <button
             type="button"
             onClick={handleCreateBatch}
-            className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5"
+            disabled={!uploadWorkspaceReady}
+            className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Plus size={14} />
             Tạo bộ mới
@@ -745,7 +826,34 @@ export default function UploadQueue({ token }) {
         </div>
       </div>
 
+      {!uploadWorkspaceReady && (
+        <div
+          role={uploadWorkspaceError ? 'alert' : 'status'}
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            uploadWorkspaceError
+              ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300'
+              : 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2 font-semibold">
+            {uploadWorkspaceError ? <AlertCircle size={16} /> : <Loader2 size={16} className="animate-spin" />}
+            {uploadWorkspaceError || 'Đang chuẩn bị một bộ chứng từ trống để tải lên...'}
+          </span>
+          {uploadWorkspaceError && (
+            <button
+              type="button"
+              onClick={() => initializeUploadWorkspace({ force: true })}
+              className="btn-secondary px-3 py-1.5 text-xs"
+            >
+              <RefreshCw size={13} />
+              Thử lại
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Selected Batch Status Banner */}
+      {uploadWorkspaceReady && (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
@@ -782,49 +890,38 @@ export default function UploadQueue({ token }) {
           )}
         </div>
       </div>
+      )}
 
       {/* Select Document Type with Drop Zones */}
-      <div ref={documentTypesRef} className="highlight-box-info grid grid-cols-1 md:grid-cols-3 gap-3.5 scroll-mt-6">
-        {DOC_TYPES.map((type) => {
-          const isSelected = selectedDocType === type.value;
-          const isDropActive = activeDropType === type.value;
-          const Icon = type.icon;
-          const uploadedFiles = uploadedFilesByType[type.value] || [];
-          const isReadingThisType = uploadedFiles.some((f) => isFileBeingRead(f));
+      <div ref={documentTypesRef} className="highlight-box-info space-y-3.5 scroll-mt-6">
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+          {DOC_TYPES.map((type) => {
+            const isDropActive = activeDropType === type.value;
+            const Icon = type.icon;
+            const uploadedFiles = uploadedFilesByType[type.value] || [];
+            const isReadingThisType = uploadedFiles.some((f) => isFileBeingRead(f));
 
-          return (
-            <div
-              key={type.value}
-              role="button"
-              tabIndex={0}
-              data-testid={`drop-zone-${type.value}`}
-              onClick={() => handleChooseFiles(type.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  handleChooseFiles(type.value);
-                }
-              }}
-              onDragEnter={(event) => handleTypeDragEnter(event, type.value)}
-              onDragOver={(event) => handleTypeDragOver(event, type.value)}
-              onDragLeave={handleTypeDragLeave}
-              onDrop={(event) => handleDrop(event, type.value)}
-              className={`flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                isDropActive
-                  ? 'border-brand-500 bg-brand-50 shadow-md ring-4 ring-brand-100 dark:border-brand-400 dark:bg-brand-950/30 dark:ring-brand-950'
-                  : isReadingThisType
-                  ? 'border-brand-400 bg-brand-50/50 shadow-sm ring-2 ring-brand-100 dark:border-brand-500 dark:bg-brand-950/20 dark:ring-brand-950'
-                  : isSelected
-                  ? 'border-brand-500 bg-white shadow-md dark:bg-slate-800 dark:border-brand-400'
-                  : 'border-slate-200/80 bg-white/70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
-              }`}
-            >
+            return (
+              <div
+                key={type.value}
+                aria-disabled={!uploadWorkspaceReady}
+                data-testid={`drop-zone-${type.value}`}
+                onDragEnter={(event) => handleTypeDragEnter(event, type.value)}
+                onDragOver={(event) => handleTypeDragOver(event, type.value)}
+                onDragLeave={handleTypeDragLeave}
+                onDrop={(event) => handleDrop(event, type.value)}
+                className={`flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all ${
+                  !uploadWorkspaceReady ? 'pointer-events-none opacity-60 ' : ''
+                }${
+                  isDropActive || isReadingThisType
+                    ? 'border-slate-300 bg-slate-50/80 shadow-sm ring-2 ring-slate-100 dark:border-slate-700 dark:bg-slate-900/80 dark:ring-slate-800'
+                    : 'border-slate-200/80 bg-white/70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
+                }`}
+              >
               <div className="flex w-full items-center justify-between">
                 <div className={`p-2 rounded-lg transition-colors ${
                   isReadingThisType
                     ? 'bg-brand-600 text-white dark:bg-brand-500 animate-pulse'
-                    : isSelected || isDropActive
-                    ? 'bg-brand-600 text-white dark:bg-brand-500'
                     : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 }`}>
                   <Icon size={18} />
@@ -900,35 +997,51 @@ export default function UploadQueue({ token }) {
                       }
 
                       // Completed file
+                      const isLowQualityFile = file.ai_extraction?.status === 'low_quality';
+                      const lowQualityMessage =
+                        file.ai_extraction?.validation_message
+                        || 'Chất lượng file thấp, dữ liệu trích xuất có thể không chính xác. Vui lòng kiểm tra lại dữ liệu trích xuất.';
                       return (
                         <div
                           key={file.id || `${file.filename}-${index}`}
-                          className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-2.5 py-2 dark:border-slate-800 dark:bg-slate-900"
+                          className={`flex w-full flex-col gap-2 rounded-lg border px-2.5 py-2 ${
+                            isLowQualityFile
+                              ? 'border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30'
+                              : 'border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900'
+                          }`}
                         >
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleOpenUploadedFile(file);
-                            }}
-                            className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-                            title="Bấm để mở xem file"
-                          >
-                            <CheckCircle2 size={14} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-                            <span className="truncate">{file.filename}</span>
-                            <ExternalLink size={12} className="shrink-0 text-slate-400" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDeleteUploadedFile(file);
-                            }}
-                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
-                            title="Xóa file"
-                          >
-                            <X size={13} />
-                          </button>
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleOpenUploadedFile(file);
+                              }}
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                              title="Bấm để mở xem file"
+                            >
+                              <CheckCircle2 size={14} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                              <span className="truncate">{file.filename}</span>
+                              <ExternalLink size={12} className="shrink-0 text-slate-400" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteUploadedFile(file);
+                              }}
+                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
+                              title="Xóa file"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                          {isLowQualityFile && (
+                            <p className="flex items-start gap-1.5 text-[11px] font-semibold leading-4 text-amber-700 dark:text-amber-300">
+                              <AlertCircle size={13} className="mt-0.5 shrink-0" />
+                              <span>{lowQualityMessage}</span>
+                            </p>
+                          )}
                         </div>
                       );
                     })}
@@ -936,22 +1049,114 @@ export default function UploadQueue({ token }) {
                 </div>
               )}
 
-              {uploadedFiles.length === 0 && (
-                <div className="mt-3 w-full border-t border-slate-200/80 pt-2.5 dark:border-slate-700">
-                  <p className="rounded-md bg-amber-50/80 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                    Chưa có chứng từ (kéo thả file vào đây)
-                  </p>
-                </div>
-              )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div
+          role="button"
+          tabIndex={uploadWorkspaceReady ? 0 : -1}
+          aria-disabled={!uploadWorkspaceReady}
+          data-testid="drop-zone-auto"
+          onClick={() => handleChooseFiles(AUTO_DOC_TYPE)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleChooseFiles(AUTO_DOC_TYPE);
+            }
+          }}
+          onDragEnter={(event) => handleTypeDragEnter(event, AUTO_DOC_TYPE)}
+          onDragOver={(event) => handleTypeDragOver(event, AUTO_DOC_TYPE)}
+          onDragLeave={handleTypeDragLeave}
+          onDrop={(event) => handleDrop(event, AUTO_DOC_TYPE)}
+          className={`flex min-h-[128px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-all ${
+            !uploadWorkspaceReady ? 'pointer-events-none opacity-60 ' : ''
+          }${
+            isAutoDropActive
+              ? 'border-brand-500 bg-brand-50 shadow-md ring-4 ring-brand-100 dark:border-brand-400 dark:bg-brand-950/30 dark:ring-brand-950'
+              : isAutoReading
+              ? 'border-brand-400 bg-brand-50/60 shadow-sm ring-2 ring-brand-100 dark:border-brand-500 dark:bg-brand-950/20 dark:ring-brand-950'
+              : 'border-slate-300 bg-white/70 hover:border-brand-300 hover:bg-brand-50/40 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-brand-600 dark:hover:bg-brand-950/20'
+          }`}
+        >
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+              isAutoReading || isAutoDropActive
+                ? 'bg-brand-600 text-white dark:bg-brand-500'
+                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+            }`}>
+              {isAutoReading ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={21} />}
             </div>
-          );
-        })}
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Tải nhanh các chứng từ</p>
+          </div>
+
+          {autoUploadFiles.length > 0 && (
+            <div className="mt-3 grid gap-2 border-t border-slate-200/80 pt-3 dark:border-slate-700 sm:grid-cols-2 lg:grid-cols-3">
+              {autoUploadFiles.map((file) => {
+                const isProcessing = file.status === 'processing';
+                return (
+                  <div
+                    key={file.tempId}
+                    className={`flex min-w-0 flex-col gap-1.5 rounded-lg border p-2.5 ${
+                      isProcessing
+                        ? 'border-brand-200 bg-brand-50/90 dark:border-brand-800 dark:bg-brand-950/40'
+                        : 'border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {isProcessing ? (
+                          <Loader2 size={13} className="shrink-0 animate-spin text-brand-600 dark:text-brand-400" />
+                        ) : (
+                          <AlertCircle size={13} className="shrink-0 text-rose-600 dark:text-rose-300" />
+                        )}
+                        <span
+                          className={`truncate text-xs font-semibold ${
+                            isProcessing ? 'text-brand-950 dark:text-brand-100' : 'text-rose-800 dark:text-rose-200'
+                          }`}
+                          title={file.filename}
+                        >
+                          {file.filename}
+                        </span>
+                      </div>
+                      {!isProcessing && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDismissInFlightError(file.tempId);
+                          }}
+                          className="text-rose-600 hover:text-rose-800"
+                          title="Đóng thông báo"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                    <p
+                      className={`text-[11px] font-semibold ${
+                        isProcessing ? 'text-brand-700 dark:text-brand-300' : 'text-rose-600 dark:text-rose-300'
+                      }`}
+                    >
+                      {isProcessing
+                        ? 'Đang đọc và tự nhận dạng loại chứng từ...'
+                        : file.errorMessage || AUTO_UPLOAD_ERROR_MESSAGE}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
         <input
           ref={fileInputRef}
           type="file"
           multiple
           accept=".xml,.pdf,.png,.jpg,.jpeg"
           onChange={handleFileSelect}
+          disabled={!uploadWorkspaceReady}
           className="hidden"
         />
       </div>
@@ -1051,7 +1256,7 @@ export default function UploadQueue({ token }) {
               ? 'Không có bộ nào đang chờ bổ sung chứng từ.'
               : batchFilterTab === 'ready'
               ? 'Chưa có bộ nào hoàn tất đủ 3 chứng từ.'
-              : 'Chưa có bộ đối soát nào. Hãy kéo file vào ô PO, Invoice hoặc GRN để tạo bộ đầu tiên.'}
+              : 'Chưa có bộ đối soát nào. Hãy kéo file vào vùng Tải nhanh các chứng từ để tạo bộ đầu tiên.'}
           </div>
         ) : (
           <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto dark:divide-slate-800">
@@ -1059,9 +1264,7 @@ export default function UploadQueue({ token }) {
               const isSelectedBatch = selectedBatch?.id === batch.id;
               const filesByType = (batch.files || []).reduce((acc, file) => {
                 if (!file.doc_type) return acc;
-                if (!acc[file.doc_type]) {
-                  acc[file.doc_type] = file;
-                }
+                acc[file.doc_type] = [...(acc[file.doc_type] || []), file];
                 return acc;
               }, {});
               const canDeleteBatch = (batch.files || []).length === 0;
@@ -1125,10 +1328,12 @@ export default function UploadQueue({ token }) {
 
                     <div className="grid min-w-0 flex-1 grid-cols-1 gap-2.5 sm:grid-cols-3">
                       {DOC_TYPES.map((type) => {
-                        const file = filesByType[type.value];
+                        const filesForType = filesByType[type.value] || [];
+                        const file = filesForType[0];
                         const typeInFlight = batchInFlight.find((inf) => inf.docType === type.value && inf.status === 'processing');
                         const fileBeingRead = Boolean(typeInFlight) || isFileBeingRead(file) || batchDocState.pendingExtractionDocTypes.includes(type.value);
                         const isWrongType = Boolean(file?.ai_extraction && !file.ai_extraction.is_correct_type);
+                        const fileLabel = filesForType.length > 1 ? `${filesForType.length} file đã nhận` : file?.filename;
 
                         return (
                           <span
@@ -1142,11 +1347,11 @@ export default function UploadQueue({ token }) {
                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
                                 : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'
                             }`}
-                            title={typeInFlight?.filename || file?.filename || 'Chưa có chứng từ'}
+                            title={typeInFlight?.filename || fileLabel || 'Chưa có chứng từ'}
                           >
                             <span className="block font-semibold whitespace-nowrap truncate">{type.label}</span>
                             <span className="mt-0.5 block truncate text-[11px]">
-                              {typeInFlight?.filename || file?.filename || (fileBeingRead ? 'Đã nhận file' : 'Chưa có chứng từ')}
+                              {typeInFlight?.filename || fileLabel || (fileBeingRead ? 'Đã nhận file' : 'Chưa có chứng từ')}
                             </span>
                             {fileBeingRead ? (
                               <span className="mt-1 flex items-center gap-1 font-semibold text-brand-600 dark:text-brand-300 whitespace-nowrap">

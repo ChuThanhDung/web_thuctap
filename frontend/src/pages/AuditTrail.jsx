@@ -24,11 +24,13 @@ import {
   subscribeBatchCache,
   updateCachedBatchItem,
 } from '../services/batchCache.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
   comparisonStatusToResult,
   compareValues as compareRawValues,
+  getComparisonCellClass,
   getGrnTotalAdjustment,
   inferVatRate,
   toNumber,
@@ -526,8 +528,9 @@ function isWithinDateRange(batch, range) {
 function matchesOverviewFilter(batch, overviewFilter) {
   if (!overviewFilter || overviewFilter === 'all') return true;
   if (overviewFilter === 'ready') return batch.isReady;
-  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved'].includes(batch.status);
-  if (overviewFilter === 'review') return batch.isReady && !['matched', 'approved'].includes(batch.status);
+  if (overviewFilter === 'matched') return batch.isReady && ['matched', 'approved', 'final_approved'].includes(batch.status);
+  if (overviewFilter === 'review') return batch.isReady && ['mismatch', 'missing'].includes(batch.status);
+  if (overviewFilter === 'rejected') return batch.isReady && batch.status === 'rejected';
   if (overviewFilter === 'incomplete') return false;
   return true;
 }
@@ -537,6 +540,7 @@ function getOverviewFilterLabel(overviewFilter) {
     ready: 'Tổng hồ sơ',
     matched: 'Đã khớp',
     review: 'Cần xem',
+    rejected: 'Từ chối',
     incomplete: 'Batch chưa có hồ sơ',
   };
   return labels[overviewFilter] || null;
@@ -558,22 +562,6 @@ function StatusBadge({ status }) {
       <Icon size={14} />
       {meta.label}
     </span>
-  );
-}
-
-function MatchMeter({ value }) {
-  const barColor = value >= 98 ? 'bg-emerald-500' : value >= 85 ? 'bg-amber-500' : value > 0 ? 'bg-rose-500' : 'bg-slate-300';
-
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tỉ lệ khớp</span>
-        <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{value}%</span>
-      </div>
-      <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
-        <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${value}%` }} />
-      </div>
-    </div>
   );
 }
 
@@ -636,7 +624,7 @@ function ResultPill({ severity, text }) {
     danger: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
   }[severity];
 
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
 }
 
 const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá'];
@@ -749,7 +737,7 @@ function buildComparisons(docs) {
     if (key === 'total_amount') {
       const grnAdjustment = getGrnTotalAdjustment(docs);
       if (grnAdjustment) {
-        values[2] = `${formatDisplayValue(grnAdjustment.baseTotal)} + ${grnAdjustment.vatRate}%`;
+        values[2] = formatDisplayValue(grnAdjustment.adjustedTotal);
       }
     }
     const result = comparisonStatusToResult(compareDocumentField(docs, key));
@@ -760,16 +748,71 @@ function buildComparisons(docs) {
       grn: values[2],
       ...result,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
-function findItemByIdentity(items, sourceItem, index) {
-  const sku = sourceItem?.sku;
-  if (sku) {
-    const foundBySku = items.find((item) => item?.sku && item.sku === sku);
+function normalizeItemText(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeItemSku(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getItemIdentityKey(item) {
+  const sku = normalizeItemSku(item?.sku);
+  if (sku) return `sku:${sku}`;
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function getItemNameKey(item) {
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function collectLineItemBases(...itemGroups) {
+  const byIdentity = new Map();
+  const anonymous = [];
+
+  itemGroups.forEach((items) => {
+    items.forEach((item) => {
+      const key = getItemIdentityKey(item);
+      if (!key) {
+        anonymous.push(item);
+        return;
+      }
+      const nameKey = getItemNameKey(item);
+      if (key.startsWith('sku:') && nameKey && byIdentity.has(nameKey)) {
+        return;
+      }
+      if (key.startsWith('name:')) {
+        const sameNameSkuKey = [...byIdentity.keys()].find((existingKey) => (
+          existingKey.startsWith('sku:') && getItemNameKey(byIdentity.get(existingKey)) === key
+        ));
+        if (sameNameSkuKey) return;
+      }
+      if (!byIdentity.has(key)) byIdentity.set(key, item);
+    });
+  });
+
+  return [...byIdentity.values(), ...anonymous];
+}
+
+function findItemByIdentity(items, sourceItem) {
+  const sourceSku = normalizeItemSku(sourceItem?.sku);
+  if (sourceSku) {
+    const foundBySku = items.find((item) => normalizeItemSku(item?.sku) === sourceSku);
     if (foundBySku) return foundBySku;
   }
-  return items[index] || {};
+
+  const sourceName = normalizeItemText(sourceItem?.item_name);
+  if (sourceName) {
+    const foundByName = items.find((item) => normalizeItemText(item?.item_name) === sourceName);
+    if (foundByName) return foundByName;
+  }
+
+  return {};
 }
 
 function getLineAmount(item) {
@@ -786,13 +829,12 @@ function buildLineItems(docs) {
   const poItems = docs.po?.extractedData?.line_items || [];
   const invoiceItems = docs.invoice?.extractedData?.line_items || [];
   const grnItems = docs.grn?.extractedData?.line_items || [];
-  const maxLength = Math.max(poItems.length, invoiceItems.length, grnItems.length);
+  const baseItems = collectLineItemBases(poItems, invoiceItems, grnItems);
 
-  return Array.from({ length: maxLength }).map((_, index) => {
-    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
-    const poItem = findItemByIdentity(poItems, baseItem, index);
-    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
-    const grnItem = findItemByIdentity(grnItems, baseItem, index);
+  return baseItems.map((baseItem, index) => {
+    const poItem = findItemByIdentity(poItems, baseItem);
+    const invoiceItem = findItemByIdentity(invoiceItems, baseItem);
+    const grnItem = findItemByIdentity(grnItems, baseItem);
     const qtyResult = compareValues([
       formatDisplayValue(poItem.qty),
       formatDisplayValue(invoiceItem.qty),
@@ -836,8 +878,11 @@ function buildLineItems(docs) {
           ? 'Thiếu dữ liệu'
           : 'Khớp',
       severity,
+      qtySeverity: qtyResult.severity,
+      priceSeverity: priceResult.severity,
+      amountSeverity: amountResult.severity,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function mapApiBatchToAuditBatch(batch) {
@@ -854,7 +899,16 @@ function mapApiBatchToAuditBatch(batch) {
   const missingDataFields = missingCount + summary.warningFields;
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
-  const isRejected = batch.status === 'rejected';
+  const hasRejection = Boolean(batch.rejection_note);
+  const isRejected = batch.status === 'rejected' || hasRejection;
+  const backendReconciliationStatus = batch.reconciliation_status;
+  const displayStatus = isRejected
+    ? 'rejected'
+    : isFinalApproved
+      ? 'final_approved'
+      : isApproved
+        ? 'approved'
+        : summary.status;
 
   return {
     id: batch.id,
@@ -862,7 +916,9 @@ function mapApiBatchToAuditBatch(batch) {
     batchNumber: batch.batch_number,
     note: batch.note || '',
     rejectionNote: batch.rejection_note || '',
-    status: isRejected ? 'rejected' : isFinalApproved ? 'final_approved' : isApproved ? 'approved' : summary.status,
+    status: displayStatus,
+    reconciliationStatus: backendReconciliationStatus || null,
+    reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
     isApproved,
     isFinalApproved,
     isRejected,
@@ -921,6 +977,7 @@ export default function AuditTrail({ token, role }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [batchPage, setBatchPage] = useState(1);
   const [approvingBatchIds, setApprovingBatchIds] = useState([]);
+  const [approveConfirm, setApproveConfirm] = useState(null);
   const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
 
@@ -942,7 +999,7 @@ export default function AuditTrail({ token, role }) {
           setLoading(true);
         }
         setError('');
-        const data = await fetchDocumentBatchesWithCache(token);
+        const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
         const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
         if (!isMounted) return;
         setBatches(mappedBatches);
@@ -969,6 +1026,41 @@ export default function AuditTrail({ token, role }) {
     fetchBatches();
     return () => {
       isMounted = false;
+    };
+  }, [token, requestedBatchId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function refreshBatches() {
+      try {
+        const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
+        if (!isMounted) return;
+        const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
+        setBatches(mappedBatches);
+        if (requestedBatchId) {
+          const requestedBatch = mappedBatches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+          if (requestedBatch) setModalBatchId(requestedBatch.id);
+        }
+      } catch (err) {
+        console.error('Không thể làm mới trạng thái batch:', err);
+      }
+    }
+
+    const handleFocus = () => {
+      refreshBatches();
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshBatches();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [token, requestedBatchId]);
 
@@ -1050,28 +1142,32 @@ export default function AuditTrail({ token, role }) {
   const modalComparisons = modalBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
   const modalLineItems = modalBatch?.lineItems || [];
 
-  const handleApproveBatch = async (batch, options = {}) => {
+  const requestApproveBatch = (batch, options = {}) => {
     // Kiểm tra điều kiện theo role
     const isChiefAccountant = role === 'chief_accountant';
     
     // Kế toán trưởng: có thể duyệt batch 'approved' (đã qua KTV) hoặc 'matched' (duyệt trực tiếp)
     // Kế toán viên: chỉ duyệt batch 'matched'
-    const canApprove = isChiefAccountant 
-      ? (batch.status === 'approved' || batch.status === 'matched')
-      : batch.status === 'matched';
+    const canApprove = !batch?.rejectionNote && (
+      isChiefAccountant 
+        ? (batch.status === 'approved' || batch.status === 'matched')
+        : batch.status === 'matched'
+    );
     
     if (!batch?.id || !canApprove || approvingBatchIds.includes(batch.id)) return;
+    setApproveConfirm({ batch, options });
+  };
 
-    const confirmMessage = isChiefAccountant
-      ? 'Bạn có muốn duyệt không?'
-      : `Bạn có chắc chắn muốn duyệt batch "${batch.batchNumber}" không?`;
-    
-    const confirmed = window.confirm(confirmMessage);
-    if (!confirmed) return;
+  const handleApproveBatch = async () => {
+    const batch = approveConfirm?.batch;
+    const options = approveConfirm?.options || {};
+    if (!batch?.id || approvingBatchIds.includes(batch.id)) return;
 
+    setError('');
     setApprovingBatchIds((prev) => [...prev, batch.id]);
     try {
       // Gọi API phù hợp theo role
+      const isChiefAccountant = role === 'chief_accountant';
       const approveFunc = isChiefAccountant ? finalApproveDocumentBatch : approveDocumentBatch;
       const approvedBatch = repairTextDeep(await approveFunc(token, batch.id));
       updateCachedBatchItem(approvedBatch);
@@ -1081,8 +1177,9 @@ export default function AuditTrail({ token, role }) {
       if (!options.keepModalOpen) {
         setModalBatchId(null);
       }
+      setApproveConfirm(null);
     } catch (err) {
-      alert(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
+      setError(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
     } finally {
       setApprovingBatchIds((prev) => prev.filter((id) => !isSameBatchId(id, batch.id)));
     }
@@ -1166,6 +1263,12 @@ export default function AuditTrail({ token, role }) {
         </button>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ['Tổng batch', summary.total, 'text-slate-900 dark:text-slate-100'],
@@ -1236,9 +1339,11 @@ export default function AuditTrail({ token, role }) {
               const hasMissingData = batch.status === 'missing';
               // Kế toán viên: duyệt batch matched
               // Kế toán trưởng: duyệt batch approved hoặc matched
-              const canApprove = role === 'chief_accountant' 
-                ? (batch.status === 'approved' || batch.status === 'matched')
-                : batch.status === 'matched';
+              const canApprove = !batch.rejectionNote && (
+                role === 'chief_accountant' 
+                  ? (batch.status === 'approved' || batch.status === 'matched')
+                  : batch.status === 'matched'
+              );
               const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
 
               return (
@@ -1299,7 +1404,7 @@ export default function AuditTrail({ token, role }) {
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleApproveBatch(batch);
+                              requestApproveBatch(batch);
                             }}
                             disabled={isApproving}
                             className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1400,25 +1505,6 @@ export default function AuditTrail({ token, role }) {
               </button>
             </div>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {[
-                  ['Đã đối chiếu', selectedBatch.checkedFields, 'text-slate-900 dark:text-slate-100'],
-                  ['Khớp', selectedBatch.matchedFields, 'text-emerald-700 dark:text-emerald-300'],
-                  ['Lệch', selectedBatch.mismatchFields, 'text-rose-700 dark:text-rose-300'],
-                  ['Thiếu', selectedBatch.missingFields, 'text-amber-700 dark:text-amber-300'],
-                ].map(([label, value, color]) => (
-                  <div key={label} className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-                    <p className={`mt-1 text-xl font-bold tabular-nums ${color}`}>{value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-                <MatchMeter value={selectedBatch.matchRate} />
-              </div>
-            </div>
-
             <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
               <p className="text-xs font-semibold uppercase text-slate-400">Kết luận</p>
               <p className="mt-1 text-sm font-medium leading-6 text-slate-800 dark:text-slate-200">{selectedBatch.decision}</p>
@@ -1454,10 +1540,10 @@ export default function AuditTrail({ token, role }) {
                     documentComparisons.map((item) => (
                       <tr key={`${selectedBatch.id}-${item.field}`} className="table-row-hover">
                         <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
-                        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
-                        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
-                        <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                        <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                       </tr>
                     ))
                   ) : (
@@ -1505,14 +1591,14 @@ export default function AuditTrail({ token, role }) {
                           <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.poQty}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.poPrice}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoicePrice}</td>
-                        <td className="border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poAmount}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceAmount}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnAmount}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                        <td className={`border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
                         <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                       </tr>
                     ))
@@ -1567,10 +1653,10 @@ export default function AuditTrail({ token, role }) {
                     Upload bổ sung
                   </button>
                 )}
-                {modalBatch.status === 'matched' && (
+                {!modalBatch.rejectionNote && modalBatch.status === 'matched' && (
                   <button
                     type="button"
-                    onClick={() => handleApproveBatch(modalBatch, { keepModalOpen: true })}
+                    onClick={() => requestApproveBatch(modalBatch, { keepModalOpen: true })}
                     disabled={approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id))}
                     className="inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
                     title="Duyệt batch"
@@ -1597,25 +1683,6 @@ export default function AuditTrail({ token, role }) {
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-                  {[
-                    ['Đã đối chiếu', modalBatch.checkedFields, 'text-slate-900 dark:text-slate-100'],
-                    ['Khớp', modalBatch.matchedFields, 'text-emerald-700 dark:text-emerald-300'],
-                    ['Lệch', modalBatch.mismatchFields, 'text-rose-700 dark:text-rose-300'],
-                    ['Thiếu dữ liệu', modalBatch.missingFields, 'text-amber-700 dark:text-amber-300'],
-                  ].map(([label, value, color]) => (
-                    <div key={label} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
-                      <p className={`mt-0.5 text-lg font-bold tabular-nums ${color}`}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
-                  <MatchMeter value={modalBatch.matchRate} />
-                </div>
-              </div>
-
               <div className="grid gap-3 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => (
                   <DocumentCard key={type.key} type={type} doc={modalBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
@@ -1653,15 +1720,15 @@ export default function AuditTrail({ token, role }) {
                               <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                             </td>
                             <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poPrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.invoicePrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnPrice}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poAmount}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.invoiceAmount}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnAmount}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.grnPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.grnPrice}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
                             <td className="px-3 py-2.5 text-center whitespace-nowrap"><ResultPill severity={item.severity} text={item.result} /></td>
                           </tr>
                         ))
@@ -1696,10 +1763,10 @@ export default function AuditTrail({ token, role }) {
                       {modalComparisons.map((item) => (
                         <tr key={`${modalBatch.id}-modal-${item.field}`} className="table-row-hover">
                           <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
-                          <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1710,6 +1777,25 @@ export default function AuditTrail({ token, role }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(approveConfirm)}
+        tone="success"
+        title={role === 'chief_accountant' ? 'Xác nhận duyệt cuối' : 'Xác nhận duyệt batch'}
+        description={
+          approveConfirm
+            ? `Bạn có chắc chắn muốn duyệt batch "${approveConfirm.batch.batchNumber}" không?`
+            : ''
+        }
+        confirmLabel="Xác nhận duyệt"
+        cancelLabel="Hủy"
+        loading={Boolean(approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id)))}
+        onCancel={() => {
+          if (approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id))) return;
+          setApproveConfirm(null);
+        }}
+        onConfirm={handleApproveBatch}
+      />
     </div>
   );
 }

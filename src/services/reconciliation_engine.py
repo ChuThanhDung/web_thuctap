@@ -35,11 +35,34 @@ def to_decimal(value: Any, default: Decimal = Decimal("0")) -> Decimal:
         return default
 
 
-def find_matching_item(item_name: str, candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
-    item_name_lower = item_name.lower()
+def normalize_item_text(value: Any) -> str:
+    return " ".join(str(value or "").strip().lower().split())
+
+
+def normalize_item_sku(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def find_matching_item(source_item: dict[str, Any] | str, candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if isinstance(source_item, dict):
+        source_sku = normalize_item_sku(source_item.get("sku") or source_item.get("item_sku") or source_item.get("code"))
+        source_name = normalize_item_text(source_item.get("item_name") or source_item.get("name") or source_item.get("description"))
+    else:
+        source_sku = ""
+        source_name = normalize_item_text(source_item)
+
+    if source_sku:
+        for candidate in candidates:
+            candidate_sku = normalize_item_sku(candidate.get("sku") or candidate.get("item_sku") or candidate.get("code"))
+            if candidate_sku and candidate_sku == source_sku:
+                return candidate
+
+    if not source_name:
+        return None
+
     for candidate in candidates:
-        candidate_name = candidate.get("item_name", "").lower()
-        if candidate_name and (candidate_name in item_name_lower or item_name_lower in candidate_name):
+        candidate_name = normalize_item_text(candidate.get("item_name") or candidate.get("name") or candidate.get("description"))
+        if candidate_name and (candidate_name == source_name or candidate_name in source_name or source_name in candidate_name):
             return candidate
     return None
 
@@ -302,10 +325,10 @@ def reconcile_documents(
         unit = inv_item.get("unit", "Cái")
 
         # Tìm dòng hàng tương ứng trong PO (khớp theo tên sản phẩm)
-        po_item = find_matching_item(inv_name, po_items)
+        po_item = find_matching_item(inv_item, po_items)
 
         # Tìm dòng hàng tương ứng trong GRN
-        grn_item = find_matching_item(inv_name, grn_items)
+        grn_item = find_matching_item(inv_item, grn_items)
 
         po_qty = to_decimal(po_item.get("qty")) if po_item else Decimal(0)
         po_price = to_decimal(po_item.get("price")) if po_item else Decimal(0)

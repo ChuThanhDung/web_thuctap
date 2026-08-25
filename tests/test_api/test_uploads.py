@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from fastapi import Depends
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
@@ -11,6 +12,7 @@ from src.api.uploads import PROJECT_ROOT, build_cloud_storage_key
 from src.config import get_settings
 from src.database import get_db
 from src.main import app
+from src.models.notification import Notification
 from src.models.reconciliation import DocumentBatch, ReconciliationCase, UploadedFile
 from src.models.user import User
 from src.services.document_ai_extractor import DocumentAiAnalysis
@@ -63,6 +65,7 @@ def clean_db_fixture(db_session):
     ensure_uploaded_document_extraction_tables()
     db_session.query(UploadedDocumentExtraction).delete()
     db_session.query(UploadedFile).delete()
+    db_session.query(Notification).delete()
     db_session.query(DocumentBatch).delete()
     db_session.commit()
 
@@ -563,10 +566,85 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
     rejected_batch = db_session.get(DocumentBatch, batch.id)
     assert rejected_batch.status == "rejected"
     assert rejected_batch.rejection_note == "Sai số lượng GRN so với hóa đơn."
+    notification = db_session.query(Notification).filter_by(
+        batch_id=batch.id,
+        kind="batch_rejected",
+    ).one()
+    assert notification.recipient_id == user.id
+    assert notification.read_at is None
     assert sent_email["to_email"] == user.email
     assert sent_email["recipient_name"] == user.full_name
     assert sent_email["batch_number"] == batch.batch_number
     assert sent_email["rejection_note"] == "Sai số lượng GRN so với hóa đơn."
+
+    db_session.add(
+        Notification(
+            recipient_id=user.id,
+            actor_id=None,
+            batch_id=None,
+            kind="batch_rejected",
+            title="Thông báo cũ",
+            message="Thông báo này đã quá thời gian hiển thị.",
+            action_url=None,
+            created_at=datetime.now(UTC) - timedelta(hours=6),
+        )
+    )
+    db_session.commit()
+
+    notifications_response = await client.get("/api/v1/notifications")
+    assert notifications_response.status_code == 200
+    notifications_data = notifications_response.json()
+    assert notifications_data["unread_count"] == 1
+    assert len(notifications_data["items"]) == 1
+    assert notifications_data["items"][0]["kind"] == "batch_rejected"
+
+    read_response = await client.post(
+        f"/api/v1/notifications/{notifications_data['items'][0]['id']}/read"
+    )
+    assert read_response.status_code == 200
+    assert read_response.json()["is_read"] is True
+
+
+def test_rejection_notification_is_pushed_over_websocket(db_session, monkeypatch):
+    accountant = db_session.query(User).filter(User.email == "accountant@docusync.ai").one()
+    batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_97",
+        created_by_id=accountant.public_id,
+        approved_by_id=accountant.public_id,
+        status="approved",
+    )
+    db_session.add(batch)
+    db_session.commit()
+
+    monkeypatch.setattr("src.api.uploads.send_batch_rejected_email", lambda **kwargs: True)
+
+    with TestClient(app) as sync_client:
+        login_response = sync_client.post(
+            "/api/v1/auth/login",
+            json={"email": "accountant@docusync.ai", "password": "123456"},
+        )
+        assert login_response.status_code == 200
+        access_token = login_response.json()["access_token"]
+
+        with sync_client.websocket_connect("/api/v1/notifications/ws") as websocket:
+            websocket.send_json({"type": "authenticate", "token": access_token})
+            connected = websocket.receive_json()
+            assert connected["event"] == "connected"
+
+            app.dependency_overrides[get_current_user] = override_get_chief_user
+            try:
+                reject_response = sync_client.post(
+                    f"/api/v1/uploads/batches/{batch.id}/reject",
+                    json={"rejection_note": "Cần kiểm tra lại chứng từ."},
+                )
+            finally:
+                app.dependency_overrides[get_current_user] = override_get_current_user
+
+            assert reject_response.status_code == 200
+            event = websocket.receive_json()
+            assert event["event"] == "notification"
+            assert event["notification"]["kind"] == "batch_rejected"
+            assert event["notification"]["batch_id"] == batch.id
 
 
 @pytest.mark.asyncio
@@ -736,6 +814,13 @@ async def test_accountant_can_approve_fully_matched_batch(client, db_session, mo
     assert approve_response.json()["status"] == "approved"
     db_session.expire_all()
     assert db_session.get(DocumentBatch, batch["id"]).status == "approved"
+    chief = db_session.query(User).filter(User.email == "chief.accountant@docusync.ai").one()
+    notification = db_session.query(Notification).filter_by(
+        recipient_id=chief.id,
+        batch_id=batch["id"],
+        kind="batch_submitted",
+    ).one()
+    assert notification.read_at is None
 
 
 @pytest.mark.asyncio

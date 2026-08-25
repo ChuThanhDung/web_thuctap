@@ -23,11 +23,13 @@ import {
   subscribeBatchCache,
   updateCachedBatchItem,
 } from '../services/batchCache.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
   comparisonStatusToResult,
   compareValues as compareRawValues,
+  getComparisonCellClass,
   getGrnTotalAdjustment,
   inferVatRate,
   toNumber,
@@ -244,7 +246,7 @@ function ResultPill({ severity, text }) {
     danger: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
   }[severity];
 
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
 }
 
 const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá'];
@@ -353,7 +355,7 @@ function buildComparisons(docs) {
     if (key === 'total_amount') {
       const grnAdjustment = getGrnTotalAdjustment(docs);
       if (grnAdjustment) {
-        values[2] = `${formatDisplayValue(grnAdjustment.baseTotal)} + ${grnAdjustment.vatRate}%`;
+        values[2] = formatDisplayValue(grnAdjustment.adjustedTotal);
       }
     }
     const result = comparisonStatusToResult(compareDocumentField(docs, key));
@@ -364,7 +366,7 @@ function buildComparisons(docs) {
       grn: values[2],
       ...result,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function findItemByIdentity(items, sourceItem, index) {
@@ -436,10 +438,17 @@ function buildLineItems(docs) {
       grnAmount: formatDisplayValue(grnAmount),
       vat: formatVatRate(inferVatRate({ extractedData: baseItem })),
       amount: formatDisplayValue(invoiceAmount || poAmount || grnAmount),
-      result: qtyResult.result || priceResult.result || amountResult.result || 'Khớp',
+      result: severity === 'danger'
+        ? 'Có chênh lệch'
+        : severity === 'warning'
+          ? 'Thiếu dữ liệu'
+          : 'Khớp',
       severity,
+      qtySeverity: qtyResult.severity,
+      priceSeverity: priceResult.severity,
+      amountSeverity: amountResult.severity,
     };
-  });
+  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
 function mapApiBatchToAuditBatch(batch) {
@@ -467,12 +476,16 @@ function mapApiBatchToAuditBatch(batch) {
   const comparisons = isReady ? buildComparisons(docs) : [];
   const lineItems = isReady ? buildLineItems(docs) : [];
   const summary = isReady ? calculateMatchSummary(comparisons, lineItems) : { matchRate: 0, checkedFields: 0, matchedFields: 0, mismatchFields: 0, missingFields: 3 };
+  const rejectionNote = batch.rejection_note || '';
+  const backendReconciliationStatus = batch.reconciliation_status;
 
   // Xác định trạng thái batch
-  let status = batch.status || 'missing';
+  let status = rejectionNote ? 'rejected' : batch.status || 'missing';
   
   // Nếu backend trả về status rõ ràng, sử dụng luôn
-  if (['matched', 'approved', 'final_approved', 'rejected', 'mismatch'].includes(batch.status)) {
+  if (rejectionNote) {
+    status = 'rejected';
+  } else if (['matched', 'approved', 'final_approved', 'rejected', 'mismatch'].includes(batch.status)) {
     status = batch.status;
   } else if (isReady) {
     status = summary.matchRate === 100 ? 'matched' : summary.matchRate > 0 ? 'mismatch' : 'matching';
@@ -482,7 +495,9 @@ function mapApiBatchToAuditBatch(batch) {
     id: String(batch.id),
     batchNumber: batch.batch_number,
     note: batch.note || '',
-    rejectionNote: batch.rejection_note || '',
+    rejectionNote,
+    reconciliationStatus: backendReconciliationStatus || null,
+    reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
     status,
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống',
@@ -508,6 +523,7 @@ function filterChiefBatches(items) {
 
 export default function ChiefAccountantBatches({ token }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedBatchId = searchParams.get('batchId');
   const cached = getCachedBatches();
   const [batches, setBatches] = useState(() => filterChiefBatches(cached?.items));
   const [isLoading, setIsLoading] = useState(() => !cached);
@@ -520,6 +536,9 @@ export default function ChiefAccountantBatches({ token }) {
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionError, setRejectionError] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [approveConfirm, setApproveConfirm] = useState(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [dateRange, setDateRange] = useState(() => {
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
@@ -559,7 +578,7 @@ export default function ChiefAccountantBatches({ token }) {
     } catch (error) {
       console.error('Failed to load batches:', error);
       if (!getCachedBatches()) {
-        alert(error.message || 'Không thể tải danh sách batch');
+        setActionError(error.message || 'Không thể tải danh sách batch');
       }
     } finally {
       setIsLoading(false);
@@ -581,16 +600,34 @@ export default function ChiefAccountantBatches({ token }) {
     }
   }, [token]);
 
-  const handleApproveBatch = async (batch) => {
-    if (!window.confirm('Bạn có muốn duyệt không?')) return;
+  useEffect(() => {
+    if (!requestedBatchId) return;
+    const requestedBatch = batches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+    if (requestedBatch) {
+      setDetailBatchId(requestedBatch.id);
+      setDetailPanelOpen(true);
+    }
+  }, [batches, requestedBatchId]);
 
+  const requestApproveBatch = (batch) => {
+    if (!canApproveBatch(batch)) return;
+    setApproveConfirm(batch);
+  };
+
+  const handleApproveBatch = async () => {
+    if (!canApproveBatch(approveConfirm)) return;
+    setIsApproving(true);
+    setActionError('');
     try {
-      const updated = await finalApproveDocumentBatch(token, batch.id);
+      const updated = await finalApproveDocumentBatch(token, approveConfirm.id);
       updateCachedBatchItem(updated);
       setDetailPanelOpen(false);
+      setApproveConfirm(null);
     } catch (error) {
       console.error('Failed to approve batch:', error);
-      alert(error.message || 'Không thể duyệt batch');
+      setActionError(error.message || 'Không thể duyệt batch');
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -710,11 +747,11 @@ export default function ChiefAccountantBatches({ token }) {
   };
 
   const canApproveBatch = (batch) => {
-    return batch.status === 'matched' || batch.status === 'approved';
+    return !batch?.rejectionNote && (batch.status === 'matched' || batch.status === 'approved');
   };
 
   const canRejectBatch = (batch) => {
-    return batch.status === 'approved';
+    return !batch?.rejectionNote && batch.status === 'approved';
   };
 
   return (
@@ -857,6 +894,12 @@ export default function ChiefAccountantBatches({ token }) {
             )}
           </div>
         </div>
+
+        {actionError && (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+            {actionError}
+          </div>
+        )}
       </div>
 
       {/* Batch List */}
@@ -961,7 +1004,7 @@ export default function ChiefAccountantBatches({ token }) {
                       {canApproveBatch(batch) && (
                         <button
                           type="button"
-                          onClick={() => handleApproveBatch(batch)}
+                            onClick={() => requestApproveBatch(batch)}
                           className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                         >
                           <CheckCircle2 size={13} />
@@ -1049,7 +1092,7 @@ export default function ChiefAccountantBatches({ token }) {
                   {canApproveBatch(detailBatch) && (
                     <button
                       type="button"
-                      onClick={() => handleApproveBatch(detailBatch)}
+                      onClick={() => requestApproveBatch(detailBatch)}
                       className="inline-flex h-8.5 sm:h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
                     >
                       <CheckCircle2 size={14} />
@@ -1123,15 +1166,15 @@ export default function ChiefAccountantBatches({ token }) {
                               <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
                             </td>
                             <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300">{item.poQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.invoiceQty}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.grnQty}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poPrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.invoicePrice}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnPrice || '-'}</td>
-                            <td className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:border-slate-700 dark:text-slate-300 whitespace-nowrap">{item.poAmount || '-'}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.amount}</td>
-                            <td className="px-2.5 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.grnAmount || '-'}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.grnPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.grnPrice || '-'}</td>
+                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount || '-'}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.amount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.amount}</td>
+                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount || '-'}</td>
                             <td className="px-3 py-2.5 text-center whitespace-nowrap">
                               <ResultPill severity={item.severity} text={item.result} />
                             </td>
@@ -1168,10 +1211,10 @@ export default function ChiefAccountantBatches({ token }) {
                       {detailBatch.comparisons.map((item, idx) => (
                         <tr key={idx} className="table-row-hover">
                           <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.po}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.invoice}</td>
-                          <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">{item.grn}</td>
-                          <td className="px-4 py-3">
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3">
                             <ResultPill severity={item.severity} text={item.result} />
                           </td>
                         </tr>
@@ -1190,7 +1233,7 @@ export default function ChiefAccountantBatches({ token }) {
           <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Lý do từ chối</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Xác nhận từ chối batch</h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{rejectingBatch.batchNumber}</p>
               </div>
               <button
@@ -1237,12 +1280,27 @@ export default function ChiefAccountantBatches({ token }) {
                 className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isRejecting && <Loader2 size={14} className="animate-spin" />}
-                OK
+                Xác nhận từ chối
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(approveConfirm)}
+        tone="success"
+        title="Xác nhận duyệt batch"
+        description={approveConfirm ? `Bạn có chắc chắn muốn duyệt batch "${approveConfirm.batchNumber}" không?` : ''}
+        confirmLabel="Xác nhận duyệt"
+        cancelLabel="Hủy"
+        loading={isApproving}
+        onCancel={() => {
+          if (isApproving) return;
+          setApproveConfirm(null);
+        }}
+        onConfirm={handleApproveBatch}
+      />
     </div>
   );
 }
