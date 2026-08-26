@@ -310,6 +310,7 @@ class UploadedFileOut(BaseModel):
     error_message: str | None
     case_id: str | None
     ai_extraction: UploadedDocumentExtractionOut | None = None
+    version: int = 1
     created_at: str
 
     model_config = {"from_attributes": True}
@@ -320,9 +321,25 @@ class UploadedFileListResponse(BaseModel):
     total: int
 
 
+class DocumentBatchHistoryOut(BaseModel):
+    id: int
+    batch_id: int
+    version: int
+    status: str
+    rejection_note: str | None = None
+    rejected_by_name: str | None = None
+    rejected_at: str | None = None
+    files: list[UploadedFileOut] = []
+    note: str | None = None
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
 class DocumentBatchOut(BaseModel):
     id: int
     batch_number: str
+    version: int = 1
     note: str | None = None
     rejection_note: str | None = None
     status: str
@@ -333,6 +350,7 @@ class DocumentBatchOut(BaseModel):
     chief_approved_by_id: int | None = None
     chief_approved_by_name: str | None = None
     files: list[UploadedFileOut] = []
+    history: list[DocumentBatchHistoryOut] = []
     missing_doc_types: list[str] = []
     uploaded_doc_types: list[str] = []
     extracted_doc_types: list[str] = []

@@ -134,6 +134,7 @@ class UploadedFile(Base):
     )
     doc_type: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
@@ -203,6 +204,7 @@ class DocumentBatch(Base):
     )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     rejection_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="incomplete")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
@@ -221,6 +223,40 @@ class DocumentBatch(Base):
         back_populates="batch",
         order_by="UploadedFile.created_at.desc()",
     )
+    histories: Mapped[list["DocumentBatchHistory"]] = relationship(
+        back_populates="batch",
+        order_by="DocumentBatchHistory.version.desc()",
+        cascade="all, delete-orphan",
+    )
+
+
+class DocumentBatchHistory(Base):
+    __tablename__ = "document_batch_histories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    batch_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("document_batches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="rejected")
+    rejection_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rejected_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
+    )
+    rejected_by_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    files_data: Mapped[list[dict] | None] = mapped_column(postgresql.JSONB, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
+    )
+
+    batch: Mapped["DocumentBatch"] = relationship(back_populates="histories")
+    rejected_by: Mapped[User | None] = relationship(foreign_keys=[rejected_by_id])
 
 
 class PurchaseOrder(Base):

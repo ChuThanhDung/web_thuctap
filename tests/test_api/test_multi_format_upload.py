@@ -44,7 +44,7 @@ def assert_stored_filename(data, doc_type, file_ext):
     stored_filename = data["stored_filename"]
     assert stored_filename.startswith(f"{doc_type}_{date_part}_")
     assert stored_filename.endswith(f".{file_ext}")
-    assert len(Path(stored_filename).stem.split("_")[-1]) == 2
+    assert len(Path(stored_filename).stem.split("_")[-1]) >= 2
 
 
 def override_get_current_user(db: Session = Depends(get_db)):

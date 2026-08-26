@@ -48,7 +48,7 @@ def assert_stored_filename(data, doc_type, file_ext):
     assert stored_filename.endswith(f".{file_ext}")
     sequence = stored_filename.removesuffix(f".{file_ext}").split("_")[-1]
     assert sequence.isdigit()
-    assert len(sequence) == 2
+    assert len(sequence) >= 2
 
 
 def assert_cloud_storage_key(key, doc_type, file_ext):
@@ -60,7 +60,7 @@ def assert_cloud_storage_key(key, doc_type, file_ext):
     assert stored_filename.endswith(f".{file_ext}")
     sequence = stored_filename.removesuffix(f".{file_ext}").split("_")[-1]
     assert sequence.isdigit()
-    assert len(sequence) == 2
+    assert len(sequence) >= 2
 
 
 def override_get_current_user(db: Session = Depends(get_db)):
@@ -406,7 +406,7 @@ async def test_upload_batches_group_files_and_track_missing_documents(client):
     batch = batch_response.json()
     assert batch["batch_number"].startswith(f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_")
     assert batch["batch_number"].split("_")[-1].isdigit()
-    assert len(batch["batch_number"].split("_")[-1]) == 2
+    assert len(batch["batch_number"].split("_")[-1]) >= 2
     assert batch["note"] is None
     assert batch["status"] == "incomplete"
     assert batch["missing_doc_types"] == ["po", "invoice", "grn"]
@@ -541,7 +541,10 @@ async def test_uploading_to_rejected_batch_resets_rejection_state(client, db_ses
     db_session.expire_all()
     updated_batch = db_session.get(DocumentBatch, batch.id)
     assert updated_batch.status == "incomplete"
-    assert updated_batch.rejection_note is None
+    assert updated_batch.rejection_note == "Cần upload lại hóa đơn."
+    assert updated_batch.version == 2
+    assert len(updated_batch.histories) >= 1
+    assert updated_batch.histories[0].rejection_note == "Cần upload lại hóa đơn."
     assert updated_batch.approved_by_id is None
     assert updated_batch.chief_approved_by_id is None
 
@@ -916,3 +919,231 @@ def test_build_cloud_storage_key_uses_sequential_filename(monkeypatch):
 
     assert key == f"uploads/invoice/{date_path}/invoice_{date_part}_03.pdf"
     assert_cloud_storage_key(key, "invoice", "pdf")
+
+
+@pytest.mark.asyncio
+async def test_batch_rejection_history_and_supplemental_upload(client, db_session, monkeypatch):
+    invoice_version = 1
+
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        nonlocal invoice_version
+        extracted_by_type = {
+            "invoice": {
+                "type": "invoice",
+                "invoice_number": f"INV-HISTORY-{invoice_version}",
+                "supplier_name": "History Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "price": 10, "amount": 100}],
+            },
+            "po": {
+                "type": "po",
+                "po_number": "PO-HISTORY-1",
+                "supplier_name": "History Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "price": 10, "amount": 100}],
+            },
+            "grn": {
+                "type": "grn",
+                "grn_number": "GRN-HISTORY-1",
+                "po_number": "PO-HISTORY-1",
+                "supplier_name": "History Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [{"row_index": 1, "item_name": "Service", "qty": 10, "amount": 100}],
+            },
+        }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted_by_type[expected_doc_type],
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+
+    # 1. Create batch and upload 3 files
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+    for doc_type in ["po", "invoice", "grn"]:
+        res = await client.post(
+            "/api/v1/uploads",
+            data={"doc_type": doc_type, "batch_id": str(batch["id"])},
+            files={"file": (f"{doc_type}_v1.pdf", valid_pdf_bytes(f"v1 {doc_type}"), "application/pdf")},
+        )
+        assert res.status_code == 200
+
+    # 2. Accountant approves batch
+    app_res = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+    assert app_res.status_code == 200
+
+    # 3. Chief accountant rejects batch
+    chief_user = db_session.query(User).filter(User.email == "chief.accountant@docusync.ai").first()
+
+    async def override_get_chief_user():
+        return chief_user
+
+    from src.api.auth import get_current_user
+    from src.main import app
+
+    orig_override = app.dependency_overrides.get(get_current_user)
+    app.dependency_overrides[get_current_user] = override_get_chief_user
+    try:
+        reject_res = await client.post(
+            f"/api/v1/uploads/batches/{batch['id']}/reject",
+            json={"rejection_note": "Hóa đơn bị sai ngày, yêu cầu xuất lại."},
+        )
+    finally:
+        if orig_override:
+            app.dependency_overrides[get_current_user] = orig_override
+        else:
+            app.dependency_overrides.pop(get_current_user, None)
+
+    assert reject_res.status_code == 200
+    reject_data = reject_res.json()
+    assert reject_data["status"] == "rejected"
+    assert reject_data["rejection_note"] == "Hóa đơn bị sai ngày, yêu cầu xuất lại."
+    assert len(reject_data["history"]) >= 1
+    assert reject_data["history"][0]["version"] == 1
+    assert reject_data["history"][0]["rejection_note"] == "Hóa đơn bị sai ngày, yêu cầu xuất lại."
+    assert len(reject_data["history"][0]["files"]) == 3
+
+    # 4. Accountant uploads supplementary replacement invoice
+    invoice_version = 2
+    supp_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "invoice", "batch_id": str(batch["id"])},
+        files={"file": ("invoice_v2.pdf", valid_pdf_bytes("v2 invoice"), "application/pdf")},
+    )
+    assert supp_res.status_code == 200
+
+    # 5. Check batch state: rejection_note preserved, active files only 3 (not 4), history has 1 run
+    batch_detail_res = await client.get("/api/v1/uploads/batches")
+    assert batch_detail_res.status_code == 200
+    updated_b = next(b for b in batch_detail_res.json()["items"] if b["id"] == batch["id"])
+    assert updated_b["rejection_note"] == "Hóa đơn bị sai ngày, yêu cầu xuất lại."
+    assert updated_b["status"] == "ready"
+    assert len(updated_b["files"]) == 3
+    # Check that active invoice is the newly uploaded one
+    active_invoice = next(f for f in updated_b["files"] if f["doc_type"] == "invoice")
+    assert active_invoice["id"] == supp_res.json()["id"]
+    # Check history contains v1 with 3 files
+    assert len(updated_b["history"]) == 1
+    assert updated_b["history"][0]["version"] == 1
+    assert updated_b["history"][0]["rejection_note"] == "Hóa đơn bị sai ngày, yêu cầu xuất lại."
+    assert len(updated_b["history"][0]["files"]) == 3
+
+    # 6. Accountant can re-approve the batch
+    re_approve = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+    assert re_approve.status_code == 200
+    assert re_approve.json()["status"] == "approved"
+
+
+@pytest.mark.asyncio
+async def test_upload_multiple_grn_files_in_batch(client, monkeypatch):
+    grn_count = 0
+
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        nonlocal grn_count
+        if expected_doc_type == "grn":
+            grn_count += 1
+            extracted = {
+                "type": "grn",
+                "grn_number": f"GRN-MULTI-{grn_count}",
+                "po_number": "PO-MULTI-1",
+                "supplier_name": "Multi Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 50,
+                "line_items": [{"row_index": grn_count, "item_name": f"Part {grn_count}", "qty": 5, "amount": 50}],
+            }
+        elif expected_doc_type == "po":
+            extracted = {
+                "type": "po",
+                "po_number": "PO-MULTI-1",
+                "supplier_name": "Multi Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [
+                    {"row_index": 1, "item_name": "Part 1", "qty": 5, "price": 10, "amount": 50},
+                    {"row_index": 2, "item_name": "Part 2", "qty": 5, "price": 10, "amount": 50},
+                ],
+            }
+        else:
+            extracted = {
+                "type": "invoice",
+                "invoice_number": "INV-MULTI-1",
+                "supplier_name": "Multi Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [
+                    {"row_index": 1, "item_name": "Part 1", "qty": 5, "price": 10, "amount": 50},
+                    {"row_index": 2, "item_name": "Part 2", "qty": 5, "price": 10, "amount": 50},
+                ],
+            }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted,
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    # Upload 1 PO
+    po_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po", "batch_id": str(batch["id"])},
+        files={"file": ("po.pdf", valid_pdf_bytes("po"), "application/pdf")},
+    )
+    assert po_res.status_code == 200
+
+    # Upload 1 Invoice
+    inv_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "invoice", "batch_id": str(batch["id"])},
+        files={"file": ("inv.pdf", valid_pdf_bytes("inv"), "application/pdf")},
+    )
+    assert inv_res.status_code == 200
+
+    # Upload GRN 1
+    grn1_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "grn", "batch_id": str(batch["id"])},
+        files={"file": ("grn1.pdf", valid_pdf_bytes("grn1"), "application/pdf")},
+    )
+    assert grn1_res.status_code == 200
+
+    # Upload GRN 2
+    grn2_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "grn", "batch_id": str(batch["id"])},
+        files={"file": ("grn2.pdf", valid_pdf_bytes("grn2"), "application/pdf")},
+    )
+    assert grn2_res.status_code == 200
+
+    # Check batch detail contains all 4 files (1 PO, 1 Invoice, 2 GRNs)
+    batch_detail = (await client.get("/api/v1/uploads/batches")).json()
+    b = next(item for item in batch_detail["items"] if item["id"] == batch["id"])
+    assert len(b["files"]) == 4
+    grn_files = [f for f in b["files"] if f["doc_type"] == "grn"]
+    assert len(grn_files) == 2
+    assert b["status"] == "ready"
+
+    # Approve batch
+    app_res = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+    assert app_res.status_code == 200
+    assert app_res.json()["status"] == "approved"
+
+

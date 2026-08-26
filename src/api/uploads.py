@@ -15,12 +15,14 @@ from src.config import get_settings
 from src.database import get_db
 from src.models.reconciliation import (
     DocumentBatch,
+    DocumentBatchHistory,
     LineItem,
     ReconciliationCase,
     UploadedDocumentExtraction,
     UploadedFile,
 )
 from src.models.schemas import (
+    DocumentBatchHistoryOut,
     DocumentBatchListResponse,
     DocumentBatchOut,
     DocumentBatchRejectRequest,
@@ -121,28 +123,108 @@ def get_or_create_document_batch(
     return batch
 
 
+def get_active_batch_files(batch: DocumentBatch, db: Session | None = None) -> list[UploadedFile]:
+    if not batch:
+        return []
+    if db is not None and batch.id is not None:
+        uploads = (
+            db.query(UploadedFile)
+            .filter(UploadedFile.batch_id == batch.id)
+            .order_by(UploadedFile.id.asc())
+            .all()
+        )
+    else:
+        uploads = list(batch.files or [])
+    if not uploads:
+        return []
+
+    by_type: dict[str, list[UploadedFile]] = {}
+    for f in uploads:
+        if f.doc_type:
+            by_type.setdefault(f.doc_type, []).append(f)
+
+    active_files: list[UploadedFile] = []
+    for doc_type, files_list in by_type.items():
+        if not files_list:
+            continue
+        max_version = max((getattr(f, "version", 1) or 1) for f in files_list)
+        for f in files_list:
+            if (getattr(f, "version", 1) or 1) == max_version:
+                active_files.append(f)
+
+    unclassified = [f for f in uploads if not f.doc_type]
+    if unclassified:
+        max_ver_unclass = max((getattr(f, "version", 1) or 1) for f in unclassified)
+        active_files.extend([f for f in unclassified if (getattr(f, "version", 1) or 1) == max_ver_unclass])
+
+    active_files.sort(key=lambda f: f.id)
+    return active_files
+
+
+def snapshot_batch_history(
+    db: Session,
+    batch: DocumentBatch,
+    rejection_note: str | None = None,
+    rejected_by: User | None = None,
+) -> DocumentBatchHistory:
+    active_files = get_active_batch_files(batch, db=db)
+    files_data = [to_uploaded_file_out(f).model_dump(mode="json") for f in active_files]
+
+    current_version = batch.version or 1
+    existing = (
+        db.query(DocumentBatchHistory)
+        .filter(DocumentBatchHistory.batch_id == batch.id, DocumentBatchHistory.version == current_version)
+        .first()
+    )
+    if existing:
+        if rejection_note:
+            existing.rejection_note = rejection_note
+        if rejected_by:
+            existing.rejected_by_id = rejected_by.public_id
+            existing.rejected_by_name = rejected_by.full_name
+            existing.rejected_at = datetime.now()
+        existing.status = "rejected" if (rejection_note or batch.status == "rejected") else batch.status
+        if files_data:
+            existing.files_data = files_data
+        db.add(existing)
+        db.flush()
+        return existing
+
+    history_entry = DocumentBatchHistory(
+        batch_id=batch.id,
+        version=current_version,
+        status="rejected" if (rejection_note or batch.status == "rejected") else batch.status,
+        rejection_note=rejection_note or batch.rejection_note,
+        rejected_by_id=rejected_by.public_id if rejected_by else None,
+        rejected_by_name=rejected_by.full_name if rejected_by else None,
+        rejected_at=datetime.now() if (rejected_by or rejection_note) else None,
+        files_data=files_data,
+        note=batch.note,
+    )
+    db.add(history_entry)
+    db.flush()
+    return history_entry
+
+
 def update_batch_status(db: Session, batch: DocumentBatch) -> None:
-    if batch.rejection_note:
-        batch.status = "rejected"
-        batch.updated_at = datetime.now()
-        db.add(batch)
+    if batch.status in ("approved", "final_approved"):
         return
 
-    uploads = (
-        db.query(UploadedFile)
-        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
-        .all()
-    )
+    active_files = get_active_batch_files(batch, db=db)
     extracted_doc_types = {
         upload.doc_type
-        for upload in uploads
+        for upload in active_files
         if upload.doc_type
         and (
             (upload.ai_extraction and upload.ai_extraction.is_correct_type and upload.ai_extraction.extracted_data)
-            or (not upload.ai_extraction)
+            or (not upload.ai_extraction and upload.doc_type)
         )
     }
-    batch.status = "ready" if all(doc_type in extracted_doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
+    is_ready = all(doc_type in extracted_doc_types for doc_type in REQUIRED_DOC_TYPES)
+    if is_ready:
+        batch.status = "ready"
+    else:
+        batch.status = "incomplete"
     batch.updated_at = datetime.now()
     db.add(batch)
 
@@ -342,6 +424,7 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         error_message=None,
         case_id=None,
         ai_extraction=ai_extraction,
+        version=getattr(upload, "version", 1) or 1,
         created_at=created_at,
     )
 
@@ -645,14 +728,9 @@ def reconcile_ready_batch(db: Session, batch: DocumentBatch) -> ReconciliationCa
 
 
 def get_valid_uploads_by_type(db: Session, batch: DocumentBatch) -> dict[str, list[UploadedFile]]:
-    uploads = (
-        db.query(UploadedFile)
-        .filter(UploadedFile.batch_id == batch.id, UploadedFile.doc_type.in_(REQUIRED_DOC_TYPES))
-        .order_by(UploadedFile.created_at.asc(), UploadedFile.id.asc())
-        .all()
-    )
+    active_files = get_active_batch_files(batch, db=db)
     uploads_by_type: dict[str, list[UploadedFile]] = {doc_type: [] for doc_type in REQUIRED_DOC_TYPES}
-    for upload in uploads:
+    for upload in active_files:
         if (
             upload.doc_type in uploads_by_type
             and upload.ai_extraction
@@ -702,7 +780,8 @@ def build_reconciliation_not_matched_message(reconciliation_case: Reconciliation
 
 
 def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> DocumentBatchOut:
-    files = [to_uploaded_file_out(upload) for upload in batch.files]
+    active_files = get_active_batch_files(batch, db=db)
+    files = [to_uploaded_file_out(upload) for upload in active_files]
     uploaded_doc_types = sorted({file.doc_type for file in files if file.doc_type})
     missing_doc_types = [doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type not in uploaded_doc_types]
     extracted_doc_types = sorted(
@@ -716,20 +795,37 @@ def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> Do
             )
         }
     )
-    if batch.rejection_note:
-        effective_status = "rejected"
-    elif batch.status == "rejected":
-        effective_status = "ready" if all(doc_type in extracted_doc_types for doc_type in REQUIRED_DOC_TYPES) else "incomplete"
-    else:
-        effective_status = batch.status
+    effective_status = batch.status
     pending_extraction_doc_types = [
         doc_type
         for doc_type in REQUIRED_DOC_TYPES
         if doc_type in uploaded_doc_types and any(f.doc_type == doc_type and f.status in ("processing", "queued") for f in files)
     ]
+
+    history_list: list[DocumentBatchHistoryOut] = []
+    histories = getattr(batch, "histories", []) or []
+    for h in histories:
+        h_files = [UploadedFileOut(**f) for f in (h.files_data or [])]
+        history_list.append(
+            DocumentBatchHistoryOut(
+                id=h.id,
+                batch_id=h.batch_id,
+                version=h.version,
+                status=h.status,
+                rejection_note=h.rejection_note,
+                rejected_by_name=h.rejected_by_name or (h.rejected_by.full_name if h.rejected_by else None),
+                rejected_at=h.rejected_at.strftime("%Y-%m-%d %H:%M:%S") if h.rejected_at else None,
+                files=h_files,
+                note=h.note,
+                created_at=h.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            )
+        )
+    history_list.sort(key=lambda item: item.version, reverse=True)
+
     return DocumentBatchOut(
         id=batch.id,
         batch_number=batch.batch_number,
+        version=batch.version or 1,
         note=batch.note,
         rejection_note=batch.rejection_note,
         status=effective_status,
@@ -740,6 +836,7 @@ def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> Do
         chief_approved_by_id=batch.chief_approved_by_id,
         chief_approved_by_name=batch.chief_approved_by.full_name if batch.chief_approved_by else None,
         files=files,
+        history=history_list,
         missing_doc_types=missing_doc_types,
         uploaded_doc_types=uploaded_doc_types,
         extracted_doc_types=extracted_doc_types,
@@ -773,6 +870,7 @@ async def list_upload_batches(
             selectinload(DocumentBatch.chief_approved_by),
             selectinload(DocumentBatch.files).selectinload(UploadedFile.uploaded_by),
             selectinload(DocumentBatch.files).selectinload(UploadedFile.ai_extraction),
+            selectinload(DocumentBatch.histories).selectinload(DocumentBatchHistory.rejected_by),
         )
         .order_by(DocumentBatch.updated_at.desc(), DocumentBatch.created_at.desc())
     )
@@ -836,10 +934,7 @@ async def approve_upload_batch(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
     require_batch_access(current_user, batch)
 
-    if batch.rejection_note:
-        batch.status = "rejected"
-        db.add(batch)
-        db.flush()
+    if batch.status == "rejected":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Batch đã bị kế toán trưởng từ chối. Vui lòng upload bổ sung chứng từ trước khi duyệt lại.",
@@ -920,10 +1015,7 @@ async def final_approve_upload_batch(
     if batch is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
 
-    if batch.rejection_note:
-        batch.status = "rejected"
-        db.add(batch)
-        db.flush()
+    if batch.status == "rejected":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Batch đã bị từ chối. Vui lòng chờ kế toán viên upload bổ sung trước khi duyệt.",
@@ -1007,6 +1099,7 @@ async def reject_upload_batch(
     batch.chief_approved_by_id = current_user.public_id  # Lưu người từ chối
     batch.rejection_note = rejection_note
     batch.updated_at = datetime.now()
+    snapshot_batch_history(db, batch, rejection_note=rejection_note, rejected_by=current_user)
     db.add(batch)
     db.flush()
 
@@ -1238,8 +1331,9 @@ async def upload_document(
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
     is_supplemental_rejected_upload = batch.status == "rejected" or bool(batch.rejection_note)
-    if is_supplemental_rejected_upload:
-        batch.rejection_note = None
+    if is_supplemental_rejected_upload and batch.status == "rejected":
+        snapshot_batch_history(db, batch, rejection_note=batch.rejection_note, rejected_by=None)
+        batch.version = (batch.version or 1) + 1
         batch.status = "incomplete"
         batch.approved_by_id = None
         batch.chief_approved_by_id = None
@@ -1298,6 +1392,7 @@ async def upload_document(
         uploaded_by_id=current_user.public_id if current_user else None,
         doc_type=selected_doc_type,
         storage_key=storage_key,
+        version=batch.version or 1,
     )
     db.add(db_upload)
     db.flush()

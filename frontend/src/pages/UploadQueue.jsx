@@ -191,7 +191,7 @@ export default function UploadQueue({ token }) {
   const [loading, setLoading] = useState(() => !cached);
   const [inFlightFiles, setInFlightFiles] = useState([]);
   const [activeDropType, setActiveDropType] = useState(null);
-  const [selectedDocType, setSelectedDocType] = useState('po');
+  const [selectedDocType, setSelectedDocType] = useState(AUTO_DOC_TYPE);
   const [selectedBatchId, setSelectedBatchId] = useState(() => {
     if (requestedBatchId) {
       const requestedBatch = (cached?.items || []).find((batch) => String(batch.id) === String(requestedBatchId));
@@ -591,8 +591,8 @@ export default function UploadQueue({ token }) {
           approved_by_name: batch.status === 'rejected' ? null : batch.approved_by_name,
           chief_approved_by_id: batch.status === 'rejected' ? null : batch.chief_approved_by_id,
           chief_approved_by_name: batch.status === 'rejected' ? null : batch.chief_approved_by_name,
-          rejection_note: batch.status === 'rejected' ? null : batch.rejection_note,
-          rejectionNote: batch.status === 'rejected' ? null : batch.rejectionNote,
+          rejection_note: batch.rejection_note,
+          rejectionNote: batch.rejectionNote || batch.rejection_note,
           status: isReady ? 'ready' : 'incomplete',
         };
         updateCachedBatchItem(updated);
@@ -892,11 +892,21 @@ export default function UploadQueue({ token }) {
       </div>
       )}
 
-      {/* Select Document Type with Drop Zones */}
-      <div ref={documentTypesRef} className="highlight-box-info space-y-3.5 scroll-mt-6">
+      {/* Select Document Type with Unified Auto Drop Zone */}
+      <div
+        ref={documentTypesRef}
+        onDragEnter={(event) => handleTypeDragEnter(event, AUTO_DOC_TYPE)}
+        onDragOver={(event) => handleTypeDragOver(event, AUTO_DOC_TYPE)}
+        onDragLeave={handleTypeDragLeave}
+        onDrop={(event) => handleDrop(event, AUTO_DOC_TYPE)}
+        className={`highlight-box-info space-y-3.5 scroll-mt-6 rounded-2xl transition-all ${
+          isAutoDropActive
+            ? 'ring-2 ring-brand-400 bg-brand-50/20 dark:ring-brand-500'
+            : ''
+        }`}
+      >
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
           {DOC_TYPES.map((type) => {
-            const isDropActive = activeDropType === type.value;
             const Icon = type.icon;
             const uploadedFiles = uploadedFilesByType[type.value] || [];
             const isReadingThisType = uploadedFiles.some((f) => isFileBeingRead(f));
@@ -904,16 +914,9 @@ export default function UploadQueue({ token }) {
             return (
               <div
                 key={type.value}
-                aria-disabled={!uploadWorkspaceReady}
-                data-testid={`drop-zone-${type.value}`}
-                onDragEnter={(event) => handleTypeDragEnter(event, type.value)}
-                onDragOver={(event) => handleTypeDragOver(event, type.value)}
-                onDragLeave={handleTypeDragLeave}
-                onDrop={(event) => handleDrop(event, type.value)}
+                data-testid={`card-${type.value}`}
                 className={`flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all ${
-                  !uploadWorkspaceReady ? 'pointer-events-none opacity-60 ' : ''
-                }${
-                  isDropActive || isReadingThisType
+                  isReadingThisType
                     ? 'border-slate-300 bg-slate-50/80 shadow-sm ring-2 ring-slate-100 dark:border-slate-700 dark:bg-slate-900/80 dark:ring-slate-800'
                     : 'border-slate-200/80 bg-white/70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
                 }`}
