@@ -728,7 +728,7 @@ def reconcile_ready_batch(db: Session, batch: DocumentBatch) -> ReconciliationCa
 
 
 def get_valid_uploads_by_type(db: Session, batch: DocumentBatch) -> dict[str, list[UploadedFile]]:
-    active_files = get_active_batch_files(batch)
+    active_files = get_active_batch_files(batch, db=db)
     uploads_by_type: dict[str, list[UploadedFile]] = {doc_type: [] for doc_type in REQUIRED_DOC_TYPES}
     for upload in active_files:
         if (
@@ -780,7 +780,7 @@ def build_reconciliation_not_matched_message(reconciliation_case: Reconciliation
 
 
 def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> DocumentBatchOut:
-    active_files = get_active_batch_files(batch)
+    active_files = get_active_batch_files(batch, db=db)
     files = [to_uploaded_file_out(upload) for upload in active_files]
     uploaded_doc_types = sorted({file.doc_type for file in files if file.doc_type})
     missing_doc_types = [doc_type for doc_type in REQUIRED_DOC_TYPES if doc_type not in uploaded_doc_types]
