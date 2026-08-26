@@ -612,6 +612,19 @@ function DocumentCard({ type, doc, docs, onOpenFile }) {
   );
 }
 
+function RejectionNoteAlert({ note }) {
+  if (!note) return null;
+
+  return (
+    <div className="flex items-start gap-2 text-rose-700 dark:text-rose-300">
+      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+      <p className="min-w-0 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+        Lí do: {note}
+      </p>
+    </div>
+  );
+}
+
 function ResultPill({ severity, text }) {
   const className = {
     ok: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
@@ -1821,6 +1834,8 @@ export default function AuditTrail({ token, role }) {
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
+              <RejectionNoteAlert note={modalBatch.rejectionNote} />
+
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => {
                   const list = modalBatch.docList?.[type.key] || [];
