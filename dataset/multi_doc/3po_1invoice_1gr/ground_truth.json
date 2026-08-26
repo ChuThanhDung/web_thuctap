@@ -1,0 +1,82 @@
+{
+  "batch_id": "3po_1invoice_1gr",
+  "format": "pdf",
+  "expected_result": "MATCH",
+  "scenario": "MULTI_DOCUMENT",
+  "structure": {
+    "purchase_orders": 3,
+    "goods_receipts": 1,
+    "invoices": 1
+  },
+  "note": "Một đơn hàng tách thành nhiều PO/nhiều lần nhập kho nhưng chỉ xuất 1 hóa đơn. Agent phải gộp dòng của tất cả PO (và tất cả phiếu nhập) rồi mới đối chiếu với hóa đơn.",
+  "allocation": {
+    "purchase_orders": {
+      "PO-2026-0310": [
+        "VP-GA01",
+        "VP-GB02",
+        "VP-BV03",
+        "VP-BD04"
+      ],
+      "PO-2026-0311": [
+        "VP-KG05",
+        "VP-FL06",
+        "VP-SC07"
+      ],
+      "PO-2026-0312": [
+        "VP-MT08",
+        "VP-GN09",
+        "VP-DK10"
+      ]
+    },
+    "goods_receipts": {
+      "PNK-0312": [
+        "VP-GA01",
+        "VP-GB02",
+        "VP-BV03",
+        "VP-BD04",
+        "VP-KG05",
+        "VP-FL06",
+        "VP-SC07",
+        "VP-MT08",
+        "VP-GN09",
+        "VP-DK10"
+      ]
+    },
+    "invoice": [
+      "VP-GA01",
+      "VP-GB02",
+      "VP-BV03",
+      "VP-BD04",
+      "VP-KG05",
+      "VP-FL06",
+      "VP-SC07",
+      "VP-MT08",
+      "VP-GN09",
+      "VP-DK10"
+    ]
+  },
+  "totals": {
+    "po_totals": {
+      "PO-2026-0310": 38437200,
+      "PO-2026-0311": 7371000,
+      "PO-2026-0312": 19677600
+    },
+    "sum_po_total": 65485800,
+    "grn_sub_sum": 60635000,
+    "invoice_total": 65485800
+  },
+  "buyer": "CÔNG TY TNHH GIAO NHẬN SIÊU TỐC SFAST",
+  "seller": "CÔNG TY TNHH VĂN PHÒNG PHẨM ĐĂNG LÂM",
+  "documents": {
+    "purchase_orders": [
+      "PO-2026-0310",
+      "PO-2026-0311",
+      "PO-2026-0312"
+    ],
+    "goods_receipts": [
+      "PNK-0312"
+    ],
+    "invoice": "1C26TDL-00001745"
+  },
+  "discrepancies": []
+}

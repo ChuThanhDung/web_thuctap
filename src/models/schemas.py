@@ -337,6 +337,11 @@ class DocumentBatchOut(BaseModel):
     uploaded_doc_types: list[str] = []
     extracted_doc_types: list[str] = []
     pending_extraction_doc_types: list[str] = []
+    reconciliation_status: str | None = None
+    reconciliation_diff_type: str | None = None
+    reconciliation_diff_amount: Decimal | None = None
+    reconciliation_ai_note: str | None = None
+    reconciliation_ai_summary: str | None = None
     created_at: str
     updated_at: str | None = None
 

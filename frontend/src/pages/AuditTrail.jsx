@@ -24,6 +24,7 @@ import {
   subscribeBatchCache,
   updateCachedBatchItem,
 } from '../services/batchCache.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -564,14 +565,13 @@ function StatusBadge({ status }) {
   );
 }
 
-function DocumentCard({ type, doc, onOpenFile }) {
+function DocumentCard({ type, doc, index, totalCount, onOpenFile }) {
   const Icon = type.icon;
   const normalizedVisibleFields = Object.entries(doc?.fields || {})
     .map(([label, value]) => [repairTextDeep(label), value])
-    .filter(([label]) => ['Số chứng từ', 'Ngày chứng từ'].includes(label));
-  const visibleFields = Object.entries(doc?.fields || {}).filter(([label]) =>
-    ['Số chứng từ', 'Ngày chứng từ'].includes(label)
-  );
+    .filter(([label]) => ['Số chứng từ', 'Ngày chứng từ', 'Tổng tiền'].includes(label));
+
+  const typeLabel = totalCount ? `${type.label} (${index}/${totalCount})` : type.label;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.06)] dark:border-slate-800 dark:bg-slate-900">
@@ -581,13 +581,13 @@ function DocumentCard({ type, doc, onOpenFile }) {
             <Icon size={18} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{type.label}</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{typeLabel}</p>
             <p className={`mt-1 truncate text-xs ${doc?.missing ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>
               {doc?.missing ? 'Chưa có chứng từ' : doc.filename}
             </p>
           </div>
         </div>
-        {!doc?.missing && (
+        {!doc?.missing && doc?.file && (
           <button
             type="button"
             onClick={() => onOpenFile?.(doc.file)}
@@ -601,16 +601,14 @@ function DocumentCard({ type, doc, onOpenFile }) {
       </div>
 
       {!doc?.missing && (
-        <>
-          <div className="mt-4 space-y-2.5">
-            {normalizedVisibleFields.map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-3 text-xs">
-                <span className="text-slate-500 dark:text-slate-400">{label}</span>
-                <span className="max-w-[58%] text-right font-semibold text-slate-800 dark:text-slate-200">{value}</span>
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="mt-4 space-y-2.5">
+          {normalizedVisibleFields.map(([label, value]) => (
+            <div key={label} className="flex items-start justify-between gap-3 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">{label}</span>
+              <span className="max-w-[58%] text-right font-semibold text-slate-800 dark:text-slate-200">{value}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -750,13 +748,68 @@ function buildComparisons(docs) {
   }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
-function findItemByIdentity(items, sourceItem, index) {
-  const sku = sourceItem?.sku;
-  if (sku) {
-    const foundBySku = items.find((item) => item?.sku && item.sku === sku);
+function normalizeItemText(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeItemSku(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getItemIdentityKey(item) {
+  const sku = normalizeItemSku(item?.sku);
+  if (sku) return `sku:${sku}`;
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function getItemNameKey(item) {
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function collectLineItemBases(...itemGroups) {
+  const byIdentity = new Map();
+  const anonymous = [];
+
+  itemGroups.forEach((items) => {
+    items.forEach((item) => {
+      const key = getItemIdentityKey(item);
+      if (!key) {
+        anonymous.push(item);
+        return;
+      }
+      const nameKey = getItemNameKey(item);
+      if (key.startsWith('sku:') && nameKey && byIdentity.has(nameKey)) {
+        return;
+      }
+      if (key.startsWith('name:')) {
+        const sameNameSkuKey = [...byIdentity.keys()].find((existingKey) => (
+          existingKey.startsWith('sku:') && getItemNameKey(byIdentity.get(existingKey)) === key
+        ));
+        if (sameNameSkuKey) return;
+      }
+      if (!byIdentity.has(key)) byIdentity.set(key, item);
+    });
+  });
+
+  return [...byIdentity.values(), ...anonymous];
+}
+
+function findItemByIdentity(items, sourceItem) {
+  const sourceSku = normalizeItemSku(sourceItem?.sku);
+  if (sourceSku) {
+    const foundBySku = items.find((item) => normalizeItemSku(item?.sku) === sourceSku);
     if (foundBySku) return foundBySku;
   }
-  return items[index] || {};
+
+  const sourceName = normalizeItemText(sourceItem?.item_name);
+  if (sourceName) {
+    const foundByName = items.find((item) => normalizeItemText(item?.item_name) === sourceName);
+    if (foundByName) return foundByName;
+  }
+
+  return {};
 }
 
 function getLineAmount(item) {
@@ -773,13 +826,12 @@ function buildLineItems(docs) {
   const poItems = docs.po?.extractedData?.line_items || [];
   const invoiceItems = docs.invoice?.extractedData?.line_items || [];
   const grnItems = docs.grn?.extractedData?.line_items || [];
-  const maxLength = Math.max(poItems.length, invoiceItems.length, grnItems.length);
+  const baseItems = collectLineItemBases(poItems, invoiceItems, grnItems);
 
-  return Array.from({ length: maxLength }).map((_, index) => {
-    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
-    const poItem = findItemByIdentity(poItems, baseItem, index);
-    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
-    const grnItem = findItemByIdentity(grnItems, baseItem, index);
+  return baseItems.map((baseItem, index) => {
+    const poItem = findItemByIdentity(poItems, baseItem);
+    const invoiceItem = findItemByIdentity(invoiceItems, baseItem);
+    const grnItem = findItemByIdentity(grnItems, baseItem);
     const qtyResult = compareValues([
       formatDisplayValue(poItem.qty),
       formatDisplayValue(invoiceItem.qty),
@@ -830,11 +882,135 @@ function buildLineItems(docs) {
   }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
 }
 
+function aggregateExtractedData(files, docType) {
+  const validFiles = (files || []).filter(
+    (f) => f.doc_type === docType && (f.ai_extraction?.extracted_data || f.status === 'completed')
+  );
+  if (validFiles.length === 0) return null;
+
+  const docNumbers = [];
+  const docDates = [];
+  const suppliers = [];
+  const taxIds = [];
+  let totalAmount = 0;
+  let hasTotalAmount = false;
+  let vatRate = null;
+  const lineItemsMap = new Map();
+  const anonymousLineItems = [];
+
+  validFiles.forEach((file) => {
+    const data = getExtractionData(file) || {};
+    const docNum = getDocumentNumber(data, docType);
+    if (docNum && !docNumbers.includes(docNum)) docNumbers.push(docNum);
+
+    const docDate = getDocumentDate(data, docType);
+    if (docDate && !docDates.includes(docDate)) docDates.push(docDate);
+
+    if (data.supplier_name && !suppliers.includes(data.supplier_name)) suppliers.push(data.supplier_name);
+    if (data.supplier_tax_id && !taxIds.includes(data.supplier_tax_id)) taxIds.push(data.supplier_tax_id);
+
+    const fileTotal = toNumber(data.total_amount);
+    if (fileTotal !== null) {
+      totalAmount += fileTotal;
+      hasTotalAmount = true;
+    }
+
+    if (vatRate === null) {
+      const fileVat = toNumber(data.vat_rate_pct ?? data.tax_rate_pct);
+      if (fileVat !== null && fileVat > 0) vatRate = fileVat;
+    }
+
+    const items = Array.isArray(data.line_items) ? data.line_items : [];
+    items.forEach((item) => {
+      const key = getItemIdentityKey(item);
+      if (!key) {
+        anonymousLineItems.push({ ...item });
+        return;
+      }
+
+      const qty = toNumber(item.qty) || 0;
+      const price = toNumber(item.price);
+      const amount = toNumber(item.amount ?? item.line_total) ?? (price !== null ? qty * price : 0);
+
+      if (!lineItemsMap.has(key)) {
+        lineItemsMap.set(key, {
+          ...item,
+          qty,
+          price,
+          amount,
+          _weightedPriceAmount: amount,
+          _weightedPriceQty: qty,
+        });
+      } else {
+        const existing = lineItemsMap.get(key);
+        existing.qty += qty;
+        existing.amount += amount;
+        existing._weightedPriceAmount += amount;
+        existing._weightedPriceQty += qty;
+      }
+    });
+  });
+
+  const aggregatedLineItems = [...lineItemsMap.values()].map((item) => {
+    const itemCopy = { ...item };
+    if (itemCopy._weightedPriceQty > 0) {
+      itemCopy.price = itemCopy._weightedPriceAmount / itemCopy._weightedPriceQty;
+    }
+    delete itemCopy._weightedPriceAmount;
+    delete itemCopy._weightedPriceQty;
+    return itemCopy;
+  }).concat(anonymousLineItems);
+
+  return {
+    document_number: docNumbers.join(', '),
+    document_date: docDates.join(', '),
+    supplier_name: suppliers[0] || null,
+    supplier_tax_id: taxIds[0] || null,
+    total_amount: hasTotalAmount ? totalAmount : null,
+    vat_rate_pct: vatRate,
+    line_items: aggregatedLineItems,
+  };
+}
+
 function mapApiBatchToAuditBatch(batch) {
   const docs = getEmptyDocs();
+  const docList = { po: [], invoice: [], grn: [] };
+
   (batch.files || []).forEach((file) => {
-    if (!file.doc_type || !docs[file.doc_type]) return;
-    docs[file.doc_type] = mapFileToDocument(file, file.doc_type);
+    if (!file.doc_type || !docList[file.doc_type]) return;
+    const docObj = mapFileToDocument(file, file.doc_type);
+    docList[file.doc_type].push(docObj);
+  });
+
+  DOC_TYPES.forEach((type) => {
+    const filesOfType = (batch.files || []).filter((f) => f.doc_type === type.key);
+    if (filesOfType.length === 0) {
+      docs[type.key] = { filename: '', missing: true, fields: {} };
+    } else if (filesOfType.length === 1) {
+      docs[type.key] = docList[type.key][0];
+    } else {
+      const aggregatedData = aggregateExtractedData(filesOfType, type.key);
+      const fileNames = filesOfType.map((f) => f.filename).join(', ');
+      docs[type.key] = {
+        filename: `${filesOfType.length} file (${fileNames})`,
+        fileCount: filesOfType.length,
+        extractedAt: '-',
+        confidence: Math.round(
+          filesOfType.reduce((acc, f) => acc + (formatPercent(f.ai_extraction?.confidence) || 0), 0) / filesOfType.length
+        ),
+        fields: {
+          'Số chứng từ': formatDisplayValue(aggregatedData?.document_number),
+          'Nhà cung cấp': formatDisplayValue(aggregatedData?.supplier_name),
+          'Mã số thuế': formatDisplayValue(aggregatedData?.supplier_tax_id),
+          'Ngày chứng từ': formatDisplayValue(aggregatedData?.document_date),
+          'Tổng tiền': formatDisplayValue(aggregatedData?.total_amount),
+        },
+        extractedData: aggregatedData,
+        file: filesOfType[0],
+        isAggregated: true,
+        files: filesOfType,
+      };
+    }
   });
 
   const missingCount = DOC_TYPES.filter((type) => docs[type.key]?.missing).length;
@@ -844,7 +1020,16 @@ function mapApiBatchToAuditBatch(batch) {
   const missingDataFields = missingCount + summary.warningFields;
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
-  const isRejected = batch.status === 'rejected';
+  const hasRejection = Boolean(batch.rejection_note);
+  const isRejected = batch.status === 'rejected' || hasRejection;
+  const backendReconciliationStatus = batch.reconciliation_status;
+  const displayStatus = isRejected
+    ? 'rejected'
+    : isFinalApproved
+      ? 'final_approved'
+      : isApproved
+        ? 'approved'
+        : summary.status;
 
   return {
     id: batch.id,
@@ -852,7 +1037,9 @@ function mapApiBatchToAuditBatch(batch) {
     batchNumber: batch.batch_number,
     note: batch.note || '',
     rejectionNote: batch.rejection_note || '',
-    status: isRejected ? 'rejected' : isFinalApproved ? 'final_approved' : isApproved ? 'approved' : summary.status,
+    status: displayStatus,
+    reconciliationStatus: backendReconciliationStatus || null,
+    reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
     isApproved,
     isFinalApproved,
     isRejected,
@@ -873,6 +1060,7 @@ function mapApiBatchToAuditBatch(batch) {
           ? 'Batch còn thiếu dữ liệu trích xuất. Cần kiểm tra lại chứng từ hoặc chờ AI đọc đầy đủ.'
           : 'Các trường AI đã trích xuất đang khớp theo dữ liệu hiện có.',
     docs,
+    docList,
     comparisons,
     lineItems,
     issues: comparisons
@@ -911,6 +1099,7 @@ export default function AuditTrail({ token, role }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [batchPage, setBatchPage] = useState(1);
   const [approvingBatchIds, setApprovingBatchIds] = useState([]);
+  const [approveConfirm, setApproveConfirm] = useState(null);
   const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
 
@@ -932,7 +1121,7 @@ export default function AuditTrail({ token, role }) {
           setLoading(true);
         }
         setError('');
-        const data = await fetchDocumentBatchesWithCache(token);
+        const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
         const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
         if (!isMounted) return;
         setBatches(mappedBatches);
@@ -959,6 +1148,41 @@ export default function AuditTrail({ token, role }) {
     fetchBatches();
     return () => {
       isMounted = false;
+    };
+  }, [token, requestedBatchId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function refreshBatches() {
+      try {
+        const data = await fetchDocumentBatchesWithCache(token, { forceRefresh: true });
+        if (!isMounted) return;
+        const mappedBatches = (data.items || []).map(mapApiBatchToAuditBatch);
+        setBatches(mappedBatches);
+        if (requestedBatchId) {
+          const requestedBatch = mappedBatches.find((batch) => isSameBatchId(batch.id, requestedBatchId));
+          if (requestedBatch) setModalBatchId(requestedBatch.id);
+        }
+      } catch (err) {
+        console.error('Không thể làm mới trạng thái batch:', err);
+      }
+    }
+
+    const handleFocus = () => {
+      refreshBatches();
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshBatches();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [token, requestedBatchId]);
 
@@ -1040,28 +1264,32 @@ export default function AuditTrail({ token, role }) {
   const modalComparisons = modalBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
   const modalLineItems = modalBatch?.lineItems || [];
 
-  const handleApproveBatch = async (batch, options = {}) => {
+  const requestApproveBatch = (batch, options = {}) => {
     // Kiểm tra điều kiện theo role
     const isChiefAccountant = role === 'chief_accountant';
     
     // Kế toán trưởng: có thể duyệt batch 'approved' (đã qua KTV) hoặc 'matched' (duyệt trực tiếp)
     // Kế toán viên: chỉ duyệt batch 'matched'
-    const canApprove = isChiefAccountant 
-      ? (batch.status === 'approved' || batch.status === 'matched')
-      : batch.status === 'matched';
+    const canApprove = !batch?.rejectionNote && (
+      isChiefAccountant 
+        ? (batch.status === 'approved' || batch.status === 'matched')
+        : batch.status === 'matched'
+    );
     
     if (!batch?.id || !canApprove || approvingBatchIds.includes(batch.id)) return;
+    setApproveConfirm({ batch, options });
+  };
 
-    const confirmMessage = isChiefAccountant
-      ? 'Bạn có muốn duyệt không?'
-      : `Bạn có chắc chắn muốn duyệt batch "${batch.batchNumber}" không?`;
-    
-    const confirmed = window.confirm(confirmMessage);
-    if (!confirmed) return;
+  const handleApproveBatch = async () => {
+    const batch = approveConfirm?.batch;
+    const options = approveConfirm?.options || {};
+    if (!batch?.id || approvingBatchIds.includes(batch.id)) return;
 
+    setError('');
     setApprovingBatchIds((prev) => [...prev, batch.id]);
     try {
       // Gọi API phù hợp theo role
+      const isChiefAccountant = role === 'chief_accountant';
       const approveFunc = isChiefAccountant ? finalApproveDocumentBatch : approveDocumentBatch;
       const approvedBatch = repairTextDeep(await approveFunc(token, batch.id));
       updateCachedBatchItem(approvedBatch);
@@ -1071,8 +1299,9 @@ export default function AuditTrail({ token, role }) {
       if (!options.keepModalOpen) {
         setModalBatchId(null);
       }
+      setApproveConfirm(null);
     } catch (err) {
-      alert(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
+      setError(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
     } finally {
       setApprovingBatchIds((prev) => prev.filter((id) => !isSameBatchId(id, batch.id)));
     }
@@ -1156,6 +1385,12 @@ export default function AuditTrail({ token, role }) {
         </button>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ['Tổng batch', summary.total, 'text-slate-900 dark:text-slate-100'],
@@ -1226,9 +1461,11 @@ export default function AuditTrail({ token, role }) {
               const hasMissingData = batch.status === 'missing';
               // Kế toán viên: duyệt batch matched
               // Kế toán trưởng: duyệt batch approved hoặc matched
-              const canApprove = role === 'chief_accountant' 
-                ? (batch.status === 'approved' || batch.status === 'matched')
-                : batch.status === 'matched';
+              const canApprove = !batch.rejectionNote && (
+                role === 'chief_accountant' 
+                  ? (batch.status === 'approved' || batch.status === 'matched')
+                  : batch.status === 'matched'
+              );
               const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
 
               return (
@@ -1289,7 +1526,7 @@ export default function AuditTrail({ token, role }) {
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleApproveBatch(batch);
+                              requestApproveBatch(batch);
                             }}
                             disabled={isApproving}
                             className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1396,10 +1633,30 @@ export default function AuditTrail({ token, role }) {
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
-            {DOC_TYPES.map((type) => (
-              <DocumentCard key={type.key} type={type} doc={selectedBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {DOC_TYPES.flatMap((type) => {
+              const list = selectedBatch.docList?.[type.key] || [];
+              if (list.length === 0) {
+                return [
+                  <DocumentCard
+                    key={`${type.key}-missing`}
+                    type={type}
+                    doc={{ filename: '', missing: true, fields: {} }}
+                    onOpenFile={handleOpenUploadedFile}
+                  />,
+                ];
+              }
+              return list.map((doc, idx) => (
+                <DocumentCard
+                  key={`${type.key}-${doc.file?.id || idx}`}
+                  type={type}
+                  doc={doc}
+                  index={list.length > 1 ? idx + 1 : undefined}
+                  totalCount={list.length > 1 ? list.length : undefined}
+                  onOpenFile={handleOpenUploadedFile}
+                />
+              ));
+            })}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
@@ -1538,10 +1795,10 @@ export default function AuditTrail({ token, role }) {
                     Upload bổ sung
                   </button>
                 )}
-                {modalBatch.status === 'matched' && (
+                {!modalBatch.rejectionNote && modalBatch.status === 'matched' && (
                   <button
                     type="button"
-                    onClick={() => handleApproveBatch(modalBatch, { keepModalOpen: true })}
+                    onClick={() => requestApproveBatch(modalBatch, { keepModalOpen: true })}
                     disabled={approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id))}
                     className="inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
                     title="Duyệt batch"
@@ -1568,10 +1825,30 @@ export default function AuditTrail({ token, role }) {
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
-              <div className="grid gap-3 lg:grid-cols-3">
-                {DOC_TYPES.map((type) => (
-                  <DocumentCard key={type.key} type={type} doc={modalBatch.docs[type.key]} onOpenFile={handleOpenUploadedFile} />
-                ))}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {DOC_TYPES.flatMap((type) => {
+                  const list = modalBatch.docList?.[type.key] || [];
+                  if (list.length === 0) {
+                    return [
+                      <DocumentCard
+                        key={`${type.key}-missing`}
+                        type={type}
+                        doc={{ filename: '', missing: true, fields: {} }}
+                        onOpenFile={handleOpenUploadedFile}
+                      />,
+                    ];
+                  }
+                  return list.map((doc, idx) => (
+                    <DocumentCard
+                      key={`${type.key}-${doc.file?.id || idx}`}
+                      type={type}
+                      doc={doc}
+                      index={list.length > 1 ? idx + 1 : undefined}
+                      totalCount={list.length > 1 ? list.length : undefined}
+                      onOpenFile={handleOpenUploadedFile}
+                    />
+                  ));
+                })}
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
@@ -1662,6 +1939,25 @@ export default function AuditTrail({ token, role }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(approveConfirm)}
+        tone="success"
+        title={role === 'chief_accountant' ? 'Xác nhận duyệt cuối' : 'Xác nhận duyệt batch'}
+        description={
+          approveConfirm
+            ? `Bạn có chắc chắn muốn duyệt batch "${approveConfirm.batch.batchNumber}" không?`
+            : ''
+        }
+        confirmLabel="Xác nhận duyệt"
+        cancelLabel="Hủy"
+        loading={Boolean(approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id)))}
+        onCancel={() => {
+          if (approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id))) return;
+          setApproveConfirm(null);
+        }}
+        onConfirm={handleApproveBatch}
+      />
     </div>
   );
 }

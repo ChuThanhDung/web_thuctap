@@ -3,10 +3,12 @@ import json
 import logging
 import mimetypes
 import re
+import zipfile
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from openai import OpenAI
 
@@ -17,7 +19,26 @@ DOC_TYPE_LABELS = {
     "po": "Don dat hang (PO)",
     "invoice": "Hoa don (Invoice)",
     "grn": "Phieu nhap kho (GRN)",
+    "auto": "Tu nhan dien chung tu",
 }
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+PDF_EXTENSIONS = {".pdf"}
+XML_EXTENSIONS = {".xml"}
+DOCX_EXTENSIONS = {".docx"}
+DOC_EXTENSIONS = {".doc"}
+OFFICE_OPEN_XML_CONTENT_TYPES = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+LEGACY_DOC_CONTENT_TYPES = {"application/msword"}
+LOW_IMAGE_QUALITY_WARNING = (
+    "Chất lượng file thấp, dữ liệu trích xuất có thể không chính xác. "
+    "Vui lòng kiểm tra lại dữ liệu trích xuất."
+)
+UNREADABLE_PDF_MESSAGE = "File PDF bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
+UNREADABLE_FILE_MESSAGE = "File tải lên bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
+UNREADABLE_IMAGE_MESSAGE = "File ảnh bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
+UNREADABLE_XML_MESSAGE = "File XML bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
+UNREADABLE_DOC_MESSAGE = "File Word bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
 logger = logging.getLogger(__name__)
 
 
@@ -32,6 +53,16 @@ class DocumentAiAnalysis:
     model_name: str | None
     extracted_data: dict[str, Any]
     raw_response: dict[str, Any]
+
+
+@dataclass
+class ImageQualityAnalysis:
+    is_low_quality: bool
+    metrics: dict[str, Any]
+
+
+class UnreadableDocumentError(ValueError):
+    pass
 
 
 def _json_schema() -> dict[str, Any]:
@@ -117,7 +148,12 @@ def _json_schema() -> dict[str, Any]:
 
 def _build_prompt(expected_doc_type: str, filename: str) -> str:
     expected_label = DOC_TYPE_LABELS.get(expected_doc_type, expected_doc_type.upper())
-    doc_options = ", ".join(f"{key}={label}" for key, label in DOC_TYPE_LABELS.items())
+    doc_options = ", ".join(f"{key}={label}" for key, label in DOC_TYPE_LABELS.items() if key != "auto")
+    correctness_instruction = (
+        "Dat is_correct_type=true khi da nhan dien duoc mot trong cac loai po, invoice, grn."
+        if expected_doc_type == "auto"
+        else "Dat is_correct_type=true chi khi loai phat hien trung voi loai nguoi dung da chon."
+    )
     return f"""
 Ban la AI ke toan doc chung tu mua hang. Hay doc file dinh kem va tra ve JSON theo schema.
 
@@ -126,7 +162,7 @@ Ten file: {filename}
 
 Nhiem vu:
 1. Tu noi dung file, nhan dien chung tu thuc su thuoc loai nao trong: {doc_options}. Neu khong du bang chung, dung "unknown".
-2. Dat is_correct_type=true chi khi loai phat hien trung voi loai nguoi dung da chon.
+2. {correctness_instruction}
 3. Trich xuat cac truong co trong chung tu de doi soat:
    - So chung tu, ngay chung tu.
    - Nha cung cap, ma so thue, don vi mua neu co.
@@ -168,6 +204,159 @@ def _content_type(filename: str, provided_content_type: str | None) -> str:
     return provided_content_type or guessed or "application/octet-stream"
 
 
+def _content_type_base(content_type: str | None) -> str:
+    return (content_type or "").split(";", 1)[0].strip().lower()
+
+
+def _is_image_upload(filename: str, content_type: str | None) -> bool:
+    suffix = Path(filename).suffix.lower()
+    return suffix in IMAGE_EXTENSIONS or _content_type_base(content_type).startswith("image/")
+
+
+def _is_pdf_upload(filename: str, content_type: str | None) -> bool:
+    suffix = Path(filename).suffix.lower()
+    return suffix in PDF_EXTENSIONS or _content_type_base(content_type) == "application/pdf"
+
+
+def _is_xml_upload(filename: str, content_type: str | None) -> bool:
+    suffix = Path(filename).suffix.lower()
+    return suffix in XML_EXTENSIONS or _content_type_base(content_type) in {"application/xml", "text/xml"}
+
+
+def _is_docx_upload(filename: str, content_type: str | None) -> bool:
+    suffix = Path(filename).suffix.lower()
+    return suffix in DOCX_EXTENSIONS or _content_type_base(content_type) in OFFICE_OPEN_XML_CONTENT_TYPES
+
+
+def _is_doc_upload(filename: str, content_type: str | None) -> bool:
+    suffix = Path(filename).suffix.lower()
+    return suffix in DOC_EXTENSIONS or _content_type_base(content_type) in LEGACY_DOC_CONTENT_TYPES
+
+
+def validate_readable_pdf(content: bytes, filename: str, content_type: str | None) -> None:
+    if not _is_pdf_upload(filename, content_type):
+        return
+
+    sample = content[:2048].lstrip()
+    trailer = content[-4096:]
+    if not sample.startswith(b"%PDF-"):
+        raise UnreadableDocumentError(UNREADABLE_PDF_MESSAGE)
+
+    has_eof_marker = b"%%EOF" in trailer
+    has_xref_pointer = b"startxref" in trailer
+    has_page_marker = b"/Page" in content or b"/Type /Page" in content
+    if not (has_eof_marker and has_xref_pointer and has_page_marker):
+        raise UnreadableDocumentError(UNREADABLE_PDF_MESSAGE)
+
+
+def validate_readable_image(content: bytes, filename: str, content_type: str | None) -> None:
+    if not _is_image_upload(filename, content_type):
+        return
+
+    try:
+        from PIL import Image, UnidentifiedImageError
+    except Exception as exc:
+        logger.info("Pillow is unavailable; skipping image readability validation for %s: %s", filename, exc)
+        return
+
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            image.verify()
+    except (UnidentifiedImageError, OSError, SyntaxError) as exc:
+        raise UnreadableDocumentError(UNREADABLE_IMAGE_MESSAGE) from exc
+
+
+def validate_readable_xml(content: bytes, filename: str, content_type: str | None) -> None:
+    if not _is_xml_upload(filename, content_type):
+        return
+
+    try:
+        ElementTree.fromstring(content)
+    except ElementTree.ParseError as exc:
+        raise UnreadableDocumentError(UNREADABLE_XML_MESSAGE) from exc
+
+
+def validate_readable_docx(content: bytes, filename: str, content_type: str | None) -> None:
+    if not _is_docx_upload(filename, content_type):
+        return
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            names = set(archive.namelist())
+            if "[Content_Types].xml" not in names or "word/document.xml" not in names:
+                raise UnreadableDocumentError(UNREADABLE_DOC_MESSAGE)
+            bad_member = archive.testzip()
+            if bad_member is not None:
+                raise UnreadableDocumentError(UNREADABLE_DOC_MESSAGE)
+    except zipfile.BadZipFile as exc:
+        raise UnreadableDocumentError(UNREADABLE_DOC_MESSAGE) from exc
+
+
+def validate_readable_doc(content: bytes, filename: str, content_type: str | None) -> None:
+    if not _is_doc_upload(filename, content_type):
+        return
+
+    ole_header = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    if not content.startswith(ole_header):
+        raise UnreadableDocumentError(UNREADABLE_DOC_MESSAGE)
+
+
+def validate_readable_upload(content: bytes, filename: str, content_type: str | None) -> None:
+    if not content:
+        raise UnreadableDocumentError(UNREADABLE_FILE_MESSAGE)
+
+    validate_readable_pdf(content, filename, content_type)
+    validate_readable_image(content, filename, content_type)
+    validate_readable_xml(content, filename, content_type)
+    validate_readable_docx(content, filename, content_type)
+    validate_readable_doc(content, filename, content_type)
+
+
+def _analyze_image_quality(content: bytes, filename: str, content_type: str | None) -> ImageQualityAnalysis | None:
+    if not _is_image_upload(filename, content_type):
+        return None
+
+    try:
+        from PIL import Image, ImageChops, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
+    except Exception as exc:
+        logger.info("Pillow is unavailable; skipping image quality analysis for %s: %s", filename, exc)
+        return None
+
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            image = ImageOps.exif_transpose(image).convert("L")
+            image.thumbnail((1400, 1400), Image.Resampling.LANCZOS)
+            width, height = image.size
+
+            contrast = ImageStat.Stat(image).stddev[0]
+            edge_image = image.filter(ImageFilter.FIND_EDGES)
+            edge_stat = ImageStat.Stat(edge_image)
+            edge_score = edge_stat.mean[0] + edge_stat.stddev[0]
+            high_frequency = ImageChops.difference(image, image.filter(ImageFilter.GaussianBlur(radius=2)))
+            sharpness_score = ImageStat.Stat(high_frequency).stddev[0]
+    except (UnidentifiedImageError, OSError) as exc:
+        logger.info("Cannot inspect image quality for %s: %s", filename, exc)
+        return None
+
+    min_dimension = min(width, height)
+    low_quality_signals = [
+        min_dimension < 900,
+        contrast < 22,
+        edge_score < 18,
+        sharpness_score < 6,
+    ]
+    metrics = {
+        "width": width,
+        "height": height,
+        "min_dimension": min_dimension,
+        "contrast": round(contrast, 2),
+        "edge_score": round(edge_score, 2),
+        "sharpness_score": round(sharpness_score, 2),
+        "low_quality_signal_count": sum(low_quality_signals),
+    }
+    return ImageQualityAnalysis(is_low_quality=sum(low_quality_signals) >= 2, metrics=metrics)
+
+
 def _run_openai_analysis(content: bytes, filename: str, content_type: str | None, expected_doc_type: str) -> dict[str, Any]:
     settings = get_settings()
     client = OpenAI(api_key=settings.openai_api_key)
@@ -175,7 +364,7 @@ def _run_openai_analysis(content: bytes, filename: str, content_type: str | None
     mime_type = _content_type(filename, content_type)
     suffix = Path(filename).suffix.lower()
 
-    if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+    if suffix in IMAGE_EXTENSIONS:
         import base64
 
         base64_file = base64.b64encode(content).decode("utf-8")
@@ -218,18 +407,37 @@ def _run_openai_analysis(content: bytes, filename: str, content_type: str | None
     return _parse_json_text(_extract_response_text(response))
 
 
-def _offline_analysis(content: bytes, filename: str, expected_doc_type: str) -> dict[str, Any]:
-    try:
-        extracted_data = LocalOcrParserStrategy().parse(content, filename, expected_doc_type)
-    except Exception:
-        extracted_data = {"type": expected_doc_type, "line_items": []}
+def _infer_doc_type_offline(content: bytes, filename: str) -> str:
+    sample = content[:8192].decode("utf-8", errors="ignore").lower()
+    text = f"{filename.lower()} {sample}"
+    if any(keyword in text for keyword in ["grn", "goods receipt", "phieu nhap", "phiếu nhập", "receipt"]):
+        return "grn"
+    if any(keyword in text for keyword in ["invoice", "hoa don", "hóa đơn", "invoicenumber"]):
+        return "invoice"
+    if any(keyword in text for keyword in ["purchase order", "don dat hang", "đơn đặt hàng"]) or re.search(r"\bpo\b", text):
+        return "po"
+    return "unknown"
 
-    extracted_data["type"] = extracted_data.get("type") or expected_doc_type
+
+def _offline_analysis(content: bytes, filename: str, expected_doc_type: str) -> dict[str, Any]:
+    detected_doc_type = _infer_doc_type_offline(content, filename) if expected_doc_type == "auto" else expected_doc_type
+    parse_doc_type = detected_doc_type if detected_doc_type in {"po", "invoice", "grn"} else "invoice"
+    try:
+        extracted_data = LocalOcrParserStrategy().parse(content, filename, parse_doc_type)
+    except Exception:
+        extracted_data = {"type": detected_doc_type if detected_doc_type != "unknown" else None, "line_items": []}
+
+    extracted_data["type"] = extracted_data.get("type") or (detected_doc_type if detected_doc_type != "unknown" else None)
+    is_correct_type = detected_doc_type in {"po", "invoice", "grn"} if expected_doc_type == "auto" else detected_doc_type == expected_doc_type
     return {
-        "detected_doc_type": expected_doc_type,
-        "is_correct_type": True,
+        "detected_doc_type": detected_doc_type,
+        "is_correct_type": is_correct_type,
         "confidence": 1,
-        "validation_message": "Che do offline: chap nhan theo loai chung tu nguoi dung da chon.",
+        "validation_message": (
+            "Che do offline: da tu nhan dien loai chung tu."
+            if expected_doc_type == "auto" and is_correct_type
+            else "Che do offline: chap nhan theo loai chung tu nguoi dung da chon."
+        ),
         "extracted_data": extracted_data,
     }
 
@@ -243,6 +451,8 @@ def analyze_uploaded_document(
     settings = get_settings()
     raw_response: dict[str, Any]
     model_name = settings.openai_document_model
+    validate_readable_upload(content, filename, content_type)
+    image_quality = _analyze_image_quality(content, filename, content_type)
 
     if settings.openai_api_key:
         try:
@@ -269,7 +479,10 @@ def analyze_uploaded_document(
     if not isinstance(extracted_data, dict):
         extracted_data = {}
 
-    is_correct_type = bool(raw_response.get("is_correct_type")) and detected_doc_type == expected_doc_type
+    if expected_doc_type == "auto":
+        is_correct_type = bool(raw_response.get("is_correct_type")) and detected_doc_type in {"po", "invoice", "grn"}
+    else:
+        is_correct_type = bool(raw_response.get("is_correct_type")) and detected_doc_type == expected_doc_type
     confidence_value = raw_response.get("confidence")
     confidence = Decimal(str(confidence_value)) if confidence_value is not None else None
     status = "validated" if is_correct_type else "wrong_doc_type"
@@ -278,6 +491,15 @@ def analyze_uploaded_document(
         expected_label = DOC_TYPE_LABELS.get(expected_doc_type, expected_doc_type.upper())
         detected_label = DOC_TYPE_LABELS.get(detected_doc_type or "unknown", "Khong xac dinh")
         validation_message = f"File nay co ve la {detected_label}, khong phai {expected_label}."
+
+    if image_quality:
+        raw_response["image_quality"] = image_quality.metrics
+        raw_response["is_low_quality_image"] = image_quality.is_low_quality
+        if image_quality.is_low_quality and is_correct_type:
+            status = "low_quality"
+            validation_message = LOW_IMAGE_QUALITY_WARNING
+            if confidence is not None:
+                confidence = min(confidence, Decimal("0.6500"))
 
     return DocumentAiAnalysis(
         expected_doc_type=expected_doc_type,

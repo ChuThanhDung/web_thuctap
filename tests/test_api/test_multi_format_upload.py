@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime
 from pathlib import Path
 
@@ -10,6 +11,28 @@ from src.api.uploads import PROJECT_ROOT
 from src.database import get_db
 from src.main import app
 from src.models.user import User
+
+VALID_PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+)
+
+
+def valid_pdf_bytes(label: str = "test") -> bytes:
+    return f"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>
+endobj
+% {label}
+startxref
+0
+%%EOF
+""".encode()
 
 
 def stored_index(data):
@@ -48,64 +71,54 @@ def clean_db_fixture(db_session):
 
 
 @pytest.mark.asyncio
-async def test_upload_png_po_twice_stores_two_files(client):
-    png_content = b"\x89PNG\r\n\x1a\n mock png content for PO test"
+async def test_upload_png_po_duplicate_content_returns_conflict(client):
+    png_content = VALID_PNG_BYTES
+    batch = (await client.post("/api/v1/uploads/batches")).json()
 
     response = await client.post(
         "/api/v1/uploads",
-        data={"doc_type": "po"},
+        data={"doc_type": "po", "batch_id": str(batch["id"])},
         files={"file": ("PO_TEST_999999.png", png_content, "image/png")},
     )
     dup_response = await client.post(
         "/api/v1/uploads",
-        data={"doc_type": "po"},
+        data={"doc_type": "po", "batch_id": str(batch["id"])},
         files={"file": ("PO_TEST_999999.png", png_content, "image/png")},
     )
 
     assert response.status_code == 200
-    assert dup_response.status_code == 200
+    assert dup_response.status_code == 409
 
     first_data = response.json()
-    second_data = dup_response.json()
     assert first_data["status"] == "completed"
-    assert second_data["status"] == "completed"
     assert_stored_filename(first_data, "po", "png")
-    assert_stored_filename(second_data, "po", "png")
-    assert stored_index(second_data) == stored_index(first_data) + 1
     assert first_data["storage_key"].startswith("storage/upload/po/")
-    assert second_data["storage_key"].startswith("storage/upload/po/")
-    assert first_data["storage_key"] != second_data["storage_key"]
     assert Path(PROJECT_ROOT / first_data["storage_key"]).exists()
-    assert Path(PROJECT_ROOT / second_data["storage_key"]).exists()
+    assert "đã được tải lên" in dup_response.json()["detail"]
 
 
 @pytest.mark.asyncio
-async def test_upload_pdf_grn_twice_stores_two_files(client):
-    pdf_content = b"%PDF-1.4 mock pdf content for GRN test"
+async def test_upload_pdf_grn_duplicate_content_returns_conflict(client):
+    pdf_content = valid_pdf_bytes("duplicate grn")
+    batch = (await client.post("/api/v1/uploads/batches")).json()
 
     response = await client.post(
         "/api/v1/uploads",
-        data={"doc_type": "grn"},
+        data={"doc_type": "grn", "batch_id": str(batch["id"])},
         files={"file": ("GRN_TEST_888888.pdf", pdf_content, "application/pdf")},
     )
     dup_response = await client.post(
         "/api/v1/uploads",
-        data={"doc_type": "grn"},
+        data={"doc_type": "grn", "batch_id": str(batch["id"])},
         files={"file": ("GRN_TEST_888888.pdf", pdf_content, "application/pdf")},
     )
 
     assert response.status_code == 200
-    assert dup_response.status_code == 200
+    assert dup_response.status_code == 409
 
     first_data = response.json()
-    second_data = dup_response.json()
     assert first_data["status"] == "completed"
-    assert second_data["status"] == "completed"
     assert_stored_filename(first_data, "grn", "pdf")
-    assert_stored_filename(second_data, "grn", "pdf")
-    assert stored_index(second_data) == stored_index(first_data) + 1
     assert first_data["storage_key"].startswith("storage/upload/grn/")
-    assert second_data["storage_key"].startswith("storage/upload/grn/")
-    assert first_data["storage_key"] != second_data["storage_key"]
     assert Path(PROJECT_ROOT / first_data["storage_key"]).exists()
-    assert Path(PROJECT_ROOT / second_data["storage_key"]).exists()
+    assert "đã được tải lên" in dup_response.json()["detail"]

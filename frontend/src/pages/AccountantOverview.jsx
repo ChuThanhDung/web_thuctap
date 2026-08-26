@@ -460,7 +460,7 @@ export default function AccountantOverview({ token, role }) {
               value={formatDisplayNumber(summary.approved)} 
               detail="Batch đã được kế toán viên duyệt, chờ kế toán trưởng duyệt" 
               tone="brand" 
-              onClick={() => navigateToChiefBatchFilter('all')} 
+              onClick={() => navigateToChiefBatchFilter('unapproved')} 
             />
             <MetricCard 
               icon={CheckCircle2} 

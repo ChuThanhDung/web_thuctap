@@ -164,13 +164,68 @@ export function getComparisonCellClass(status, value, peerValues = [value]) {
 
 const SUMMARY_FIELDS = ['supplier_name', 'supplier_tax_id', 'vat_rate_pct', 'total_amount'];
 
-function findItemByIdentity(items, sourceItem, index) {
-  const sku = sourceItem?.sku;
-  if (sku) {
-    const foundBySku = items.find((item) => item?.sku && item.sku === sku);
+function normalizeItemText(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeItemSku(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getItemIdentityKey(item) {
+  const sku = normalizeItemSku(item?.sku);
+  if (sku) return `sku:${sku}`;
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function getItemNameKey(item) {
+  const name = normalizeItemText(item?.item_name);
+  return name ? `name:${name}` : '';
+}
+
+function collectLineItemBases(...itemGroups) {
+  const byIdentity = new Map();
+  const anonymous = [];
+
+  itemGroups.forEach((items) => {
+    items.forEach((item) => {
+      const key = getItemIdentityKey(item);
+      if (!key) {
+        anonymous.push(item);
+        return;
+      }
+      const nameKey = getItemNameKey(item);
+      if (key.startsWith('sku:') && nameKey && byIdentity.has(nameKey)) {
+        return;
+      }
+      if (key.startsWith('name:')) {
+        const sameNameSkuKey = [...byIdentity.keys()].find((existingKey) => (
+          existingKey.startsWith('sku:') && getItemNameKey(byIdentity.get(existingKey)) === key
+        ));
+        if (sameNameSkuKey) return;
+      }
+      if (!byIdentity.has(key)) byIdentity.set(key, item);
+    });
+  });
+
+  return [...byIdentity.values(), ...anonymous];
+}
+
+function findItemByIdentity(items, sourceItem) {
+  const sourceSku = normalizeItemSku(sourceItem?.sku);
+  if (sourceSku) {
+    const foundBySku = items.find((item) => normalizeItemSku(item?.sku) === sourceSku);
     if (foundBySku) return foundBySku;
   }
-  return items[index] || {};
+
+  const sourceName = normalizeItemText(sourceItem?.item_name);
+  if (sourceName) {
+    const foundByName = items.find((item) => normalizeItemText(item?.item_name) === sourceName);
+    if (foundByName) return foundByName;
+  }
+
+  return {};
 }
 
 function getLineAmount(item) {
@@ -187,13 +242,12 @@ export function getLineItemComparisonStatus(docs) {
   const poItems = getExtractionData(docs.po)?.line_items || [];
   const invoiceItems = getExtractionData(docs.invoice)?.line_items || [];
   const grnItems = getExtractionData(docs.grn)?.line_items || [];
-  const maxLineCount = Math.max(poItems.length, invoiceItems.length, grnItems.length);
+  const baseItems = collectLineItemBases(poItems, invoiceItems, grnItems);
 
-  return Array.from({ length: maxLineCount }).map((_, index) => {
-    const baseItem = poItems[index] || invoiceItems[index] || grnItems[index] || {};
-    const poItem = findItemByIdentity(poItems, baseItem, index);
-    const invoiceItem = findItemByIdentity(invoiceItems, baseItem, index);
-    const grnItem = findItemByIdentity(grnItems, baseItem, index);
+  return baseItems.map((baseItem) => {
+    const poItem = findItemByIdentity(poItems, baseItem);
+    const invoiceItem = findItemByIdentity(invoiceItems, baseItem);
+    const grnItem = findItemByIdentity(grnItems, baseItem);
 
     const statuses = [
       compareValues([poItem.qty, invoiceItem.qty, grnItem.qty]),
