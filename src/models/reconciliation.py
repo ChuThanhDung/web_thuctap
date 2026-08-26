@@ -134,6 +134,7 @@ class UploadedFile(Base):
     )
     doc_type: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),

@@ -130,23 +130,33 @@ def get_active_batch_files(batch: DocumentBatch, db: Session | None = None) -> l
         uploads = (
             db.query(UploadedFile)
             .filter(UploadedFile.batch_id == batch.id)
-            .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
+            .order_by(UploadedFile.id.asc())
             .all()
         )
     else:
         uploads = list(batch.files or [])
     if not uploads:
         return []
-    uploads.sort(key=lambda f: (f.created_at or datetime.min, f.id or 0), reverse=True)
+
     by_type: dict[str, list[UploadedFile]] = {}
     for f in uploads:
         if f.doc_type:
             by_type.setdefault(f.doc_type, []).append(f)
+
     active_files: list[UploadedFile] = []
     for doc_type, files_list in by_type.items():
-        if files_list:
-            # files are ordered by created_at desc, so files_list[0] is the newest
-            active_files.append(files_list[0])
+        if not files_list:
+            continue
+        max_version = max((getattr(f, "version", 1) or 1) for f in files_list)
+        for f in files_list:
+            if (getattr(f, "version", 1) or 1) == max_version:
+                active_files.append(f)
+
+    unclassified = [f for f in uploads if not f.doc_type]
+    if unclassified:
+        max_ver_unclass = max((getattr(f, "version", 1) or 1) for f in unclassified)
+        active_files.extend([f for f in unclassified if (getattr(f, "version", 1) or 1) == max_ver_unclass])
+
     active_files.sort(key=lambda f: f.id)
     return active_files
 
@@ -414,6 +424,7 @@ def to_uploaded_file_out(upload: UploadedFile) -> UploadedFileOut:
         error_message=None,
         case_id=None,
         ai_extraction=ai_extraction,
+        version=getattr(upload, "version", 1) or 1,
         created_at=created_at,
     )
 
@@ -1381,6 +1392,7 @@ async def upload_document(
         uploaded_by_id=current_user.public_id if current_user else None,
         doc_type=selected_doc_type,
         storage_key=storage_key,
+        version=batch.version or 1,
     )
     db.add(db_upload)
     db.flush()

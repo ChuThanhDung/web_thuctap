@@ -1043,3 +1043,107 @@ async def test_batch_rejection_history_and_supplemental_upload(client, db_sessio
     assert re_approve.status_code == 200
     assert re_approve.json()["status"] == "approved"
 
+
+@pytest.mark.asyncio
+async def test_upload_multiple_grn_files_in_batch(client, monkeypatch):
+    grn_count = 0
+
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        nonlocal grn_count
+        if expected_doc_type == "grn":
+            grn_count += 1
+            extracted = {
+                "type": "grn",
+                "grn_number": f"GRN-MULTI-{grn_count}",
+                "po_number": "PO-MULTI-1",
+                "supplier_name": "Multi Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 50,
+                "line_items": [{"row_index": grn_count, "item_name": f"Part {grn_count}", "qty": 5, "amount": 50}],
+            }
+        elif expected_doc_type == "po":
+            extracted = {
+                "type": "po",
+                "po_number": "PO-MULTI-1",
+                "supplier_name": "Multi Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [
+                    {"row_index": 1, "item_name": "Part 1", "qty": 5, "price": 10, "amount": 50},
+                    {"row_index": 2, "item_name": "Part 2", "qty": 5, "price": 10, "amount": 50},
+                ],
+            }
+        else:
+            extracted = {
+                "type": "invoice",
+                "invoice_number": "INV-MULTI-1",
+                "supplier_name": "Multi Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 100,
+                "line_items": [
+                    {"row_index": 1, "item_name": "Part 1", "qty": 5, "price": 10, "amount": 50},
+                    {"row_index": 2, "item_name": "Part 2", "qty": 5, "price": 10, "amount": 50},
+                ],
+            }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted,
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    # Upload 1 PO
+    po_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "po", "batch_id": str(batch["id"])},
+        files={"file": ("po.pdf", valid_pdf_bytes("po"), "application/pdf")},
+    )
+    assert po_res.status_code == 200
+
+    # Upload 1 Invoice
+    inv_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "invoice", "batch_id": str(batch["id"])},
+        files={"file": ("inv.pdf", valid_pdf_bytes("inv"), "application/pdf")},
+    )
+    assert inv_res.status_code == 200
+
+    # Upload GRN 1
+    grn1_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "grn", "batch_id": str(batch["id"])},
+        files={"file": ("grn1.pdf", valid_pdf_bytes("grn1"), "application/pdf")},
+    )
+    assert grn1_res.status_code == 200
+
+    # Upload GRN 2
+    grn2_res = await client.post(
+        "/api/v1/uploads",
+        data={"doc_type": "grn", "batch_id": str(batch["id"])},
+        files={"file": ("grn2.pdf", valid_pdf_bytes("grn2"), "application/pdf")},
+    )
+    assert grn2_res.status_code == 200
+
+    # Check batch detail contains all 4 files (1 PO, 1 Invoice, 2 GRNs)
+    batch_detail = (await client.get("/api/v1/uploads/batches")).json()
+    b = next(item for item in batch_detail["items"] if item["id"] == batch["id"])
+    assert len(b["files"]) == 4
+    grn_files = [f for f in b["files"] if f["doc_type"] == "grn"]
+    assert len(grn_files) == 2
+    assert b["status"] == "ready"
+
+    # Approve batch
+    app_res = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+    assert app_res.status_code == 200
+    assert app_res.json()["status"] == "approved"
+
+

@@ -310,6 +310,7 @@ class UploadedFileOut(BaseModel):
     error_message: str | None
     case_id: str | None
     ai_extraction: UploadedDocumentExtractionOut | None = None
+    version: int = 1
     created_at: str
 
     model_config = {"from_attributes": True}

@@ -398,6 +398,7 @@ def ensure_document_batch_tables() -> None:
         """,
         "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS batch_id INTEGER",
         "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS doc_type VARCHAR(20)",
+        "ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1",
         """
         DO $$
         BEGIN
