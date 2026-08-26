@@ -25,6 +25,7 @@ import {
   updateCachedBatchItem,
 } from '../services/batchCache.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -1031,8 +1032,7 @@ function mapApiBatchToAuditBatch(batch) {
   const missingDataFields = missingCount + summary.warningFields;
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
-  const hasRejection = Boolean(batch.rejection_note);
-  const isRejected = batch.status === 'rejected' || hasRejection;
+  const isRejected = batch.status === 'rejected';
   const backendReconciliationStatus = batch.reconciliation_status;
   const displayStatus = isRejected
     ? 'rejected'
@@ -1048,6 +1048,7 @@ function mapApiBatchToAuditBatch(batch) {
     batchNumber: batch.batch_number,
     note: batch.note || '',
     rejectionNote: batch.rejection_note || '',
+    history: batch.history || [],
     status: displayStatus,
     reconciliationStatus: backendReconciliationStatus || null,
     reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
@@ -1281,11 +1282,9 @@ export default function AuditTrail({ token, role }) {
     
     // Kế toán trưởng: có thể duyệt batch 'approved' (đã qua KTV) hoặc 'matched' (duyệt trực tiếp)
     // Kế toán viên: chỉ duyệt batch 'matched'
-    const canApprove = !batch?.rejectionNote && (
-      isChiefAccountant 
-        ? (batch.status === 'approved' || batch.status === 'matched')
-        : batch.status === 'matched'
-    );
+    const canApprove = isChiefAccountant 
+      ? (batch.status === 'approved' || batch.status === 'matched')
+      : (batch.status === 'matched' && batch.rawStatus !== 'rejected');
     
     if (!batch?.id || !canApprove || approvingBatchIds.includes(batch.id)) return;
     setApproveConfirm({ batch, options });
@@ -1472,11 +1471,9 @@ export default function AuditTrail({ token, role }) {
               const hasMissingData = batch.status === 'missing';
               // Kế toán viên: duyệt batch matched
               // Kế toán trưởng: duyệt batch approved hoặc matched
-              const canApprove = !batch.rejectionNote && (
-                role === 'chief_accountant' 
-                  ? (batch.status === 'approved' || batch.status === 'matched')
-                  : batch.status === 'matched'
-              );
+              const canApprove = role === 'chief_accountant' 
+                ? (batch.status === 'approved' || batch.status === 'matched')
+                : (batch.status === 'matched' && batch.rawStatus !== 'rejected');
               const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
 
               return (
@@ -1764,6 +1761,11 @@ export default function AuditTrail({ token, role }) {
               </table>
             </div>
           </div>
+
+          <ReconciliationHistorySection
+            history={selectedBatch?.history}
+            onOpenFile={handleOpenUploadedFile}
+          />
         </div>
       </div>
 
@@ -1804,7 +1806,7 @@ export default function AuditTrail({ token, role }) {
                     Upload bổ sung
                   </button>
                 )}
-                {!modalBatch.rejectionNote && modalBatch.status === 'matched' && (
+                {modalBatch.status === 'matched' && modalBatch.rawStatus !== 'rejected' && (
                   <button
                     type="button"
                     onClick={() => requestApproveBatch(modalBatch, { keepModalOpen: true })}
@@ -1834,7 +1836,9 @@ export default function AuditTrail({ token, role }) {
             </div>
 
             <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
-              <RejectionNoteAlert note={modalBatch.rejectionNote} />
+              {modalBatch.rawStatus === 'rejected' && (
+                <RejectionNoteAlert note={modalBatch.rejectionNote} />
+              )}
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => {
@@ -1944,6 +1948,11 @@ export default function AuditTrail({ token, role }) {
                   </table>
                 </div>
               </div>
+
+              <ReconciliationHistorySection
+                history={modalBatch.history}
+                onOpenFile={handleOpenUploadedFile}
+              />
             </div>
           </div>
         </div>

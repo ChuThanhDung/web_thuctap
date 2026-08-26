@@ -24,6 +24,7 @@ import {
   updateCachedBatchItem,
 } from '../services/batchCache.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -649,8 +650,7 @@ function mapApiBatchToAuditBatch(batch) {
   const rejectionNote = batch.rejection_note || '';
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
-  const hasRejection = Boolean(batch.rejection_note);
-  const isRejected = batch.status === 'rejected' || hasRejection;
+  const isRejected = batch.status === 'rejected';
 
   // Xác định trạng thái hiển thị
   let status = isRejected
@@ -668,6 +668,7 @@ function mapApiBatchToAuditBatch(batch) {
     batchNumber: batch.batch_number,
     note: batch.note || '',
     rejectionNote,
+    history: batch.history || [],
     reconciliationStatus: backendReconciliationStatus || null,
     reconciliationNote: batch.reconciliation_ai_summary || batch.reconciliation_ai_note || '',
     status,
@@ -973,11 +974,11 @@ export default function ChiefAccountantBatches({ token }) {
   };
 
   const canApproveBatch = (batch) => {
-    return !batch?.rejectionNote && batch?.rawStatus === 'approved';
+    return batch?.rawStatus === 'approved';
   };
 
   const canRejectBatch = (batch) => {
-    return !batch?.rejectionNote && batch?.rawStatus === 'approved';
+    return batch?.rawStatus === 'approved';
   };
 
   return (
@@ -1309,7 +1310,7 @@ export default function ChiefAccountantBatches({ token }) {
                       </span>
                     )}
                   </div>
-                  {detailBatch.rejectionNote && (
+                  {detailBatch.rawStatus === 'rejected' && detailBatch.rejectionNote && (
                     <p className="mt-2 max-w-4xl text-sm font-semibold text-rose-700 dark:text-rose-300">
                       Lý do từ chối: {detailBatch.rejectionNote}
                     </p>
@@ -1464,6 +1465,11 @@ export default function ChiefAccountantBatches({ token }) {
                   </table>
                 </div>
               </div>
+
+              <ReconciliationHistorySection
+                history={detailBatch.history}
+                onOpenFile={handleOpenFile}
+              />
             </div>
           </div>
         </div>

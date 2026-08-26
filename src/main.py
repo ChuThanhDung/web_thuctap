@@ -358,6 +358,25 @@ def ensure_document_batch_tables() -> None:
         "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS chief_approved_by_id INTEGER",
         "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS note TEXT",
         "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS rejection_note TEXT",
+        "ALTER TABLE document_batches ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1",
+        "CREATE SEQUENCE IF NOT EXISTS document_batch_histories_id_seq",
+        """
+        CREATE TABLE IF NOT EXISTS document_batch_histories (
+            id INTEGER PRIMARY KEY DEFAULT nextval('document_batch_histories_id_seq'),
+            batch_id INTEGER NOT NULL REFERENCES document_batches(id) ON DELETE CASCADE,
+            version INTEGER NOT NULL DEFAULT 1,
+            status VARCHAR(20) NOT NULL DEFAULT 'rejected',
+            rejection_note TEXT NULL,
+            rejected_by_id INTEGER NULL REFERENCES users(public_id) ON DELETE SET NULL,
+            rejected_by_name VARCHAR(255) NULL,
+            rejected_at TIMESTAMP(0) WITHOUT TIME ZONE NULL,
+            files_data JSONB NULL,
+            note TEXT NULL,
+            created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_document_batch_histories_batch_id ON document_batch_histories (batch_id)",
+        "CREATE INDEX IF NOT EXISTS ix_document_batch_histories_version ON document_batch_histories (batch_id, version)",
         """
         DO $$
         BEGIN
