@@ -24,6 +24,7 @@ import {
   updateCachedBatchItem,
 } from '../services/batchCache.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import FilePreviewModal from '../components/FilePreviewModal.jsx';
 import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
 import {
   calculateMatchSummary,
@@ -734,6 +735,7 @@ export default function ChiefAccountantBatches({ token }) {
   const [approveConfirm, setApproveConfirm] = useState(null);
   const [isApproving, setIsApproving] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [filePreview, setFilePreview] = useState(null);
   const [dateRange, setDateRange] = useState(() => {
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
@@ -743,6 +745,17 @@ export default function ChiefAccountantBatches({ token }) {
     };
   });
   const [currentPage, setCurrentPage] = useState(1);
+
+  const closeFilePreview = () => {
+    setFilePreview(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      filePreview?.previewUrl && URL.revokeObjectURL(filePreview.previewUrl);
+      filePreview?.downloadUrl && filePreview.downloadUrl !== filePreview.previewUrl && URL.revokeObjectURL(filePreview.downloadUrl);
+    };
+  }, [filePreview]);
 
   useEffect(() => {
     const statusParam = searchParams.get('status');
@@ -902,18 +915,22 @@ export default function ChiefAccountantBatches({ token }) {
     if (!file) return;
     try {
       const blob = await fetchUploadFileBlob(token, file);
-      const blobUrl = URL.createObjectURL(blob);
       const fileExt = getFileExt(file.filename);
+      const downloadUrl = URL.createObjectURL(blob);
+      let previewUrl = downloadUrl;
 
       if (fileExt === 'xml') {
         const xmlText = await blob.text();
         const previewHtml = buildXmlPreviewHtml(file.filename, xmlText);
         const previewBlob = new Blob([previewHtml], { type: 'text/html; charset=utf-8' });
-        const previewUrl = URL.createObjectURL(previewBlob);
-        window.open(previewUrl, '_blank');
-      } else {
-        window.open(blobUrl, '_blank');
+        previewUrl = URL.createObjectURL(previewBlob);
       }
+
+      setFilePreview({
+        filename: file.filename,
+        previewUrl,
+        downloadUrl,
+      });
     } catch (error) {
       console.error('Failed to open file:', error);
       alert(error.message || 'Không thể mở file');
@@ -1622,6 +1639,7 @@ export default function ChiefAccountantBatches({ token }) {
         }}
         onConfirm={handleApproveBatch}
       />
+      <FilePreviewModal filePreview={filePreview} onClose={closeFilePreview} />
     </div>
   );
 }
