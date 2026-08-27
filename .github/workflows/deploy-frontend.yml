@@ -1,4 +1,4 @@
-gitname: Deploy Frontend
+name: Deploy Frontend
 
 on:
   workflow_dispatch:
@@ -12,7 +12,6 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-      NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout source
@@ -42,13 +41,16 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Configure isolated npm cache
+        shell: bash
+        run: |
+          npm_cache="$RUNNER_TEMP/npm-cache-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          echo "NPM_CONFIG_CACHE=$npm_cache" >> "$GITHUB_ENV"
+          rm -rf "$npm_cache/_npx"
+
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
-
-      - name: Reset npm exec cache
-        shell: bash
-        run: rm -rf "$NPM_CONFIG_CACHE/_npx"
 
       - name: Pull Vercel environment
         working-directory: frontend
