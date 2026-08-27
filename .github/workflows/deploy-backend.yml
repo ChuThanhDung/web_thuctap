@@ -1,10 +1,6 @@
 name: Deploy Backend
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 env:
@@ -14,13 +10,10 @@ jobs:
   deploy-backend:
     name: Build image and deploy backend
     runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Validate backend deploy secrets
         shell: bash
@@ -56,7 +49,7 @@ jobs:
           push: true
           tags: |
             ${{ env.BACKEND_IMAGE_NAME }}:latest
-            ${{ env.BACKEND_IMAGE_NAME }}:${{ github.event.workflow_run.head_sha || github.sha }}
+            ${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
 
       - name: Trigger Render backend deploy
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

@@ -1,28 +1,22 @@
-name: Deploy Frontend
+gitname: Deploy Frontend
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   deploy-frontend:
     name: Build and deploy frontend
     runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+      NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Validate frontend deploy secrets
         shell: bash
@@ -51,6 +45,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Reset npm exec cache
+        shell: bash
+        run: rm -rf "$NPM_CONFIG_CACHE/_npx"
 
       - name: Pull Vercel environment
         working-directory: frontend
