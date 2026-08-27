@@ -724,6 +724,8 @@ export default function ChiefAccountantBatches({ token }) {
   const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all');
   const [detailBatchId, setDetailBatchId] = useState(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+  const [mobileDocsOpen, setMobileDocsOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [rejectingBatch, setRejectingBatch] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -966,11 +968,13 @@ export default function ChiefAccountantBatches({ token }) {
   const handleViewDetails = (batch) => {
     setDetailBatchId(batch.id);
     setDetailPanelOpen(true);
+    setMobileDocsOpen(false);
   };
 
   const handleCloseDetailPanel = () => {
     setDetailPanelOpen(false);
     setDetailBatchId(null);
+    setMobileDocsOpen(false);
   };
 
   const canApproveBatch = (batch) => {
@@ -982,12 +986,12 @@ export default function ChiefAccountantBatches({ token }) {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
+    <div className="flex min-h-[calc(100dvh-5rem)] flex-col bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100 sm:h-screen">
       {/* Header */}
-      <div className="border-b border-slate-200 bg-white px-6 py-5 dark:border-slate-800 dark:bg-slate-900">
+      <div className="border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6 sm:py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
               Batch đối soát
             </h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
@@ -997,8 +1001,37 @@ export default function ChiefAccountantBatches({ token }) {
         </div>
 
         {/* Filters */}
-        <div className="mt-5 flex items-center gap-3">
-          <div className="relative flex-1">
+        <div className="mt-4 flex justify-end sm:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen((open) => !open)}
+            className={`flex h-10 w-10 items-center justify-center rounded-lg border text-slate-600 shadow-sm transition-colors dark:text-slate-300 ${
+              mobileSearchOpen || searchQuery
+                ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300'
+                : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800'
+            }`}
+            aria-label="Tìm kiếm batch"
+            aria-expanded={mobileSearchOpen}
+          >
+            <Search size={18} />
+          </button>
+        </div>
+
+        {mobileSearchOpen && (
+          <div className="relative mt-3 sm:hidden">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
+            <input
+              type="text"
+              placeholder="Tìm batch..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-field w-full pl-10"
+            />
+          </div>
+        )}
+
+        <div className="mt-5 hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
               type="text"
@@ -1009,7 +1042,7 @@ export default function ChiefAccountantBatches({ token }) {
             />
           </div>
 
-          <div className="relative min-w-[200px]">
+          <div className="relative w-full sm:min-w-[200px] sm:w-auto">
             <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
               value={statusFilter}
@@ -1036,11 +1069,11 @@ export default function ChiefAccountantBatches({ token }) {
             <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
           
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors sm:w-auto ${
                 dateRange.start || dateRange.end
                   ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                   : 'btn-secondary'
@@ -1051,7 +1084,7 @@ export default function ChiefAccountantBatches({ token }) {
             </button>
             
             {filterMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+              <div className="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-lg dark:border-slate-800 dark:bg-slate-900">
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -1132,7 +1165,7 @@ export default function ChiefAccountantBatches({ token }) {
       </div>
 
       {/* Batch List */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="animate-spin text-emerald-600" size={32} />
@@ -1148,12 +1181,12 @@ export default function ChiefAccountantBatches({ token }) {
               {paginatedBatches.map((batch) => (
                 <div
                   key={batch.id}
-                  className="card p-6 transition-all hover:shadow-lg"
+                  className="card p-4 transition-all hover:shadow-lg sm:p-6"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                        <h3 className="break-words text-lg font-bold text-slate-900 dark:text-slate-100 sm:text-xl">
                           {batch.batchNumber}
                         </h3>
                         {batch.status === 'final_approved' && (
@@ -1175,9 +1208,9 @@ export default function ChiefAccountantBatches({ token }) {
                           </span>
                         )}
                       </div>
-                      <div className="mt-2 flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                      <div className="mt-2 flex flex-col gap-1 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:gap-4">
                         <span>Cập nhật: {batch.updatedAt}</span>
-                        <span>•</span>
+                        <span className="hidden sm:inline">•</span>
                         <span>Tạo bởi: {batch.owner}</span>
                       </div>
                       {batch.note && (
@@ -1198,7 +1231,7 @@ export default function ChiefAccountantBatches({ token }) {
                       )}
                       
                       {/* Document files */}
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                         {DOC_TYPES.map((type) => {
                           const doc = batch.docs[type.key];
                           const Icon = type.icon;
@@ -1220,11 +1253,11 @@ export default function ChiefAccountantBatches({ token }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-3 gap-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
                       <button
                         type="button"
                         onClick={() => handleViewDetails(batch)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
                       >
                         <Eye size={13} />
                         Chi tiết
@@ -1234,7 +1267,7 @@ export default function ChiefAccountantBatches({ token }) {
                         <button
                           type="button"
                             onClick={() => requestApproveBatch(batch)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-emerald-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
                         >
                           <CheckCircle2 size={13} />
                           Duyệt
@@ -1245,7 +1278,7 @@ export default function ChiefAccountantBatches({ token }) {
                         <button
                           type="button"
                           onClick={() => handleRejectBatch(batch)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98]"
+                          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-rose-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98] sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
                         >
                           <X size={13} />
                           Từ chối
@@ -1259,7 +1292,7 @@ export default function ChiefAccountantBatches({ token }) {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-2">
+              <div className="mt-6 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -1268,7 +1301,7 @@ export default function ChiefAccountantBatches({ token }) {
                 >
                   Trang trước
                 </button>
-                <span className="text-sm text-slate-600 dark:text-slate-400">
+                <span className="text-center text-sm text-slate-600 dark:text-slate-400">
                   Trang {currentPage} / {totalPages}
                 </span>
                 <button
@@ -1287,13 +1320,13 @@ export default function ChiefAccountantBatches({ token }) {
 
       {/* Detail Panel */}
       {detailPanelOpen && detailBatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-sm">
-          <div className="card max-h-[92vh] w-full max-w-[1360px] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="card h-dvh w-full max-w-[1360px] overflow-y-auto rounded-none sm:h-auto sm:max-h-[92vh] sm:rounded-xl">
             {/* Panel Header */}
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-5 py-4 sm:px-6 sm:py-5 dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="break-words text-lg font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
                     {detailBatch.batchNumber}
                   </h2>
                   <div className="mt-2.5 flex items-center gap-3">
@@ -1317,12 +1350,12 @@ export default function ChiefAccountantBatches({ token }) {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-[1fr_1fr_2.25rem] gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
                   {canApproveBatch(detailBatch) && (
                     <button
                       type="button"
                       onClick={() => requestApproveBatch(detailBatch)}
-                      className="inline-flex h-8.5 sm:h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700 sm:px-3.5 sm:text-sm"
                     >
                       <CheckCircle2 size={14} />
                       Duyệt
@@ -1333,7 +1366,7 @@ export default function ChiefAccountantBatches({ token }) {
                     <button
                       type="button"
                       onClick={() => handleRejectBatch(detailBatch)}
-                      className="inline-flex h-8.5 sm:h-9 items-center gap-1.5 rounded-full bg-rose-600 px-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98]"
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98] sm:px-3.5 sm:text-sm"
                     >
                       <X size={14} />
                       Từ chối
@@ -1343,7 +1376,8 @@ export default function ChiefAccountantBatches({ token }) {
                   <button
                     type="button"
                     onClick={handleCloseDetailPanel}
-                    className="btn-ghost h-8 w-8 rounded-lg p-0"
+                    className="inline-flex h-9 w-9 justify-self-end items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 sm:justify-self-auto"
+                    aria-label="Đóng chi tiết batch"
                   >
                     <X size={18} />
                   </button>
@@ -1352,8 +1386,48 @@ export default function ChiefAccountantBatches({ token }) {
             </div>
 
             {/* Panel Content */}
-            <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-4 sm:p-5">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="max-h-[calc(92vh-82px)] space-y-4 overflow-y-auto p-3 sm:space-y-5 sm:p-5">
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileDocsOpen((open) => !open)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  aria-expanded={mobileDocsOpen}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Chứng từ</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">PO, Invoice và GRN</p>
+                  </div>
+                  <ChevronDown size={18} className={`shrink-0 text-slate-500 transition-transform ${mobileDocsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {mobileDocsOpen && (
+                  <div className="space-y-3 border-t border-slate-200 p-3 dark:border-slate-800">
+                    {DOC_TYPES.map((type) => {
+                      const list = detailBatch.docList?.[type.key] || [];
+                      if (list.length === 0) {
+                        return (
+                          <DocumentCard
+                            key={`${type.key}-missing-mobile`}
+                            type={type}
+                            doc={{ filename: '', missing: true, fields: {} }}
+                            onOpenFile={handleOpenFile}
+                          />
+                        );
+                      }
+                      return (
+                        <DocumentCard
+                          key={`${type.key}-mobile`}
+                          type={type}
+                          docs={list}
+                          onOpenFile={handleOpenFile}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => {
                   const list = detailBatch.docList?.[type.key] || [];
                   if (list.length === 0) {

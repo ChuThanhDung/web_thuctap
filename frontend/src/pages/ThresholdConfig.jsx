@@ -163,7 +163,7 @@ function RuleCard({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{meta.title}</h2>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-base">{meta.title}</h2>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${tone.badge}`}>
                       Đang áp dụng
                     </span>
@@ -238,7 +238,7 @@ function RuleCard({
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500 dark:text-slate-400">Cập nhật: {formatDate(item.updated_at) || 'Chưa có'}</p>
             <div className="flex gap-2">
-              <button type="button" onClick={onSave} disabled={saving} className="btn-primary min-w-32">
+              <button type="button" onClick={onSave} disabled={saving} className="btn-primary w-full sm:min-w-32 sm:w-auto">
                 {saving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Save size={16} />}
                 Lưu
               </button>
@@ -390,7 +390,7 @@ export default function ThresholdConfig({ token }) {
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase text-brand-600 dark:text-brand-300">Rule kế toán trưởng</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">Cấu hình ngưỡng đối soát</h1>
+          <h1 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">Cấu hình ngưỡng đối soát</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">
             Tập trung vào hai nhóm quan trọng nhất: số tiền/đơn giá và số lượng. Mỗi nhóm chỉ cần chỉnh hai giá trị, hệ thống sẽ dùng để phân loại xanh, vàng hoặc đỏ.
           </p>

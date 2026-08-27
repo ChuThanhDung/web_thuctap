@@ -119,15 +119,6 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-slate-50 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100">
       <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 sm:hidden">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
-            <Bot size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">Docusyncai</p>
-            <p className="truncate text-xs text-slate-500 dark:text-slate-400">AI Đối soát chứng từ</p>
-          </div>
-        </div>
         <button
           type="button"
           onClick={() => {
@@ -140,6 +131,15 @@ export default function App() {
         >
           <Menu size={24} />
         </button>
+        <div className="flex min-w-0 items-center justify-end gap-3">
+          <div className="min-w-0 text-right">
+            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">Docusyncai</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">AI Đối soát chứng từ</p>
+          </div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+            <Bot size={20} />
+          </div>
+        </div>
       </header>
 
       <Sidebar
