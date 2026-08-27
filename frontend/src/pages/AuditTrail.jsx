@@ -1354,17 +1354,17 @@ export default function AuditTrail({ token, role }) {
       const ext = getFileExt(file.filename);
       const downloadUrl = URL.createObjectURL(blob);
       let previewUrl = downloadUrl;
+      let xmlText = '';
 
       if (ext === 'xml') {
-        const xmlText = await blob.text();
-        const previewBlob = new Blob([buildXmlPreviewHtml(file.filename, xmlText)], { type: 'text/html; charset=utf-8' });
-        previewUrl = URL.createObjectURL(previewBlob);
+        xmlText = await blob.text();
       }
 
       setFilePreview({
         filename: file.filename,
         previewUrl,
         downloadUrl,
+        xmlText,
       });
     } catch (err) {
       alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');

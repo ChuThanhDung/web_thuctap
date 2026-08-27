@@ -918,18 +918,17 @@ export default function ChiefAccountantBatches({ token }) {
       const fileExt = getFileExt(file.filename);
       const downloadUrl = URL.createObjectURL(blob);
       let previewUrl = downloadUrl;
+      let xmlText = '';
 
       if (fileExt === 'xml') {
-        const xmlText = await blob.text();
-        const previewHtml = buildXmlPreviewHtml(file.filename, xmlText);
-        const previewBlob = new Blob([previewHtml], { type: 'text/html; charset=utf-8' });
-        previewUrl = URL.createObjectURL(previewBlob);
+        xmlText = await blob.text();
       }
 
       setFilePreview({
         filename: file.filename,
         previewUrl,
         downloadUrl,
+        xmlText,
       });
     } catch (error) {
       console.error('Failed to open file:', error);
