@@ -25,6 +25,7 @@ import {
   updateCachedBatchItem,
 } from '../services/batchCache.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import FilePreviewModal from '../components/FilePreviewModal.jsx';
 import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
 import {
   calculateMatchSummary,
@@ -564,6 +565,22 @@ function StatusBadge({ status }) {
       {meta.label}
     </span>
   );
+}
+
+function getBatchDocumentTileClass(batchStatus, isMissing) {
+  if (isMissing) {
+    return 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400';
+  }
+
+  if (batchStatus === 'mismatch' || batchStatus === 'rejected') {
+    return 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300';
+  }
+
+  if (batchStatus === 'missing') {
+    return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300';
+  }
+
+  return 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300';
 }
 
 function DocumentCard({ type, doc, docs, onOpenFile }) {
@@ -1112,8 +1129,20 @@ export default function AuditTrail({ token, role }) {
   const [batchPage, setBatchPage] = useState(1);
   const [approvingBatchIds, setApprovingBatchIds] = useState([]);
   const [approveConfirm, setApproveConfirm] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
+
+  const closeFilePreview = () => {
+    setFilePreview(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      filePreview?.previewUrl && URL.revokeObjectURL(filePreview.previewUrl);
+      filePreview?.downloadUrl && filePreview.downloadUrl !== filePreview.previewUrl && URL.revokeObjectURL(filePreview.downloadUrl);
+    };
+  }, [filePreview]);
 
   useEffect(() => {
     const unsubscribe = subscribeBatchCache((data) => {
@@ -1320,31 +1349,24 @@ export default function AuditTrail({ token, role }) {
   const handleOpenUploadedFile = async (file) => {
     if (!file?.file_url || file.status !== 'completed') return;
 
-    const previewTab = window.open('', '_blank');
-    if (!previewTab) {
-      alert('Trình duyệt đang chặn tab mới. Vui lòng cho phép pop-up để xem file.');
-      return;
-    }
-
     try {
-      previewTab.document.title = file.filename;
-      previewTab.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 24px;">Đang mở file...</p>';
       const blob = await fetchUploadFileBlob(token, file);
       const ext = getFileExt(file.filename);
+      const downloadUrl = URL.createObjectURL(blob);
+      let previewUrl = downloadUrl;
+      let xmlText = '';
 
       if (ext === 'xml') {
-        const xmlText = await blob.text();
-        previewTab.document.open();
-        previewTab.document.write(buildXmlPreviewHtml(file.filename, xmlText));
-        previewTab.document.close();
-        return;
+        xmlText = await blob.text();
       }
 
-      const objectUrl = URL.createObjectURL(blob);
-      previewTab.location.href = objectUrl;
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      setFilePreview({
+        filename: file.filename,
+        previewUrl,
+        downloadUrl,
+        xmlText,
+      });
     } catch (err) {
-      previewTab.close();
       alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
     }
   };
@@ -1558,11 +1580,7 @@ export default function AuditTrail({ token, role }) {
                         return (
                           <span
                             key={type.key}
-                            className={`min-w-0 rounded-lg border px-2.5 py-2 text-xs ${
-                              doc?.missing
-                                ? 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400'
-                                : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
-                            }`}
+                            className={`min-w-0 rounded-lg border px-2.5 py-2 text-xs ${getBatchDocumentTileClass(batch.status, doc?.missing)}`}
                           >
                             <span className="block font-bold">{type.short}</span>
                             <span className="mt-0.5 block truncate">{doc?.missing ? 'Chưa có' : doc.filename}</span>
@@ -1976,6 +1994,7 @@ export default function AuditTrail({ token, role }) {
         }}
         onConfirm={handleApproveBatch}
       />
+      <FilePreviewModal filePreview={filePreview} onClose={closeFilePreview} />
     </div>
   );
 }

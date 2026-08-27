@@ -297,14 +297,22 @@ export default function UserManagement({ token, currentUser }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-row items-start justify-between gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Quản lý tài khoản</h1>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">Quản lý tài khoản</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Quản lý Kế toán trưởng và Kế toán viên trong hệ thống.
           </p>
         </div>
-        <button type="button" onClick={openCreateModal} className="btn-primary self-start lg:self-auto">
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden"
+        >
+          <Plus size={16} />
+          Tạo
+        </button>
+        <button type="button" onClick={openCreateModal} className="btn-primary hidden lg:inline-flex lg:self-auto">
           <Plus size={16} />
           Tạo tài khoản
         </button>
@@ -320,23 +328,23 @@ export default function UserManagement({ token, currentUser }) {
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
+      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:p-4">
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-row lg:items-center lg:gap-3">
+          <div className="relative col-span-2 min-w-0 lg:flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Tìm theo tên, email, số điện thoại, CCCD, địa chỉ..."
-              className="input-field pl-9"
+              className="input-field h-9 rounded-md pl-9 text-xs lg:h-auto lg:text-sm"
             />
           </div>
-          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="input-field lg:w-52">
+          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="input-field h-9 rounded-md text-xs lg:h-auto lg:w-52 lg:text-sm">
             <option value="all">Tất cả vai trò</option>
             <option value="chief_accountant">Kế toán trưởng</option>
             <option value="accountant">Kế toán viên</option>
           </select>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input-field lg:w-44">
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input-field h-9 rounded-md text-xs lg:h-auto lg:w-44 lg:text-sm">
             <option value="all">Tất cả trạng thái</option>
             <option value="ACTIVE">Active</option>
             <option value="DEACTIVE">Deactive</option>
@@ -351,7 +359,8 @@ export default function UserManagement({ token, currentUser }) {
             Đang tải danh sách...
           </div>
         ) : (
-          <div className="overflow-hidden">
+          <div>
+            <div className="hidden lg:block">
             <table className="w-full table-fixed text-sm">
               <colgroup>
                 <col className="w-[28%]" />
@@ -442,8 +451,67 @@ export default function UserManagement({ token, currentUser }) {
                 ))}
               </tbody>
             </table>
+            </div>
+            <div className="space-y-3 p-3 lg:hidden">
+              {paginatedUsers.map((user) => (
+                <div key={user.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_3px_rgba(0,55,112,0.06)] dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <UserAvatar user={user} />
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-bold text-slate-900 dark:text-slate-100">
+                          {repairVietnameseText(user.full_name)}
+                        </p>
+                        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                          <Mail size={12} className="shrink-0" />
+                          <span className="truncate">{user.email}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(user)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                        title="Sửa tài khoản"
+                        aria-label={`Sửa tài khoản ${repairVietnameseText(user.full_name)}`}
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                      {user.status === 'ACTIVE' ? (
+                        <button
+                          type="button"
+                          onClick={() => requestDeactivate(user)}
+                          disabled={String(user.id) === String(currentUser?.id)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          title="Chuyển sang Deactive"
+                          aria-label={`Chuyển ${repairVietnameseText(user.full_name)} sang Deactive`}
+                        >
+                          <X size={15} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => requestActivate(user)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-700"
+                          title="Kích hoạt lại"
+                          aria-label={`Kích hoạt lại ${repairVietnameseText(user.full_name)}`}
+                        >
+                          <CheckCircle2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <RoleBadge role={user.role} />
+                    <StatusBadge status={user.status} />
+                  </div>
+                </div>
+              ))}
+            </div>
             {filteredUsers.length === 0 && (
-              <div className="py-16 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</div>
+              <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">Không tìm thấy người dùng phù hợp.</div>
             )}
             {filteredUsers.length > USERS_PER_PAGE && (
               <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
@@ -478,8 +546,8 @@ export default function UserManagement({ token, currentUser }) {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <form onSubmit={handleSubmit} className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm sm:p-4">
+          <form onSubmit={handleSubmit} className="max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -577,7 +645,7 @@ export default function UserManagement({ token, currentUser }) {
               </label>
             </div>
 
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" onClick={closeModal} disabled={saving} className="btn-secondary disabled:opacity-50">Hủy</button>
               <button type="submit" disabled={saving} className="btn-primary disabled:opacity-50">
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}

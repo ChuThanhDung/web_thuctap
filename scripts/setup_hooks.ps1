@@ -14,7 +14,10 @@ bash scripts/_pyrun.sh scripts/submit_log.py || true
 exit 0
 '@
 
-Set-Content -Path $HookFile -Value $HookBody -Encoding UTF8 -NoNewline
+# Windows PowerShell's UTF8 encoding writes a BOM, which breaks Git Bash hooks:
+# Git sees the shebang as "ï»¿#!/usr/bin/env bash" and cannot spawn it.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText((Resolve-Path $HookFile), $HookBody, $Utf8NoBom)
 Write-Host "[ai-log] Git pre-push hook installed."
 
 if (-not (Test-Path .ai-log)) { New-Item -ItemType Directory -Path .ai-log | Out-Null }
