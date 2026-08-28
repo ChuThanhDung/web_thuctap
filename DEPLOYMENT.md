@@ -28,6 +28,14 @@ Backend health check:
 http://127.0.0.1:8000/health
 ```
 
+Email thông báo reject batch sẽ tự lấy frontend origin từ trình duyệt khi thao tác trên web. Khi deploy backend riêng với frontend, nên cấu hình thêm:
+
+```env
+APP_FRONTEND_URL=https://docusyncai-frontend.vercel.app
+```
+
+Nếu dùng domain frontend khác, thay bằng domain thật để nút "Mở batch bị từ chối" trong email trỏ đúng website.
+
 ## 3. Chạy frontend local
 
 ```powershell

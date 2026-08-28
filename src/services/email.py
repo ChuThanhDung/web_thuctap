@@ -9,9 +9,14 @@ from src.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+def is_smtp_configured() -> bool:
+    settings = get_settings()
+    return bool(settings.smtp_user and settings.smtp_password)
+
+
 def _send_email(to_email: str, subject: str, text_body: str, html_body: str) -> bool:
     settings = get_settings()
-    if not settings.smtp_user or not settings.smtp_password:
+    if not is_smtp_configured():
         logger.error("SMTP chưa được cấu hình; không thể gửi email tới %s", to_email)
         return False
 
@@ -32,10 +37,10 @@ def _send_email(to_email: str, subject: str, text_body: str, html_body: str) -> 
             with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=10) as server:
                 server.login(settings.smtp_user, settings.smtp_password)
                 server.send_message(message)
-        logger.info("Đã gửi email bảo mật tới %s", to_email)
+        logger.info("Đã gửi email tới %s", to_email)
         return True
     except (OSError, smtplib.SMTPException):
-        logger.exception("Không thể gửi email bảo mật tới %s", to_email)
+        logger.exception("Không thể gửi email tới %s", to_email)
         return False
 
 
@@ -84,14 +89,32 @@ def send_batch_rejected_email(
     rejected_by: str,
     rejection_note: str,
     rejected_at: str,
+    action_url: str | None = None,
 ) -> bool:
     settings = get_settings()
+    action_text = f"\nLink xem batch: {action_url}\n" if action_url else ""
+    action_html = (
+        f"""
+          <div style="margin:0 0 24px;text-align:center">
+            <a href="{escape(action_url, quote=True)}" style="display:inline-block;padding:13px 22px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-size:15px;font-weight:800">
+              Mở batch bị từ chối
+            </a>
+          </div>
+          <p style="margin:-12px 0 24px;text-align:center;font-size:12px;line-height:1.5;color:#64748b">
+            Nếu nút không mở được, anh/chị có thể copy đường dẫn này:<br>
+            <a href="{escape(action_url, quote=True)}" style="color:#2563eb;text-decoration:underline;word-break:break-all">{escape(action_url)}</a>
+          </p>
+        """
+        if action_url
+        else ""
+    )
     subject = f"[{settings.app_name}] Batch {batch_number} đã bị từ chối"
     text_body = (
         f"Xin chào {recipient_name},\n\n"
         f"Batch {batch_number} đã bị Kế toán trưởng {rejected_by} từ chối.\n\n"
         f"Lý do từ chối:\n{rejection_note}\n\n"
         f"Thời gian từ chối: {rejected_at}\n\n"
+        f"{action_text}\n"
         "Vui lòng kiểm tra lại chứng từ và cập nhật batch nếu cần."
     )
     html_body = f"""
@@ -124,6 +147,8 @@ def send_batch_rejected_email(
             <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;font-weight:800;color:#be123c">Lý do từ chối</p>
             <p style="margin:0;font-size:16px;line-height:1.65;white-space:pre-wrap;color:#881337;font-weight:600">{escape(rejection_note)}</p>
           </div>
+
+          {action_html}
 
           <div style="padding:14px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;color:#1e3a8a;font-size:14px;line-height:1.6">
             Đây là email tự động từ hệ thống. Anh/chị vui lòng đăng nhập DocusyncAI để xem chi tiết batch và xử lý lại chứng từ.
