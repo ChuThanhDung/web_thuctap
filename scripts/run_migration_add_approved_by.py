@@ -3,7 +3,6 @@
 Migration script to add approved_by_id column to document_batches table
 Run this script to apply the database migration
 """
-import os
 import sys
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy import text
+
 from src.database import get_db_session
 
 
@@ -18,17 +18,17 @@ def run_migration():
     """Execute the migration SQL file"""
     # Read the SQL migration file
     migration_file = Path(__file__).parent / "add_approved_by_to_document_batch.sql"
-    
+
     if not migration_file.exists():
         print(f"❌ Migration file not found: {migration_file}")
         return False
-    
-    with open(migration_file, 'r', encoding='utf-8') as f:
+
+    with open(migration_file, encoding='utf-8') as f:
         sql_content = f.read()
-    
+
     print("🔄 Running migration: Add approved_by_id to document_batches")
     print("-" * 60)
-    
+
     try:
         # Get database session
         with get_db_session() as db:
@@ -42,7 +42,7 @@ def run_migration():
             print("  - Added foreign key: fk_document_batches_approved_by")
             print("  - Added index: idx_document_batches_approved_by_id")
             return True
-            
+
     except Exception as e:
         print(f"❌ Migration failed: {e}")
         return False
