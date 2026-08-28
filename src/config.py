@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     cors_origins: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,https://docusyncai-frontend.vercel.app"
+    app_frontend_url: str = ""
 
     # LLM
     openai_api_key: str = ""

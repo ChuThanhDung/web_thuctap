@@ -13,6 +13,7 @@ from src.api.uploads import PROJECT_ROOT, build_cloud_storage_key
 from src.config import get_settings
 from src.database import get_db
 from src.main import app
+from src.models.audit_log import AuditLog
 from src.models.notification import Notification
 from src.models.reconciliation import DocumentBatch, ReconciliationCase, UploadedFile
 from src.models.user import User
@@ -567,6 +568,7 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
         sent_email.update(kwargs)
         return True
 
+    monkeypatch.setattr("src.api.uploads.is_smtp_configured", lambda: True)
     monkeypatch.setattr("src.api.uploads.send_batch_rejected_email", fake_send_batch_rejected_email)
 
     app.dependency_overrides[get_current_user] = override_get_chief_user
@@ -574,6 +576,7 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
         response = await client.post(
             f"/api/v1/uploads/batches/{batch.id}/reject",
             json={"rejection_note": "Sai số lượng GRN so với hóa đơn."},
+            headers={"Origin": "http://localhost:3000"},
         )
     finally:
         app.dependency_overrides[get_current_user] = override_get_current_user
@@ -596,6 +599,9 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
     assert sent_email["recipient_name"] == user.full_name
     assert sent_email["batch_number"] == batch.batch_number
     assert sent_email["rejection_note"] == "Sai số lượng GRN so với hóa đơn."
+    assert sent_email["action_url"] == (
+        f"http://localhost:3000/audit-trail?overviewFilter=rejected&batchId={batch.id}"
+    )
 
     db_session.add(
         Notification(
@@ -625,6 +631,51 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
     assert read_response.json()["is_read"] is True
 
 
+@pytest.mark.asyncio
+async def test_reject_batch_records_smtp_not_configured_without_queueing_email(client, db_session, monkeypatch):
+    user = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
+    batch = DocumentBatch(
+        batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_98",
+        created_by_id=user.public_id,
+        approved_by_id=user.public_id,
+        status="approved",
+    )
+    db_session.add(batch)
+    db_session.commit()
+
+    sent_email = {}
+
+    def fake_send_batch_rejected_email(**kwargs):
+        sent_email.update(kwargs)
+        return True
+
+    monkeypatch.setattr("src.api.uploads.is_smtp_configured", lambda: False)
+    monkeypatch.setattr("src.api.uploads.send_batch_rejected_email", fake_send_batch_rejected_email)
+
+    app.dependency_overrides[get_current_user] = override_get_chief_user
+    try:
+        response = await client.post(
+            f"/api/v1/uploads/batches/{batch.id}/reject",
+            json={"rejection_note": "Sai thông tin hóa đơn."},
+            headers={"Origin": "http://localhost:3000"},
+        )
+    finally:
+        app.dependency_overrides[get_current_user] = override_get_current_user
+
+    assert response.status_code == 200
+    assert sent_email == {}
+    audit = db_session.query(AuditLog).filter_by(
+        action="DOCUMENT_BATCH_REJECTED",
+        target_id=str(batch.id),
+    ).one()
+    assert audit.details["notification_email"] == user.email
+    assert audit.details["notification_queued"] is False
+    assert audit.details["notification_email_status"] == "smtp_not_configured"
+    assert audit.details["notification_action_url"] == (
+        f"http://localhost:3000/audit-trail?overviewFilter=rejected&batchId={batch.id}"
+    )
+
+
 def test_rejection_notification_is_pushed_over_websocket(db_session, monkeypatch):
     accountant = db_session.query(User).filter(User.email == "accountant@docusync.ai").one()
     batch = DocumentBatch(
@@ -636,6 +687,7 @@ def test_rejection_notification_is_pushed_over_websocket(db_session, monkeypatch
     db_session.add(batch)
     db_session.commit()
 
+    monkeypatch.setattr("src.api.uploads.is_smtp_configured", lambda: True)
     monkeypatch.setattr("src.api.uploads.send_batch_rejected_email", lambda **kwargs: True)
 
     with TestClient(app) as sync_client:

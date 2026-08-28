@@ -1,11 +1,13 @@
 import hashlib
+import logging
 import mimetypes
 import os
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from urllib.parse import urlencode, urlparse
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse, Response
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -39,7 +41,7 @@ from src.services.document_ai_extractor import (
     UnreadableDocumentError,
     analyze_uploaded_document,
 )
-from src.services.email import send_batch_rejected_email
+from src.services.email import is_smtp_configured, send_batch_rejected_email
 from src.services.notifications import (
     create_notification,
     create_notifications_for_role,
@@ -54,6 +56,7 @@ from src.services.s3_service import (
 )
 
 router = APIRouter(prefix="/uploads", tags=["Uploads & Ingestion"])
+logger = logging.getLogger(__name__)
 ALLOWED_DOC_TYPES = {"invoice", "po", "grn"}
 AUTO_DOC_TYPE = "auto"
 REQUIRED_DOC_TYPES = ["po", "invoice", "grn"]
@@ -255,6 +258,61 @@ def require_batch_access(current_user: User, batch: DocumentBatch) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Khong tim thay bo doi soat.",
         )
+
+
+def get_batch_rejection_recipient(db: Session, batch: DocumentBatch) -> User | None:
+    recipient_public_id = batch.approved_by_id or batch.created_by_id
+    if recipient_public_id is None:
+        return None
+    if batch.approved_by and batch.approved_by.public_id == recipient_public_id:
+        return batch.approved_by
+    if batch.created_by and batch.created_by.public_id == recipient_public_id:
+        return batch.created_by
+    return db.query(User).filter(User.public_id == recipient_public_id).first()
+
+
+def get_url_origin(value: str | None) -> str | None:
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def get_allowed_frontend_origins() -> list[str]:
+    settings = get_settings()
+    origins = [origin.strip().rstrip("/") for origin in settings.cors_origins.split(",") if origin.strip()]
+    if settings.app_frontend_url:
+        configured_origin = get_url_origin(settings.app_frontend_url)
+        if configured_origin and configured_origin not in origins:
+            origins.append(configured_origin)
+    return origins
+
+
+def get_frontend_base_url(request: Request) -> str:
+    settings = get_settings()
+    allowed_origins = get_allowed_frontend_origins()
+    for header_name in ("origin", "referer"):
+        origin = get_url_origin(request.headers.get(header_name))
+        if origin and ("*" in allowed_origins or origin in allowed_origins):
+            return origin
+
+    configured_origin = get_url_origin(settings.app_frontend_url)
+    if configured_origin:
+        return configured_origin
+
+    if settings.app_env == "production":
+        deployed_origin = next((origin for origin in allowed_origins if origin.startswith("https://")), None)
+        if deployed_origin:
+            return deployed_origin
+
+    return "http://localhost:3000"
+
+
+def build_rejected_batch_url(request: Request, batch_id: int) -> str:
+    query = urlencode({"overviewFilter": "rejected", "batchId": str(batch_id)})
+    return f"{get_frontend_base_url(request)}/audit-trail?{query}"
 
 
 def build_sequential_stored_filename_from_names(
@@ -1062,6 +1120,7 @@ async def final_approve_upload_batch(
 async def reject_upload_batch(
     batch_id: int,
     payload: DocumentBatchRejectRequest,
+    request: Request,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -1103,7 +1162,8 @@ async def reject_upload_batch(
     db.add(batch)
     db.flush()
 
-    recipient = batch.approved_by or batch.created_by
+    recipient = get_batch_rejection_recipient(db, batch)
+    action_url = build_rejected_batch_url(request, batch.id)
     notifications = []
     if recipient:
         notifications.append(
@@ -1118,18 +1178,29 @@ async def reject_upload_batch(
                 action_url=f"/audit-trail?overviewFilter=rejected&batchId={batch.id}",
             )
         )
-    email_queued = False
+    email_status = "missing_recipient"
     if recipient and recipient.email:
-        email_queued = True
-        background_tasks.add_task(
-            send_batch_rejected_email,
-            to_email=recipient.email,
-            recipient_name=recipient.full_name,
-            batch_number=batch.batch_number,
-            rejected_by=current_user.full_name,
-            rejection_note=rejection_note,
-            rejected_at=batch.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
-        )
+        if is_smtp_configured():
+            email_status = "queued"
+            background_tasks.add_task(
+                send_batch_rejected_email,
+                to_email=recipient.email,
+                recipient_name=recipient.full_name,
+                batch_number=batch.batch_number,
+                rejected_by=current_user.full_name,
+                rejection_note=rejection_note,
+                rejected_at=batch.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+                action_url=action_url,
+            )
+        else:
+            email_status = "smtp_not_configured"
+            logger.warning(
+                "Không queue email từ chối batch %s tới %s vì SMTP chưa được cấu hình đầy đủ.",
+                batch.batch_number,
+                recipient.email,
+            )
+    elif recipient:
+        email_status = "missing_recipient_email"
 
     reconciliation_case = find_batch_reconciliation_case(db, batch)
     write_audit_log(
@@ -1144,7 +1215,9 @@ async def reject_upload_batch(
             "case_number": reconciliation_case.case_number if reconciliation_case else None,
             "note": rejection_note,
             "notification_email": recipient.email if recipient else None,
-            "notification_queued": email_queued,
+            "notification_queued": email_status == "queued",
+            "notification_email_status": email_status,
+            "notification_action_url": action_url if recipient else None,
         },
         ip_address=None,
         user_agent=None,

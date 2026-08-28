@@ -57,13 +57,13 @@ function ProfileAvatar({ user, fullName, className = 'h-14 w-14' }) {
         src={avatarUrl}
         alt={fullName}
         onError={() => setImageError(true)}
-        className={`${className} shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100`}
+        className={`${className} shrink-0 rounded-full border-2 border-white object-cover shadow-[0_8px_20px_rgba(83,58,253,0.20)] ring-1 ring-brand-100 dark:border-slate-900 dark:ring-brand-800/60`}
       />
     );
   }
 
   return (
-    <div className={`flex ${className} shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-brand-100 via-white to-brand-200 text-base font-semibold text-brand-700 shadow-[0_8px_20px_rgba(83,58,253,0.18)] ring-1 ring-brand-100`}>
+    <div className={`flex ${className} shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-brand-100 via-white to-brand-200 text-base font-semibold text-brand-700 shadow-[0_8px_20px_rgba(83,58,253,0.18)] ring-1 ring-brand-100 dark:border-slate-900 dark:from-brand-950 dark:via-slate-900 dark:to-brand-800/70 dark:text-brand-200 dark:ring-brand-800/60`}>
       {getInitials(fullName)}
     </div>
   );
@@ -71,13 +71,13 @@ function ProfileAvatar({ user, fullName, className = 'h-14 w-14' }) {
 
 function Field({ icon: Icon, label, value, numeric = false }) {
   return (
-    <div className="group rounded-lg border border-[#e3e8ee] bg-white px-3 py-2.5 shadow-[0_1px_3px_rgba(0,55,112,0.05)] transition-colors hover:border-brand-200 hover:bg-[#f8faff]">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase text-[#64748d]">
-        {Icon ? <Icon size={13} className="text-brand-500" /> : null}
+    <div className="group rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-[0_1px_3px_rgba(0,55,112,0.05)] transition-colors hover:border-brand-200 hover:bg-[#f8faff] dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-800 dark:hover:bg-slate-800/70">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">
+        {Icon ? <Icon size={13} className="text-brand-500 dark:text-brand-300" /> : null}
         <span>{label}</span>
       </div>
       <p
-        className={`mt-1.5 break-words text-sm font-medium leading-5 text-[#0d253d] ${
+        className={`mt-1.5 break-words text-sm font-medium leading-5 text-slate-950 dark:text-slate-100 ${
           numeric ? '[font-feature-settings:"tnum"]' : ''
         }`}
       >
@@ -90,7 +90,7 @@ function Field({ icon: Icon, label, value, numeric = false }) {
 function PasswordField({ label, value, onChange, visible, onToggle, error, helper }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
       <div className="relative">
         <input
           className={`input-field pr-12 ${error ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`}
@@ -103,13 +103,13 @@ function PasswordField({ label, value, onChange, visible, onToggle, error, helpe
         <button
           type="button"
           onClick={onToggle}
-          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-brand-600"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
           aria-label={visible ? `Ẩn ${label.toLowerCase()}` : `Hiện ${label.toLowerCase()}`}
         >
           {visible ? <EyeOff size={17} /> : <Eye size={17} />}
         </button>
       </div>
-      <p className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-slate-500'}`}>{error || helper}</p>
+      <p className={`mt-1 text-xs ${error ? 'text-rose-600 dark:text-rose-300' : 'text-slate-500 dark:text-slate-400'}`}>{error || helper}</p>
     </label>
   );
 }
@@ -230,25 +230,25 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
       onClick={onClose}
     >
       <div
-        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 sm:max-h-[calc(100dvh-2rem)]"
+        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 dark:bg-slate-950 dark:ring-slate-700/70 sm:max-h-[calc(100dvh-2rem)]"
         style={{ maxHeight: 'calc(100vh - 32px)' }}
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[#e3e8ee] bg-white px-4 py-3 sm:px-5 sm:py-4">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950 sm:px-5 sm:py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-[-0.2px] text-[#0d253d]">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
                 Thông tin cá nhân
               </h2>
-              <p className="mt-0.5 text-sm text-[#64748d]">
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                 Quản lý hồ sơ và bảo mật tài khoản.
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d7dee8] bg-white text-2xl font-light leading-none text-[#64748d] shadow-sm transition-colors hover:bg-slate-100 hover:text-[#0d253d]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-2xl font-light leading-none text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               aria-label="Đóng"
               title="Đóng"
             >
@@ -260,18 +260,18 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
         {/* Modal Body */}
         <div
-          className="min-h-0 overflow-y-auto overscroll-contain bg-[#f6f9fc] px-4 py-4 sm:px-5"
+          className="min-h-0 overflow-y-auto overscroll-contain bg-[#f6f9fc] px-4 py-4 dark:bg-slate-950 sm:px-5"
           style={{ maxHeight: 'calc(100vh - 128px)' }}
         >
           {message && (
-            <div className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
               <CheckCircle2 className="mt-0.5 shrink-0" size={16} />
               <span>{message}</span>
             </div>
           )}
 
           {error && (
-            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
+            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
               {error}
             </div>
           )}
@@ -281,17 +281,17 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
             <>
               {mode === 'view' && (
                 <>
-                  <div className="relative mb-4 overflow-hidden rounded-xl border border-[#e3e8ee] bg-white p-4 shadow-[0_6px_18px_rgba(0,55,112,0.07)]">
-                    <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_12%_20%,rgba(245,233,212,0.95),transparent_30%),radial-gradient(circle_at_50%_0%,rgba(185,185,249,0.72),transparent_38%),radial-gradient(circle_at_86%_18%,rgba(249,107,238,0.22),transparent_32%)]" />
+                  <div className="relative mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-[0_6px_18px_rgba(0,55,112,0.07)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_18px_38px_rgba(0,0,0,0.28)]">
+                    <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_12%_20%,rgba(245,233,212,0.95),transparent_30%),radial-gradient(circle_at_50%_0%,rgba(185,185,249,0.72),transparent_38%),radial-gradient(circle_at_86%_18%,rgba(249,107,238,0.22),transparent_32%)] dark:bg-[radial-gradient(circle_at_18%_24%,rgba(79,70,229,0.36),transparent_32%),radial-gradient(circle_at_66%_0%,rgba(14,165,233,0.22),transparent_38%),radial-gradient(circle_at_88%_18%,rgba(244,63,94,0.18),transparent_34%)]" />
                     <div className="relative flex items-center gap-3">
                       <ProfileAvatar user={user} fullName={fullName} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-lg font-semibold tracking-[-0.2px] text-[#0d253d]">{fullName}</p>
+                        <p className="truncate text-lg font-semibold text-slate-950 dark:text-slate-100">{fullName}</p>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700">
+                          <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700 dark:bg-brand-950/70 dark:text-brand-200">
                             {roleName || 'Chưa cập nhật'}
                           </span>
-                          <span className="rounded-full border border-[#e3e8ee] bg-white/80 px-3 py-1 text-xs font-medium text-[#64748d]">
+                          <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-950/80 dark:text-slate-300">
                             {department || 'Chưa cập nhật phòng ban'}
                           </span>
                         </div>
@@ -350,7 +350,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                   </div>
 
                   <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Tên</span>
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Tên</span>
                     <input
                       className="input-field"
                       value={profile.full_name}
@@ -359,7 +359,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Địa chỉ</span>
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Địa chỉ</span>
                     <input
                       className="input-field"
                       value={profile.address}
@@ -368,7 +368,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                   </label>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1.5 block text-sm font-medium text-slate-700">Số điện thoại</span>
+                      <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Số điện thoại</span>
                       <input
                         className="input-field"
                         value={profile.phone}
@@ -376,7 +376,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       />
                     </label>
                     <label className="block">
-                      <span className="mb-1.5 block text-sm font-medium text-slate-700">Ngày sinh</span>
+                      <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Ngày sinh</span>
                       <input
                         className="input-field"
                         type="date"
@@ -386,7 +386,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                     </label>
                   </div>
 
-                <div className="sticky bottom-0 -mx-4 flex flex-col-reverse justify-end gap-2 border-t border-[#e3e8ee] bg-[#f6f9fc]/95 px-4 pt-3 backdrop-blur sm:-mx-5 sm:flex-row sm:px-5">
+                <div className="sticky bottom-0 -mx-4 flex flex-col-reverse justify-end gap-2 border-t border-slate-200 bg-[#f6f9fc]/95 px-4 pt-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 sm:-mx-5 sm:flex-row sm:px-5">
                     <button type="button" className="btn-secondary" onClick={() => setMode('view')}>
                       Hủy
                     </button>
@@ -400,14 +400,14 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
               {mode === 'otp' && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-3 text-sm text-brand-700">
+                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-3 text-sm text-brand-700 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-200">
                     <div className="flex items-start gap-2">
                       <ShieldCheck className="mt-0.5 shrink-0" size={16} />
                       <p>Mã OTP 6 số đã được gửi trực tiếp đến địa chỉ email: <strong>{user.email}</strong>. Vui lòng kiểm tra hộp thư.</p>
                     </div>
                   </div>
                   <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Mã OTP</span>
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Mã OTP</span>
                     <input
                       className="input-field text-center text-lg font-semibold tracking-[0.35em]"
                       value={otp}
@@ -418,10 +418,10 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                     />
                   </label>
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="text-slate-500">Mã hết hạn sau 5 phút.</span>
+                    <span className="text-slate-500 dark:text-slate-400">Mã hết hạn sau 5 phút.</span>
                     <button
                       type="button"
-                      className="font-medium text-brand-600 disabled:cursor-not-allowed disabled:text-slate-400"
+                      className="font-medium text-brand-600 disabled:cursor-not-allowed disabled:text-slate-400 dark:text-brand-300 dark:disabled:text-slate-600"
                       onClick={() => handleRequestOtp()}
                       disabled={loading || resendCountdown > 0}
                     >
@@ -442,7 +442,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
 
               {mode === 'password' && (
                 <form onSubmit={handleRequestOtp} className="space-y-4">
-                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-3 text-sm text-brand-700">
+                  <div className="rounded-lg border border-brand-100 bg-brand-50 px-3 py-3 text-sm text-brand-700 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-200">
                     OTP sẽ được gửi tới email đăng nhập: <strong>{user.email}</strong>
                   </div>
                   <PasswordField
@@ -575,9 +575,9 @@ function AvatarEditor({ token, user, fullName, onUpdated, onError, onMessage }) 
   }
 
   return (
-    <div className="rounded-xl border border-[#e3e8ee] bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-4 ring-brand-50 sm:mx-0">
+        <div className="relative mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-4 ring-brand-50 dark:bg-slate-800 dark:ring-brand-950/70 sm:mx-0">
           {previewUrl ? (
             <img
               ref={imageRef}
@@ -595,8 +595,8 @@ function AvatarEditor({ token, user, fullName, onUpdated, onError, onMessage }) 
 
         <div className="min-w-0 flex-1 space-y-3">
           <div>
-            <p className="text-sm font-semibold text-[#0d253d]">Ảnh đại diện</p>
-            <p className="mt-1 text-xs leading-5 text-[#64748d]">JPG, PNG hoặc WebP · tối đa 5 MB · lưu thành WebP 512×512.</p>
+            <p className="text-sm font-semibold text-slate-950 dark:text-slate-100">Ảnh đại diện</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">JPG, PNG hoặc WebP · tối đa 5 MB · lưu thành WebP 512×512.</p>
           </div>
           <input
             ref={inputRef}
@@ -613,9 +613,9 @@ function AvatarEditor({ token, user, fullName, onUpdated, onError, onMessage }) 
       </div>
 
       {sourceFile && (
-        <div className="mt-4 space-y-3 border-t border-[#e3e8ee] pt-4">
+        <div className="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
           <label className="block">
-            <span className="mb-2 flex items-center justify-between text-xs font-medium text-[#64748d]">
+            <span className="mb-2 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
               Phóng to để chọn vùng crop
               <span>{Math.round(zoom * 100)}%</span>
             </span>
