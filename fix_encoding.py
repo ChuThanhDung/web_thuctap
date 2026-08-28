@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 # Script để sửa lỗi encoding trong file UploadQueue.jsx
 
-import sys
 
 # Đọc file với encoding sai (latin-1 để đọc raw bytes)
-with open('d:/P-007/frontend/src/pages/UploadQueue.jsx', 'r', encoding='latin-1') as f:
+with open('d:/P-007/frontend/src/pages/UploadQueue.jsx', encoding='latin-1') as f:
     content = f.read()
 
 # Các cặp thay thế từ encoding lỗi sang UTF-8 đúng
@@ -58,7 +56,7 @@ replacements = {
     'XÃ³a batch': 'Xóa batch',
     'Hiá»ƒn thá»‹': 'Hiển thị',
     'Ä\'áº¿n': 'đến',
-    'Ä\'á»'i soÃ¡t': 'đối soát',
+    'Ä\'á»\'i soÃ¡t': 'đối soát',
 }
 
 # Thực hiện thay thế
