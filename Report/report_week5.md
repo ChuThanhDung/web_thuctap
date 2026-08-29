@@ -22,10 +22,8 @@
 
 - Cập nhật API và giao diện upload để hỗ trợ nhiều PO, phiếu nhập kho (GRN) hoặc hóa đơn trong cùng một batch.
 - Cải tiến màn hình danh sách batch, Audit Trail và Dashboard, giúp trạng thái xử lý và thông tin chứng từ rõ ràng hơn.
-- Bổ sung hệ thống thông báo thời gian thực qua WebSocket, gồm API, model, service và chuông thông báo trên giao diện.
 - Bổ sung các bộ dữ liệu kiểm thử multi-document: một PO – nhiều GRN, nhiều PO – một GRN, trường hợp thừa/thiếu sản phẩm.
 - Bổ sung dữ liệu edge case cho XML/PDF lỗi và ảnh mờ hoặc hỏng nhằm kiểm tra khả năng xử lý đầu vào bất thường.
-- Cập nhật cấu hình CI/CD và triển khai bản demo trên tên miền của dự án.
 
 
 ## 3. Demo
