@@ -34,28 +34,38 @@ export class AuthenticationError extends Error {
   }
 }
 
-export async function parseResponse(response) {
+function getErrorMessage(data) {
+  let detailMsg = '';
+  if (typeof data.detail === 'string') {
+    detailMsg = data.detail;
+  } else if (Array.isArray(data.detail)) {
+    detailMsg = data.detail.map((d) => d.msg || JSON.stringify(d)).join(', ');
+  } else if (data.detail && typeof data.detail === 'object') {
+    detailMsg = JSON.stringify(data.detail);
+  }
+
+  const finalMsg = repairTextDeep(detailMsg);
+  return typeof finalMsg === 'string' && finalMsg ? finalMsg : 'Không thể xử lý yêu cầu. Vui lòng thử lại.';
+}
+
+export async function parseResponse(response, options = {}) {
+  const { triggerUnauthorized = true } = options;
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     // Chỉ trigger auto-logout khi là lỗi authentication thực sự
     // Không trigger khi là lỗi permission (403) có message cụ thể
     if (response.status === 401) {
-      // Dispatch event để App.jsx có thể logout
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-      throw new AuthenticationError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      if (triggerUnauthorized) {
+        // Dispatch event để App.jsx có thể logout
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        throw new AuthenticationError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      }
+
+      throw new AuthenticationError(getErrorMessage(data));
     }
 
-    let detailMsg = '';
-    if (typeof data.detail === 'string') {
-      detailMsg = data.detail;
-    } else if (Array.isArray(data.detail)) {
-      detailMsg = data.detail.map((d) => d.msg || JSON.stringify(d)).join(', ');
-    } else if (data.detail && typeof data.detail === 'object') {
-      detailMsg = JSON.stringify(data.detail);
-    }
-    const finalMsg = repairTextDeep(detailMsg);
-    throw new Error(typeof finalMsg === 'string' && finalMsg ? finalMsg : 'Không thể xử lý yêu cầu. Vui lòng thử lại.');
+    throw new Error(getErrorMessage(data));
   }
 
   return repairTextDeep(data);
@@ -81,7 +91,7 @@ export async function loginWithEmail(email, password) {
     body: JSON.stringify({ email, password }),
   });
 
-  return parseResponse(response);
+  return parseResponse(response, { triggerUnauthorized: false });
 }
 
 export async function updateProfile(token, profile) {

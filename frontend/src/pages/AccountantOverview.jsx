@@ -207,17 +207,6 @@ function MetricCard({ icon: Icon, label, value, detail, tone, onClick }) {
   );
 }
 
-function ChiefStatusPill({ status }) {
-  const meta = {
-    matched: { label: 'Chờ duyệt', className: 'bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300' },
-    approved: { label: 'Chờ duyệt', className: 'bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300' },
-    final_approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' },
-    rejected: { label: 'Từ chối', className: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300' },
-  }[status] || { label: 'Đang xử lý', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' };
-
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${meta.className}`}>{meta.label}</span>;
-}
-
 function ChiefActionCard({ icon: Icon, label, value, detail, tone, onClick }) {
   const tones = {
     brand: 'bg-brand-50 text-brand-700 ring-brand-100 dark:bg-brand-950/50 dark:text-brand-300 dark:ring-brand-900',
@@ -354,20 +343,6 @@ export default function AccountantOverview({ token, role }) {
     };
   }, [filteredBatches, role]);
 
-  const chiefRecentBatches = useMemo(() => {
-    if (role !== 'chief_accountant') return [];
-    const chiefStatuses = new Set(['matched', 'approved', 'final_approved', 'rejected']);
-    return filteredBatches
-      .filter((batch) => chiefStatuses.has(batch.status))
-      .slice()
-      .sort((a, b) => {
-        const left = getBatchActivityDate(a)?.getTime() || 0;
-        const right = getBatchActivityDate(b)?.getTime() || 0;
-        return right - left;
-      })
-      .slice(0, 5);
-  }, [filteredBatches, role]);
-
   const statusChartData = [
     { name: 'Đã khớp', value: summary.matched, color: '#14b8a6' },
     { name: 'Cần xem', value: summary.review, color: '#f59e0b' },
@@ -454,73 +429,32 @@ export default function AccountantOverview({ token, role }) {
       </div>
 
       {role === 'chief_accountant' && (
-        <>
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <ChiefActionCard
-              icon={ClipboardList}
-              label="Chờ duyệt"
-              value={formatDisplayNumber(summary.approved)}
-              detail="Batch kế toán viên đã duyệt, đang chờ quyết định cuối."
-              tone="brand"
-              onClick={() => navigateToChiefBatchFilter('unapproved')}
-            />
-            <ChiefActionCard
-              icon={CheckCircle2}
-              label="Đã duyệt"
-              value={formatDisplayNumber(summary.finalApproved)}
-              detail="Batch đã được kế toán trưởng duyệt cuối cùng."
-              tone="emerald"
-              onClick={() => navigateToChiefBatchFilter('approved')}
-            />
-            <ChiefActionCard
-              icon={AlertTriangle}
-              label="Từ chối"
-              value={formatDisplayNumber(summary.rejected)}
-              detail="Batch đã bị từ chối và có thể cần kế toán viên bổ sung."
-              tone="rose"
-              onClick={() => navigateToChiefBatchFilter('rejected')}
-            />
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Thông báo gần đây</h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Các batch mới cập nhật để kế toán trưởng theo dõi nhanh.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/audit-trail')}
-                className="hidden h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:inline-flex"
-              >
-                Xem tất cả
-                <ArrowRight size={14} />
-              </button>
-            </div>
-            {chiefRecentBatches.length > 0 ? (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {chiefRecentBatches.map((batch) => (
-                  <button
-                    key={batch.id}
-                    type="button"
-                    onClick={() => navigate(`/audit-trail?batchId=${batch.id}`)}
-                    className="flex w-full flex-col gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset dark:hover:bg-slate-950/40 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{batch.batch_number}</p>
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cập nhật {batch.updated_at || batch.created_at}</p>
-                    </div>
-                    <ChiefStatusPill status={batch.status} />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                Chưa có thông báo batch nào.
-              </div>
-            )}
-          </section>
-        </>
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ChiefActionCard
+            icon={ClipboardList}
+            label="Chờ duyệt"
+            value={formatDisplayNumber(summary.approved)}
+            detail="Batch kế toán viên đã duyệt, đang chờ quyết định cuối."
+            tone="brand"
+            onClick={() => navigateToChiefBatchFilter('unapproved')}
+          />
+          <ChiefActionCard
+            icon={CheckCircle2}
+            label="Đã duyệt"
+            value={formatDisplayNumber(summary.finalApproved)}
+            detail="Batch đã được kế toán trưởng duyệt cuối cùng."
+            tone="emerald"
+            onClick={() => navigateToChiefBatchFilter('approved')}
+          />
+          <ChiefActionCard
+            icon={AlertTriangle}
+            label="Từ chối"
+            value={formatDisplayNumber(summary.rejected)}
+            detail="Batch đã bị từ chối và có thể cần kế toán viên bổ sung."
+            tone="rose"
+            onClick={() => navigateToChiefBatchFilter('rejected')}
+          />
+        </section>
       )}
 
       {role !== 'chief_accountant' && (

@@ -1197,7 +1197,18 @@ export default function ChiefAccountantBatches({ token }) {
               {paginatedBatches.map((batch) => (
                 <div
                   key={batch.id}
-                  className="card p-4 transition-all hover:shadow-lg sm:p-6"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleViewDetails(batch)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleViewDetails(batch);
+                    }
+                  }}
+                  aria-label={`Xem chi tiết batch ${batch.batchNumber}`}
+                  className="card cursor-pointer p-4 transition-all hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 sm:p-6"
                 >
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
@@ -1269,38 +1280,37 @@ export default function ChiefAccountantBatches({ token }) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleViewDetails(batch)}
-                        className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
-                      >
-                        <Eye size={13} />
-                        Chi tiết
-                      </button>
-                      
-                      {canApproveBatch(batch) && (
-                        <button
-                          type="button"
-                            onClick={() => requestApproveBatch(batch)}
-                          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-emerald-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
-                        >
-                          <CheckCircle2 size={13} />
-                          Duyệt
-                        </button>
-                      )}
-                      
-                      {canRejectBatch(batch) && (
-                        <button
-                          type="button"
-                          onClick={() => handleRejectBatch(batch)}
-                          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-rose-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98] sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
-                        >
-                          <X size={13} />
-                          Từ chối
-                        </button>
-                      )}
-                    </div>
+                    {(canApproveBatch(batch) || canRejectBatch(batch)) && (
+                      <div className="grid grid-cols-2 gap-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
+                        {canApproveBatch(batch) && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              requestApproveBatch(batch);
+                            }}
+                            className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-emerald-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
+                          >
+                            <CheckCircle2 size={13} />
+                            Duyệt
+                          </button>
+                        )}
+                        
+                        {canRejectBatch(batch) && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRejectBatch(batch);
+                            }}
+                            className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-rose-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98] sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
+                          >
+                            <X size={13} />
+                            Từ chối
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
