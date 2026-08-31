@@ -603,6 +603,12 @@ function aggregateExtractedData(files, docType) {
   };
 }
 
+function getBatchSupplierName(docs) {
+  return DOC_TYPES
+    .map((type) => docs[type.key]?.extractedData?.supplier_name || docs[type.key]?.fields?.['Nhà cung cấp'])
+    .find((value) => value && value !== '-') || '';
+}
+
 function mapApiBatchToAuditBatch(batch) {
   const isReady = isApiBatchReady(batch);
   const docs = getEmptyDocs();
@@ -648,6 +654,7 @@ function mapApiBatchToAuditBatch(batch) {
   const comparisons = isReady ? buildComparisons(docs) : [];
   const lineItems = isReady ? buildLineItems(docs) : [];
   const summary = isReady ? calculateMatchSummary(docs) : { matchRate: 0, checkedFields: 0, matchedFields: 0, mismatchFields: 0, warningFields: 3 };
+  const supplierName = getBatchSupplierName(docs);
   const rejectionNote = batch.rejection_note || '';
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
@@ -679,6 +686,7 @@ function mapApiBatchToAuditBatch(batch) {
     isRejected,
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống',
+    supplierName,
     approvedBy: batch.approved_by_name || null,
     chiefApprovedBy: batch.chief_approved_by_name || null,
     matchRate: summary.matchRate,
@@ -945,9 +953,8 @@ export default function ChiefAccountantBatches({ token }) {
         isSameBatchId(batch.id, requestedBatchId) ||
         batch.batchNumber.toLowerCase().includes(query) ||
         batch.note.toLowerCase().includes(query) ||
-        batch.rejectionNote.toLowerCase().includes(query) ||
         batch.owner.toLowerCase().includes(query) ||
-        batch.approvedBy?.toLowerCase().includes(query)
+        batch.supplierName.toLowerCase().includes(query)
       );
     }
 
@@ -1038,7 +1045,7 @@ export default function ChiefAccountantBatches({ token }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
             <input
               type="text"
-              placeholder="Tìm batch..."
+              placeholder="Tìm theo tên batch, note, người tạo, nhà cung cấp..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field w-full pl-10"
@@ -1051,7 +1058,7 @@ export default function ChiefAccountantBatches({ token }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
               type="text"
-              placeholder="Tìm theo mã batch, note, người tạo, người duyệt..."
+              placeholder="Tìm theo tên batch, note, người tạo, nhà cung cấp..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field w-full pl-10"
@@ -1197,7 +1204,18 @@ export default function ChiefAccountantBatches({ token }) {
               {paginatedBatches.map((batch) => (
                 <div
                   key={batch.id}
-                  className="card p-4 transition-all hover:shadow-lg sm:p-6"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleViewDetails(batch)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleViewDetails(batch);
+                    }
+                  }}
+                  aria-label={`Xem chi tiết batch ${batch.batchNumber}`}
+                  className="card cursor-pointer p-4 transition-all hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 sm:p-6"
                 >
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
@@ -1269,38 +1287,37 @@ export default function ChiefAccountantBatches({ token }) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleViewDetails(batch)}
-                        className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
-                      >
-                        <Eye size={13} />
-                        Chi tiết
-                      </button>
-                      
-                      {canApproveBatch(batch) && (
-                        <button
-                          type="button"
-                            onClick={() => requestApproveBatch(batch)}
-                          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-emerald-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
-                        >
-                          <CheckCircle2 size={13} />
-                          Duyệt
-                        </button>
-                      )}
-                      
-                      {canRejectBatch(batch) && (
-                        <button
-                          type="button"
-                          onClick={() => handleRejectBatch(batch)}
-                          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-rose-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98] sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
-                        >
-                          <X size={13} />
-                          Từ chối
-                        </button>
-                      )}
-                    </div>
+                    {(canApproveBatch(batch) || canRejectBatch(batch)) && (
+                      <div className="grid grid-cols-2 gap-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
+                        {canApproveBatch(batch) && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              requestApproveBatch(batch);
+                            }}
+                            className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-emerald-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 active:scale-[0.98] dark:bg-emerald-600 dark:hover:bg-emerald-700 sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
+                          >
+                            <CheckCircle2 size={13} />
+                            Duyệt
+                          </button>
+                        )}
+                        
+                        {canRejectBatch(batch) && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRejectBatch(batch);
+                            }}
+                            className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-rose-600 px-2 text-[11px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 active:scale-[0.98] sm:gap-1.5 sm:px-3 sm:text-xs xl:w-auto"
+                          >
+                            <X size={13} />
+                            Từ chối
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1336,8 +1353,14 @@ export default function ChiefAccountantBatches({ token }) {
 
       {/* Detail Panel */}
       {detailPanelOpen && detailBatch && (
-        <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="card h-dvh w-full max-w-[1360px] overflow-y-auto rounded-none sm:h-auto sm:max-h-[92vh] sm:rounded-xl">
+        <div
+          className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={handleCloseDetailPanel}
+        >
+          <div
+            className="card h-dvh w-full max-w-[1360px] overflow-y-auto rounded-none sm:h-auto sm:max-h-[92vh] sm:rounded-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             {/* Panel Header */}
             <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

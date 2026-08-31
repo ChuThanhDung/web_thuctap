@@ -27,7 +27,6 @@ import { fetchDocumentBatchesWithCache, getCachedBatches, subscribeBatchCache } 
 import { repairTextDeep } from '../text.js';
 
 const DOC_TYPES = ['po', 'invoice', 'grn'];
-const REVIEW_BATCHES_PER_PAGE = 3;
 const DATE_FILTER_OPTIONS = [
   { value: 'all', label: 'Tất cả thời gian' },
   { value: 'today', label: 'Hôm nay' },
@@ -191,31 +190,20 @@ function MetricCard({ icon: Icon, label, value, detail, tone, onClick }) {
     <Component
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,55,112,0.08)] transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_16px_36px_rgba(0,55,112,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-800 dark:hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
+      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-[0_1px_3px_rgba(0,55,112,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_12px_28px_rgba(0,55,112,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-800 dark:hover:shadow-[0_12px_28px_rgba(0,0,0,0.24)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-950 dark:text-slate-100">{value}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-950 dark:text-slate-100">{value}</p>
         </div>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tones[tone]}`}>
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tones[tone]}`}>
           <Icon size={18} />
         </div>
       </div>
-      <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{detail}</p>
+      <p className="mt-2 text-xs leading-4 text-slate-500 dark:text-slate-400">{detail}</p>
     </Component>
   );
-}
-
-function ChiefStatusPill({ status }) {
-  const meta = {
-    matched: { label: 'Chờ duyệt', className: 'bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300' },
-    approved: { label: 'Chờ duyệt', className: 'bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300' },
-    final_approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' },
-    rejected: { label: 'Từ chối', className: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300' },
-  }[status] || { label: 'Đang xử lý', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' };
-
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${meta.className}`}>{meta.label}</span>;
 }
 
 function ChiefActionCard({ icon: Icon, label, value, detail, tone, onClick }) {
@@ -253,7 +241,6 @@ export default function AccountantOverview({ token, role }) {
   const [dateFilter, setDateFilter] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [reviewPage, setReviewPage] = useState(1);
   const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
 
@@ -354,20 +341,6 @@ export default function AccountantOverview({ token, role }) {
     };
   }, [filteredBatches, role]);
 
-  const chiefRecentBatches = useMemo(() => {
-    if (role !== 'chief_accountant') return [];
-    const chiefStatuses = new Set(['matched', 'approved', 'final_approved', 'rejected']);
-    return filteredBatches
-      .filter((batch) => chiefStatuses.has(batch.status))
-      .slice()
-      .sort((a, b) => {
-        const left = getBatchActivityDate(a)?.getTime() || 0;
-        const right = getBatchActivityDate(b)?.getTime() || 0;
-        return right - left;
-      })
-      .slice(0, 5);
-  }, [filteredBatches, role]);
-
   const statusChartData = [
     { name: 'Đã khớp', value: summary.matched, color: '#14b8a6' },
     { name: 'Cần xem', value: summary.review, color: '#f59e0b' },
@@ -380,30 +353,6 @@ export default function AccountantOverview({ token, role }) {
     { name: 'Lệch', value: summary.mismatch, fill: '#fb7185' },
     { name: 'Từ chối', value: summary.rejected, fill: '#e11d48' },
   ];
-
-  const reviewBatches = useMemo(() => (
-    summary.readyBatches.filter((batch) => ['mismatch', 'missing'].includes(batch.status))
-  ), [summary.readyBatches]);
-  const totalReviewPages = Math.max(1, Math.ceil(reviewBatches.length / REVIEW_BATCHES_PER_PAGE));
-  const safeReviewPage = Math.min(reviewPage, totalReviewPages);
-  const reviewStartIndex = reviewBatches.length === 0
-    ? 0
-    : (safeReviewPage - 1) * REVIEW_BATCHES_PER_PAGE + 1;
-  const reviewEndIndex = Math.min(safeReviewPage * REVIEW_BATCHES_PER_PAGE, reviewBatches.length);
-  const paginatedReviewBatches = reviewBatches.slice(
-    (safeReviewPage - 1) * REVIEW_BATCHES_PER_PAGE,
-    safeReviewPage * REVIEW_BATCHES_PER_PAGE
-  );
-
-  useEffect(() => {
-    setReviewPage(1);
-  }, [activeDateRange]);
-
-  useEffect(() => {
-    if (reviewPage > totalReviewPages) {
-      setReviewPage(totalReviewPages);
-    }
-  }, [reviewPage, totalReviewPages]);
 
   const navigateToBatchFilter = (overviewFilter) => {
     const params = new URLSearchParams({ overviewFilter });
@@ -433,17 +382,9 @@ export default function AccountantOverview({ token, role }) {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tổng Quan</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {role === 'chief_accountant'
-              ? 'Theo dõi thông báo duyệt batch và các hồ sơ cần quyết định.'
-              : 'Theo dõi tình trạng xử lý chứng từ và các batch cần ưu tiên xem lại.'}
-          </p>
-        </div>
-        <div className="flex w-full flex-col items-end gap-2 self-start sm:w-auto sm:flex-row sm:items-center sm:justify-end lg:self-auto">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <div className="flex w-full flex-col items-end gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
           <NotificationBell token={token} />
           {role !== 'chief_accountant' && (
             <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-600 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
@@ -454,95 +395,54 @@ export default function AccountantOverview({ token, role }) {
       </div>
 
       {role === 'chief_accountant' && (
-        <>
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <ChiefActionCard
-              icon={ClipboardList}
-              label="Chờ duyệt"
-              value={formatDisplayNumber(summary.approved)}
-              detail="Batch kế toán viên đã duyệt, đang chờ quyết định cuối."
-              tone="brand"
-              onClick={() => navigateToChiefBatchFilter('unapproved')}
-            />
-            <ChiefActionCard
-              icon={CheckCircle2}
-              label="Đã duyệt"
-              value={formatDisplayNumber(summary.finalApproved)}
-              detail="Batch đã được kế toán trưởng duyệt cuối cùng."
-              tone="emerald"
-              onClick={() => navigateToChiefBatchFilter('approved')}
-            />
-            <ChiefActionCard
-              icon={AlertTriangle}
-              label="Từ chối"
-              value={formatDisplayNumber(summary.rejected)}
-              detail="Batch đã bị từ chối và có thể cần kế toán viên bổ sung."
-              tone="rose"
-              onClick={() => navigateToChiefBatchFilter('rejected')}
-            />
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Thông báo gần đây</h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Các batch mới cập nhật để kế toán trưởng theo dõi nhanh.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/audit-trail')}
-                className="hidden h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:inline-flex"
-              >
-                Xem tất cả
-                <ArrowRight size={14} />
-              </button>
-            </div>
-            {chiefRecentBatches.length > 0 ? (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {chiefRecentBatches.map((batch) => (
-                  <button
-                    key={batch.id}
-                    type="button"
-                    onClick={() => navigate(`/audit-trail?batchId=${batch.id}`)}
-                    className="flex w-full flex-col gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset dark:hover:bg-slate-950/40 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{batch.batch_number}</p>
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cập nhật {batch.updated_at || batch.created_at}</p>
-                    </div>
-                    <ChiefStatusPill status={batch.status} />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                Chưa có thông báo batch nào.
-              </div>
-            )}
-          </section>
-        </>
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ChiefActionCard
+            icon={ClipboardList}
+            label="Chờ duyệt"
+            value={formatDisplayNumber(summary.approved)}
+            detail="Batch kế toán viên đã duyệt, đang chờ quyết định cuối."
+            tone="brand"
+            onClick={() => navigateToChiefBatchFilter('unapproved')}
+          />
+          <ChiefActionCard
+            icon={CheckCircle2}
+            label="Đã duyệt"
+            value={formatDisplayNumber(summary.finalApproved)}
+            detail="Batch đã được kế toán trưởng duyệt cuối cùng."
+            tone="emerald"
+            onClick={() => navigateToChiefBatchFilter('approved')}
+          />
+          <ChiefActionCard
+            icon={AlertTriangle}
+            label="Từ chối"
+            value={formatDisplayNumber(summary.rejected)}
+            detail="Batch đã bị từ chối và có thể cần kế toán viên bổ sung."
+            tone="rose"
+            onClick={() => navigateToChiefBatchFilter('rejected')}
+          />
+        </section>
       )}
 
       {role !== 'chief_accountant' && (
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">
-              <CalendarDays size={18} />
+      <section className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">
+              <CalendarDays size={16} />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Khoảng thời gian</p>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Đang xem dữ liệu: {activeRangeLabel}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(190px,220px)_minmax(140px,1fr)_minmax(140px,1fr)] lg:w-auto">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(160px,190px)_minmax(120px,150px)_minmax(120px,150px)] lg:w-auto">
             <select
               value={dateFilter}
               onChange={(event) => setDateFilter(event.target.value)}
-              className="input-field h-10 rounded-md text-sm"
+              className="input-field !h-8 !min-h-8 rounded-md !px-3 !py-1 text-xs"
             >
               {DATE_FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -559,7 +459,7 @@ export default function AccountantOverview({ token, role }) {
                 setCustomStartDate(event.target.value);
               }}
               max={customEndDate || undefined}
-              className="input-field h-10 rounded-md text-sm"
+              className="input-field !h-8 !min-h-8 rounded-md !px-3 !py-1 text-xs"
               aria-label="Từ ngày"
             />
 
@@ -572,7 +472,7 @@ export default function AccountantOverview({ token, role }) {
               }}
               min={customStartDate || undefined}
               max={toDateInputValue(new Date())}
-              className="input-field h-10 rounded-md text-sm"
+              className="input-field !h-8 !min-h-8 rounded-md !px-3 !py-1 text-xs"
               aria-label="Đến ngày"
             />
           </div>
@@ -591,16 +491,16 @@ export default function AccountantOverview({ token, role }) {
       )}
 
       {role !== 'chief_accountant' && (
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-4">
+      <section className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-2">
             <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Phân bổ trạng thái</h2>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Tỷ trọng hồ sơ đã khớp, cần xem và bị từ chối.</p>
           </div>
-          <div className="h-[260px]">
+          <div className="h-[205px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={statusChartData} cx="50%" cy="50%" dataKey="value" nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={4}>
+                <Pie data={statusChartData} cx="50%" cy="50%" dataKey="value" nameKey="name" innerRadius={46} outerRadius={72} paddingAngle={4}>
                   {statusChartData.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
@@ -622,12 +522,12 @@ export default function AccountantOverview({ token, role }) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-2">
             <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Thống kê theo batch</h2>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Số lượng batch theo kết quả đối soát và quyết định của kế toán trưởng.</p>
           </div>
-          <div className="h-[320px]">
+          <div className="h-[245px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={fieldChartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -639,76 +539,6 @@ export default function AccountantOverview({ token, role }) {
             </ResponsiveContainer>
           </div>
         </div>
-      </section>
-      )}
-
-      {role !== 'chief_accountant' && (
-      <section className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Hồ sơ cần xem</h2>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            {reviewBatches.length > 0
-              ? `Hiển thị ${reviewStartIndex}-${reviewEndIndex} / ${reviewBatches.length} hồ sơ`
-              : '0 hồ sơ'}
-          </span>
-        </div>
-        {paginatedReviewBatches.length > 0 ? (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {paginatedReviewBatches.map((batch) => (
-              <button
-                key={batch.id}
-                type="button"
-                onClick={() => navigate(`/audit-trail?batchId=${batch.id}`)}
-                className="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset dark:hover:bg-slate-950/40 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{batch.batchNumber}</p>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cập nhật: {batch.updatedAt}</p>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                    {batch.matchRate}% khớp
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {batch.mismatch} lệch · {batch.missing} thiếu dữ liệu
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-            Chưa có hồ sơ nào cần xem.
-          </div>
-        )}
-        {reviewBatches.length > REVIEW_BATCHES_PER_PAGE && (
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Mỗi trang hiển thị {REVIEW_BATCHES_PER_PAGE} hồ sơ cần xem
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setReviewPage((page) => Math.max(1, page - 1))}
-                disabled={safeReviewPage === 1}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
-              >
-                Trước
-              </button>
-              <span className="min-w-[76px] text-center text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Trang {safeReviewPage}/{totalReviewPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setReviewPage((page) => Math.min(totalReviewPages, page + 1))}
-                disabled={safeReviewPage === totalReviewPages}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
-              >
-                Sau
-              </button>
-            </div>
-          </div>
-        )}
       </section>
       )}
     </div>
