@@ -211,7 +211,7 @@ jobs:
   deploy-frontend:
     name: Build and deploy frontend
     runs-on: self-hosted
-    needs: [backend, frontend]
+    needs: [frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     env:

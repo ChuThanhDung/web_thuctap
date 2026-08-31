@@ -442,6 +442,12 @@ def _offline_analysis(content: bytes, filename: str, expected_doc_type: str) -> 
     }
 
 
+def _should_use_openai_document_analysis(settings) -> bool:
+    if not settings.openai_api_key:
+        return False
+    return settings.app_env != "test"
+
+
 def analyze_uploaded_document(
     content: bytes,
     filename: str,
@@ -454,7 +460,7 @@ def analyze_uploaded_document(
     validate_readable_upload(content, filename, content_type)
     image_quality = _analyze_image_quality(content, filename, content_type)
 
-    if settings.openai_api_key:
+    if _should_use_openai_document_analysis(settings):
         try:
             raw_response = _run_openai_analysis(content, filename, content_type, expected_doc_type)
         except Exception as exc:
