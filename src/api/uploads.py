@@ -373,7 +373,10 @@ def save_invoice_file_to_archive(content: bytes, filename: str) -> str:
     target_path = INVOICE_ARCHIVE_ROOT / stored_filename
     target_path.write_bytes(content)
 
-    return target_path.relative_to(PROJECT_ROOT).as_posix()
+    try:
+        return target_path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return target_path.as_posix()
 
 
 def guess_inline_content_type(filename: str, provided_content_type: str | None = None) -> str:
