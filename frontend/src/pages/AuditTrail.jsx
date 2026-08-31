@@ -1001,6 +1001,12 @@ function aggregateExtractedData(files, docType) {
   };
 }
 
+function getBatchSupplierName(docs) {
+  return DOC_TYPES
+    .map((type) => docs[type.key]?.extractedData?.supplier_name || docs[type.key]?.fields?.['Nhà cung cấp'])
+    .find((value) => value && value !== '-') || '';
+}
+
 function mapApiBatchToAuditBatch(batch) {
   const docs = getEmptyDocs();
   const docList = { po: [], invoice: [], grn: [] };
@@ -1046,6 +1052,7 @@ function mapApiBatchToAuditBatch(batch) {
   const comparisons = buildComparisons(docs);
   const lineItems = buildLineItems(docs);
   const summary = calculateMatchSummary(docs);
+  const supplierName = getBatchSupplierName(docs);
   const missingDataFields = missingCount + summary.warningFields;
   const isApproved = batch.status === 'approved';
   const isFinalApproved = batch.status === 'final_approved';
@@ -1075,6 +1082,7 @@ function mapApiBatchToAuditBatch(batch) {
     isReady: isApiBatchReady(batch),
     updatedAt: batch.updated_at || batch.created_at,
     owner: batch.created_by_name || 'Hệ thống AI',
+    supplierName,
     approvedBy: batch.approved_by_name || null,
     chiefApprovedBy: batch.chief_approved_by_name || null,
     matchRate: summary.matchRate,
@@ -1255,9 +1263,8 @@ export default function AuditTrail({ token, role }) {
       const haystack = [
         batch.batchNumber,
         batch.note,
-        batch.rejectionNote,
         batch.owner,
-        ...DOC_TYPES.map((type) => batch.docs[type.key]?.filename || ''),
+        batch.supplierName,
       ].join(' ').toLowerCase();
 
       return matchesStatus && matchesOverviewGroup && matchesDateRange && (!normalizedQuery || haystack.includes(normalizedQuery));
@@ -1445,7 +1452,7 @@ export default function AuditTrail({ token, role }) {
               type="text"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Tìm theo mã batch, note, người xử lý, tên file..."
+              placeholder="Tìm theo tên batch, note, người tạo, nhà cung cấp..."
               className="input-field pl-9"
             />
             {searchQuery && (

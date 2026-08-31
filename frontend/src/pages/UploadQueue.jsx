@@ -796,31 +796,15 @@ export default function UploadQueue({ token }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Tải lên & Xử lý chứng từ</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Tải lên đơn đặt hàng PO, hóa đơn (.xml, .pdf, .png) hoặc phiếu nhập kho GRN để AI tự động bóc tách và đối soát.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => initializeUploadWorkspace({ force: true })}
-            disabled={!uploadWorkspaceReady && !uploadWorkspaceError}
-            className="btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw size={13} />
-            Làm mới
-          </button>
           <button
             type="button"
             onClick={handleCreateBatch}
             disabled={!uploadWorkspaceReady}
-            className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary inline-flex !min-h-9 items-center gap-1.5 !px-3 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Plus size={14} />
+            <Plus size={13} />
             Tạo bộ mới
           </button>
         </div>
