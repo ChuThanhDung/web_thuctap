@@ -63,6 +63,7 @@ REQUIRED_DOC_TYPES = ["po", "invoice", "grn"]
 DUPLICATE_UPLOAD_MESSAGE = "File này đã được tải lên trong bộ chứng từ hiện tại. Vui lòng kiểm tra lại."
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_STORAGE_ROOT = PROJECT_ROOT / "storage" / "upload"
+INVOICE_ARCHIVE_ROOT = PROJECT_ROOT / "invoice"
 INLINE_CONTENT_TYPES_BY_EXT = {
     "pdf": "application/pdf",
     "xml": "application/xml; charset=utf-8",
@@ -358,6 +359,18 @@ def save_uploaded_file_to_local_storage(content: bytes, filename: str, selected_
     target_dir.mkdir(parents=True, exist_ok=True)
     stored_filename = build_sequential_stored_filename(target_dir, selected_doc_type, file_ext)
     target_path = target_dir / stored_filename
+    target_path.write_bytes(content)
+
+    return target_path.relative_to(PROJECT_ROOT).as_posix()
+
+
+def save_invoice_file_to_archive(content: bytes, filename: str) -> str:
+    original_filename = os.path.basename(filename)
+    file_ext = Path(original_filename).suffix.lower().lstrip(".")
+
+    INVOICE_ARCHIVE_ROOT.mkdir(parents=True, exist_ok=True)
+    stored_filename = build_sequential_stored_filename(INVOICE_ARCHIVE_ROOT, "invoice", file_ext)
+    target_path = INVOICE_ARCHIVE_ROOT / stored_filename
     target_path.write_bytes(content)
 
     return target_path.relative_to(PROJECT_ROOT).as_posix()
@@ -1454,10 +1467,13 @@ async def upload_document(
 
     try:
         storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type)
+        invoice_archive_key = None
+        if selected_doc_type == "invoice":
+            invoice_archive_key = save_invoice_file_to_archive(content, filename)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Upload file len cloud storage that bai: {exc}",
+            detail=f"Luu file chung tu that bai: {exc}",
         ) from exc
 
     db_upload = UploadedFile(
@@ -1488,6 +1504,7 @@ async def upload_document(
             "batch_id": batch.id,
             "batch_number": batch.batch_number,
             "storage_key": db_upload.storage_key,
+            "invoice_archive_key": invoice_archive_key,
             "storage_provider": get_settings().storage_provider,
             "supplemental_rejected_batch_upload": is_supplemental_rejected_upload,
             "note": "File uploaded and linked to a document batch.",
