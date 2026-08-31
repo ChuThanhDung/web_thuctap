@@ -8,6 +8,7 @@ from fastapi import Depends
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+import src.api.uploads as uploads_api
 from src.api.auth import get_current_user
 from src.api.uploads import PROJECT_ROOT, build_cloud_storage_key
 from src.config import get_settings
@@ -123,6 +124,23 @@ async def test_upload_valid_invoice(client):
     assert data["storage_key"].startswith("storage/upload/invoice/")
     assert data["file_url"] == f"/api/v1/uploads/{data['id']}/file"
     assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+
+
+@pytest.mark.asyncio
+async def test_upload_valid_invoice_archives_copy_to_backend_invoice_folder(client, tmp_path, monkeypatch):
+    archive_root = tmp_path / "invoice"
+    monkeypatch.setattr(uploads_api, "INVOICE_ARCHIVE_ROOT", archive_root)
+    xml_content = b"<Invoice><InvoiceNumber>INV-ARCHIVE-1</InvoiceNumber></Invoice>"
+
+    response = await client.post(
+        "/api/v1/uploads",
+        files={"file": ("INV_ARCHIVE_1.xml", xml_content, "text/xml")},
+    )
+
+    assert response.status_code == 200
+    archived_files = list(archive_root.glob("invoice_*.xml"))
+    assert len(archived_files) == 1
+    assert archived_files[0].read_bytes() == xml_content
 
 
 @pytest.mark.asyncio
