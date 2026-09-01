@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from src.models.reconciliation import Threshold
 
 
-def get_threshold_by_category(db: Session, keywords: tuple[str, ...], default: tuple[str, str]) -> tuple[Decimal, Decimal]:
+def get_threshold_by_category(
+    db: Session, keywords: tuple[str, ...], default: tuple[str, str]
+) -> tuple[Decimal, Decimal]:
     try:
         thresholds = db.scalars(select(Threshold)).all()
         for threshold in thresholds:
@@ -45,15 +47,21 @@ def normalize_item_sku(value: Any) -> str:
 
 def find_matching_item(source_item: dict[str, Any] | str, candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
     if isinstance(source_item, dict):
-        source_sku = normalize_item_sku(source_item.get("sku") or source_item.get("item_sku") or source_item.get("code"))
-        source_name = normalize_item_text(source_item.get("item_name") or source_item.get("name") or source_item.get("description"))
+        source_sku = normalize_item_sku(
+            source_item.get("sku") or source_item.get("item_sku") or source_item.get("code")
+        )
+        source_name = normalize_item_text(
+            source_item.get("item_name") or source_item.get("name") or source_item.get("description")
+        )
     else:
         source_sku = ""
         source_name = normalize_item_text(source_item)
 
     if source_sku:
         for candidate in candidates:
-            candidate_sku = normalize_item_sku(candidate.get("sku") or candidate.get("item_sku") or candidate.get("code"))
+            candidate_sku = normalize_item_sku(
+                candidate.get("sku") or candidate.get("item_sku") or candidate.get("code")
+            )
             if candidate_sku and candidate_sku == source_sku:
                 return candidate
 
@@ -61,8 +69,12 @@ def find_matching_item(source_item: dict[str, Any] | str, candidates: list[dict[
         return None
 
     for candidate in candidates:
-        candidate_name = normalize_item_text(candidate.get("item_name") or candidate.get("name") or candidate.get("description"))
-        if candidate_name and (candidate_name == source_name or candidate_name in source_name or source_name in candidate_name):
+        candidate_name = normalize_item_text(
+            candidate.get("item_name") or candidate.get("name") or candidate.get("description")
+        )
+        if candidate_name and (
+            candidate_name == source_name or candidate_name in source_name or source_name in candidate_name
+        ):
             return candidate
     return None
 
@@ -457,8 +469,7 @@ def reconcile_documents(
         ai_recommendation = "Hồ sơ khớp 100%, chuyển kế toán viên duyệt trước khi thanh toán."
         if grn_tax_adjusted:
             ai_note = (
-                f"Khớp 3 bên thành công. GRN không thể hiện thuế nên đã cộng VAT "
-                f"{grn_tax_rate}% khi so khớp tổng tiền."
+                f"Khớp 3 bên thành công. GRN không thể hiện thuế nên đã cộng VAT {grn_tax_rate}% khi so khớp tổng tiền."
             )
         else:
             ai_note = "Khớp 3 bên thành công."

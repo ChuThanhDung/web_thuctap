@@ -46,9 +46,7 @@ def get_employee_code_prefix(role_code: str) -> str:
 
 def build_next_employee_code(db: Session, role_code: str) -> str:
     prefix = get_employee_code_prefix(role_code)
-    existing_codes = db.scalars(
-        select(User.employee_code).where(User.employee_code.like(f"{prefix}%"))
-    ).all()
+    existing_codes = db.scalars(select(User.employee_code).where(User.employee_code.like(f"{prefix}%"))).all()
     next_index = 1
     for code in existing_codes:
         if not code:
@@ -151,12 +149,15 @@ def initiate_password_change(
                 retry_after=retry_after,
             )
 
-    request_count = db.scalar(
-        select(func.count(PasswordResetOtp.id)).where(
-            PasswordResetOtp.user_id == user.id,
-            PasswordResetOtp.created_at >= window_start,
+    request_count = (
+        db.scalar(
+            select(func.count(PasswordResetOtp.id)).where(
+                PasswordResetOtp.user_id == user.id,
+                PasswordResetOtp.created_at >= window_start,
+            )
         )
-    ) or 0
+        or 0
+    )
     if request_count >= settings.password_otp_max_requests:
         raise PasswordChangeError(
             f"Bạn đã yêu cầu OTP quá nhiều lần. Vui lòng thử lại sau {settings.password_otp_request_window_minutes} phút.",

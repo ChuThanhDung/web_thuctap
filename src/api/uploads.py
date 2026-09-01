@@ -131,12 +131,7 @@ def get_active_batch_files(batch: DocumentBatch, db: Session | None = None) -> l
     if not batch:
         return []
     if db is not None and batch.id is not None:
-        uploads = (
-            db.query(UploadedFile)
-            .filter(UploadedFile.batch_id == batch.id)
-            .order_by(UploadedFile.id.asc())
-            .all()
-        )
+        uploads = db.query(UploadedFile).filter(UploadedFile.batch_id == batch.id).order_by(UploadedFile.id.asc()).all()
     else:
         uploads = list(batch.files or [])
     if not uploads:
@@ -653,8 +648,12 @@ def aggregate_line_items(line_items: list[dict]) -> list[dict]:
         current_amount = to_decimal_or_none(current.get("amount"))
         if current_amount is not None or amount is not None:
             current["amount"] = (current_amount or Decimal("0")) + (amount or Decimal("0"))
-        current["_weighted_price_amount"] = current.get("_weighted_price_amount", Decimal("0")) + (amount or Decimal("0"))
-        current["_weighted_price_qty"] = current.get("_weighted_price_qty", Decimal("0")) + (qty if amount is not None else Decimal("0"))
+        current["_weighted_price_amount"] = current.get("_weighted_price_amount", Decimal("0")) + (
+            amount or Decimal("0")
+        )
+        current["_weighted_price_qty"] = current.get("_weighted_price_qty", Decimal("0")) + (
+            qty if amount is not None else Decimal("0")
+        )
 
     aggregated = list(grouped.values()) + passthrough
     for idx, item in enumerate(aggregated, 1):
@@ -699,7 +698,9 @@ def aggregate_extracted_documents(doc_type: str, uploads: list[UploadedFile]) ->
         "supplier_tax_id": None,
         "buyer_name": None,
         "total_amount": total_amount if has_total_amount else None,
-        "vat_rate_pct": next((doc.get("vat_rate_pct") for doc in normalized_docs if doc.get("vat_rate_pct") not in (None, "")), None),
+        "vat_rate_pct": next(
+            (doc.get("vat_rate_pct") for doc in normalized_docs if doc.get("vat_rate_pct") not in (None, "")), None
+        ),
         "line_items": aggregate_line_items(line_items),
     }
     for key in ("supplier_name", "supplier_tax_id", "buyer_name"):
@@ -826,8 +827,7 @@ def find_batch_reconciliation_case(db: Session, batch: DocumentBatch) -> Reconci
         return None
 
     extracted_docs = {
-        doc_type: aggregate_extracted_documents(doc_type, uploads_by_type[doc_type])
-        for doc_type in REQUIRED_DOC_TYPES
+        doc_type: aggregate_extracted_documents(doc_type, uploads_by_type[doc_type]) for doc_type in REQUIRED_DOC_TYPES
     }
     return find_existing_reconciliation_case(
         db,
@@ -873,7 +873,8 @@ def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> Do
     pending_extraction_doc_types = [
         doc_type
         for doc_type in REQUIRED_DOC_TYPES
-        if doc_type in uploaded_doc_types and any(f.doc_type == doc_type and f.status in ("processing", "queued") for f in files)
+        if doc_type in uploaded_doc_types
+        and any(f.doc_type == doc_type and f.status in ("processing", "queued") for f in files)
     ]
 
     history_list: list[DocumentBatchHistoryOut] = []
@@ -1081,8 +1082,7 @@ async def final_approve_upload_batch(
     # Chỉ kế toán trưởng mới được duyệt final
     if current_user.role.code != "chief_accountant":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ kế toán trưởng mới có quyền duyệt cuối cùng."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Chỉ kế toán trưởng mới có quyền duyệt cuối cùng."
         )
 
     batch = db.get(DocumentBatch, batch_id)
@@ -1098,8 +1098,7 @@ async def final_approve_upload_batch(
     # Batch phải ở trạng thái approved (đã qua kế toán viên duyệt)
     if batch.status not in ["approved", "final_approved"]:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Chỉ có thể duyệt batch đã được kế toán viên duyệt."
+            status_code=status.HTTP_409_CONFLICT, detail="Chỉ có thể duyệt batch đã được kế toán viên duyệt."
         )
 
     # Nếu đã duyệt rồi thì trả về luôn
@@ -1144,8 +1143,7 @@ async def reject_upload_batch(
     # Chỉ kế toán trưởng mới được từ chối
     if current_user.role.code != "chief_accountant":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ kế toán trưởng mới có quyền từ chối batch."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Chỉ kế toán trưởng mới có quyền từ chối batch."
         )
 
     batch = db.get(DocumentBatch, batch_id)
@@ -1155,8 +1153,7 @@ async def reject_upload_batch(
     # Batch phải đã được kế toán viên duyệt trước
     if batch.status != "approved":
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Chỉ có thể từ chối batch đã được kế toán viên duyệt."
+            status_code=status.HTTP_409_CONFLICT, detail="Chỉ có thể từ chối batch đã được kế toán viên duyệt."
         )
 
     # Nếu đã từ chối rồi thì trả về luôn
@@ -1255,12 +1252,7 @@ async def delete_upload_batch(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
     require_batch_access(current_user, batch)
 
-    has_uploaded_files = (
-        db.query(UploadedFile.id)
-        .filter(UploadedFile.batch_id == batch.id)
-        .first()
-        is not None
-    )
+    has_uploaded_files = db.query(UploadedFile.id).filter(UploadedFile.batch_id == batch.id).first() is not None
     if has_uploaded_files:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -1462,8 +1454,7 @@ async def upload_document(
         if ai_analysis.status != "low_quality":
             ai_analysis.status = "validated"
         ai_analysis.validation_message = (
-            ai_analysis.validation_message
-            or "He thong da tu nhan dien va gan chung tu vao dung o."
+            ai_analysis.validation_message or "He thong da tu nhan dien va gan chung tu vao dung o."
         )
     else:
         selected_doc_type = requested_doc_type

@@ -42,13 +42,16 @@ async def list_notifications(
         .order_by(Notification.created_at.desc(), Notification.id.desc())
         .limit(limit)
     ).all()
-    unread_count = db.scalar(
-        select(func.count(Notification.id)).where(
-            Notification.recipient_id == current_user.id,
-            Notification.read_at.is_(None),
-            Notification.created_at >= cutoff,
+    unread_count = (
+        db.scalar(
+            select(func.count(Notification.id)).where(
+                Notification.recipient_id == current_user.id,
+                Notification.read_at.is_(None),
+                Notification.created_at >= cutoff,
+            )
         )
-    ) or 0
+        or 0
+    )
     return NotificationListResponse(
         items=[to_notification_out(item) for item in items],
         unread_count=unread_count,
@@ -112,13 +115,16 @@ async def notification_websocket(websocket: WebSocket) -> None:
                 return
             user_id = user.id
             cutoff = notification_visibility_cutoff()
-            unread_count = db.scalar(
-                select(func.count(Notification.id)).where(
-                    Notification.recipient_id == user_id,
-                    Notification.read_at.is_(None),
-                    Notification.created_at >= cutoff,
+            unread_count = (
+                db.scalar(
+                    select(func.count(Notification.id)).where(
+                        Notification.recipient_id == user_id,
+                        Notification.read_at.is_(None),
+                        Notification.created_at >= cutoff,
+                    )
                 )
-            ) or 0
+                or 0
+            )
 
         notification_manager.connect(user_id, websocket)
         await websocket.send_json({"event": "connected", "unread_count": unread_count})

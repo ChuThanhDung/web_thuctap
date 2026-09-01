@@ -183,3 +183,68 @@ textarea {
 .dropzone-active {
   @apply border-brand-500 bg-brand-50;
 }
+
+/* ── Print Styles ── */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    font-size: 10.5pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 1. Hide ALL background elements on the page */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* 2. Make ONLY the printable report area visible */
+  #printable-report,
+  #printable-report * {
+    visibility: visible !important;
+  }
+
+  /* 3. Position the printable report sheet at the top of the A4 page */
+  #printable-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    transform: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}
+
