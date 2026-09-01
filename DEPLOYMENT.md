@@ -36,6 +36,35 @@ APP_FRONTEND_URL=https://docusyncai-frontend.vercel.app
 
 Nếu dùng domain frontend khác, thay bằng domain thật để nút "Mở batch bị từ chối" trong email trỏ đúng website.
 
+### Kiểm tra email reject batch trên server
+
+Nếu local gửi email được nhưng server không nhận mail khi kế toán trưởng từ chối batch, kiểm tra các biến môi trường trên backend server:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=<gmail gửi mail>
+SMTP_PASSWORD=<gmail app password>
+SMTP_FROM=<gmail gửi mail>
+SMTP_TLS=true
+APP_FRONTEND_URL=<domain frontend production>
+```
+
+Chạy script chẩn đoán ngay trong môi trường server/backend:
+
+```bash
+python scripts/check_smtp_email.py
+python scripts/check_smtp_email.py --to accountant@example.com
+```
+
+Kết quả cần chú ý:
+
+- `is_smtp_configured: False`: server thiếu `SMTP_USER` hoặc `SMTP_PASSWORD`.
+- `TCP connect` lỗi: server không mở được kết nối tới SMTP host/port, thường do firewall hoặc hosting chặn SMTP outbound.
+- `Test email sent: False`: đã kết nối được nhưng SMTP login/send bị từ chối; kiểm tra Gmail app password, `SMTP_USER`, `SMTP_FROM` và bảo mật tài khoản gửi.
+
+Trong Nhật ký thao tác, action `DOCUMENT_BATCH_REJECTED` có `notification_email_status` để biết email đã được queue hay bị bỏ qua vì thiếu cấu hình.
+
 ## 3. Chạy frontend local
 
 ```powershell

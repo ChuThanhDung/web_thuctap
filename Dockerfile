@@ -22,6 +22,7 @@ ENV PYTHONUNBUFFERED=1
 COPY --from=builder /opt/venv /opt/venv
 COPY src ./src
 COPY raw_data ./raw_data
+COPY scripts ./scripts
 
 RUN useradd -m appuser && chown -R appuser:appuser /app /opt/venv
 USER appuser

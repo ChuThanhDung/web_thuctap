@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  CalendarDays,
   Printer,
   X,
   FileCheck2,
@@ -9,6 +10,239 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { repairVietnameseText } from '../text.js';
+
+const PERIOD_OPTIONS = [
+  { value: 'current', label: 'Dữ liệu đang lọc' },
+  { value: 'month', label: 'Theo tháng' },
+  { value: 'quarter', label: 'Theo quý' },
+  { value: 'year', label: 'Theo năm' },
+  { value: 'custom', label: 'Tùy chọn ngày' },
+];
+
+function toDateInputValue(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function startOfDay(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function endOfDay(date) {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
+function parseReportDate(value) {
+  if (!value) return null;
+  const normalized = typeof value === 'string' ? value.replace(' ', 'T') : value;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseDateInput(value, boundary = 'start') {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return boundary === 'end' ? endOfDay(date) : startOfDay(date);
+}
+
+function getBatchReportDate(batch) {
+  return parseReportDate(batch?.updatedAt || batch?.createdAt || batch?.created_at);
+}
+
+function isWithinRange(batch, range) {
+  if (!range?.start && !range?.end) return true;
+  const date = getBatchReportDate(batch);
+  if (!date) return false;
+  if (range.start && date < range.start) return false;
+  if (range.end && date > range.end) return false;
+  return true;
+}
+
+function formatShortDate(date) {
+  if (!date) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
+function getRangeLabel(range) {
+  if (!range?.start && !range?.end) return 'Tất cả dữ liệu đang lọc';
+  const start = range.start ? formatShortDate(range.start) : 'đầu dữ liệu';
+  const end = range.end ? formatShortDate(range.end) : 'hiện tại';
+  return `${start} - ${end}`;
+}
+
+function getQuarterLabel(quarterValue) {
+  const [year, quarter] = quarterValue.split('-Q');
+  if (!year || !quarter) return 'Quý hiện tại';
+  return `Quý ${quarter}/${year}`;
+}
+
+function getPeriodRange(periodType, values) {
+  if (periodType === 'month') {
+    const [year, month] = values.month.split('-').map(Number);
+    if (!year || !month) return { start: null, end: null };
+    return {
+      start: new Date(year, month - 1, 1),
+      end: endOfDay(new Date(year, month, 0)),
+    };
+  }
+
+  if (periodType === 'quarter') {
+    const [yearRaw, quarterRaw] = values.quarter.split('-Q');
+    const year = Number(yearRaw);
+    const quarter = Number(quarterRaw);
+    if (!year || !quarter) return { start: null, end: null };
+    const startMonth = (quarter - 1) * 3;
+    return {
+      start: new Date(year, startMonth, 1),
+      end: endOfDay(new Date(year, startMonth + 3, 0)),
+    };
+  }
+
+  if (periodType === 'year') {
+    const year = Number(values.year);
+    if (!year) return { start: null, end: null };
+    return {
+      start: new Date(year, 0, 1),
+      end: endOfDay(new Date(year, 11, 31)),
+    };
+  }
+
+  if (periodType === 'custom') {
+    return {
+      start: parseDateInput(values.customStart, 'start'),
+      end: parseDateInput(values.customEnd, 'end'),
+    };
+  }
+
+  return { start: null, end: null };
+}
+
+function getMonthLabel(monthValue) {
+  const [year, month] = monthValue.split('-');
+  if (!year || !month) return 'Tháng hiện tại';
+  return `Tháng ${month}/${year}`;
+}
+
+function getInitialQuarter(date = new Date()) {
+  const quarter = Math.floor(date.getMonth() / 3) + 1;
+  return `${date.getFullYear()}-Q${quarter}`;
+}
+
+function getYearOptions(batches) {
+  const years = new Set([new Date().getFullYear()]);
+  batches.forEach((batch) => {
+    const date = getBatchReportDate(batch);
+    if (date) years.add(date.getFullYear());
+  });
+  return Array.from(years).sort((a, b) => b - a);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getDocInfo(batch, key) {
+  const doc = batch.docs?.[key];
+  if (!doc || doc.missing) return { label: 'Chưa có', present: false };
+  return { label: doc.filename || 'Có', present: true };
+}
+
+function getSupplierName(batch) {
+  const poDoc = batch.docs?.po;
+  const invDoc = batch.docs?.invoice;
+  return (
+    batch.supplierName ||
+    invDoc?.extractedData?.supplier_name ||
+    invDoc?.fields?.['Nhà cung cấp'] ||
+    poDoc?.extractedData?.supplier_name ||
+    poDoc?.fields?.['Nhà cung cấp'] ||
+    '-'
+  );
+}
+
+function buildReportSummary(batches) {
+  const total = batches.length;
+  const matched = batches.filter((batch) => batch.status === 'matched').length;
+  const approved = batches.filter((batch) => batch.status === 'approved' || batch.status === 'final_approved').length;
+  const rejected = batches.filter((batch) => batch.status === 'rejected').length;
+  const mismatch = batches.filter((batch) => batch.status === 'mismatch').length;
+  const missing = batches.filter((batch) => batch.status === 'missing').length;
+  const needsAction = batches.filter((batch) => ['mismatch', 'missing', 'rejected'].includes(batch.status)).length;
+  const avgMatchRate = total
+    ? Math.round(batches.reduce((acc, batch) => acc + (Number(batch.matchRate) || 0), 0) / total)
+    : 0;
+  const missingFields = batches.reduce((acc, batch) => acc + (Number(batch.missingFields) || 0), 0);
+  const mismatchFields = batches.reduce((acc, batch) => acc + (Number(batch.mismatchFields) || 0), 0);
+
+  return {
+    total,
+    matched,
+    approved,
+    rejected,
+    mismatch,
+    missing,
+    needsAction,
+    avgMatchRate,
+    missingFields,
+    mismatchFields,
+  };
+}
+
+function buildIssueStats(batches) {
+  const counts = new Map();
+  batches.forEach((batch) => {
+    const issues = batch.issues?.length
+      ? batch.issues
+      : batch.status === 'missing'
+        ? ['Thiếu chứng từ hoặc thiếu dữ liệu trích xuất']
+        : [];
+
+    issues.forEach((issue) => {
+      const label = repairVietnameseText(String(issue).split(':')[0] || issue);
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+  });
+
+  return Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+}
+
+function buildSupplierStats(batches) {
+  const stats = new Map();
+  batches.forEach((batch) => {
+    const supplier = repairVietnameseText(getSupplierName(batch));
+    const current = stats.get(supplier) || { supplier, total: 0, matched: 0, needsAction: 0, avg: 0 };
+    current.total += 1;
+    current.avg += Number(batch.matchRate) || 0;
+    if (['matched', 'approved', 'final_approved'].includes(batch.status)) current.matched += 1;
+    if (['mismatch', 'missing', 'rejected'].includes(batch.status)) current.needsAction += 1;
+    stats.set(supplier, current);
+  });
+
+  return Array.from(stats.values())
+    .map((item) => ({ ...item, avg: item.total ? Math.round(item.avg / item.total) : 0 }))
+    .sort((a, b) => b.needsAction - a.needsAction || b.total - a.total)
+    .slice(0, 8);
+}
 
 function formatReportDate(date = new Date()) {
   const d = new Date(date);
@@ -53,25 +287,27 @@ function generatePrintHTML({
   batches,
   summary,
   overviewFilterLabel,
+  periodLabel,
   accountantName,
   timeStr,
   dateStr,
-  avgMatchRate,
   totalBatches,
+  issueStats,
+  supplierStats,
 }) {
   const tableRows = batches.map((batch, index) => {
-    const poDoc = batch.docs?.po;
-    const invDoc = batch.docs?.invoice;
-    const grnDoc = batch.docs?.grn;
-    const supplier = invDoc?.extractedData?.supplier_name || poDoc?.extractedData?.supplier_name || '-';
+    const poDoc = getDocInfo(batch, 'po');
+    const invDoc = getDocInfo(batch, 'invoice');
+    const grnDoc = getDocInfo(batch, 'grn');
+    const supplier = getSupplierName(batch);
     const docsPresent = [
-      !poDoc?.missing ? 'PO' : null,
-      !invDoc?.missing ? 'Inv' : null,
-      !grnDoc?.missing ? 'GRN' : null,
+      poDoc.present ? 'PO' : null,
+      invDoc.present ? 'Inv' : null,
+      grnDoc.present ? 'GRN' : null,
     ].filter(Boolean).join(' · ') || 'Chưa đủ';
     const statusMeta = getStatusBadgeText(batch.status);
     const issuesHtml = batch.issues && batch.issues.length > 0
-      ? `<ul style="margin: 0; padding-left: 14px; color: #dc2626; font-size: 10px;">${batch.issues.map((i) => `<li>${repairVietnameseText(i)}</li>`).join('')}</ul>`
+      ? `<ul style="margin: 0; padding-left: 14px; color: #dc2626; font-size: 10px;">${batch.issues.map((i) => `<li>${escapeHtml(repairVietnameseText(i))}</li>`).join('')}</ul>`
       : batch.status === 'matched'
         ? `<span style="color: #16a34a; font-size: 10px;">Khớp 100% các trường</span>`
         : batch.status === 'missing'
@@ -81,17 +317,36 @@ function generatePrintHTML({
     return `
       <tr style="page-break-inside: avoid;">
         <td style="padding: 5px 6px; text-align: center; border: 1px solid #cbd5e1; font-weight: 500;">${index + 1}</td>
-        <td style="padding: 5px 6px; border: 1px solid #cbd5e1; font-weight: bold; white-space: nowrap;">${batch.batchNumber}</td>
-        <td style="padding: 5px 6px; border: 1px solid #cbd5e1;">${repairVietnameseText(supplier)}</td>
-        <td style="padding: 5px 6px; text-align: center; border: 1px solid #cbd5e1; white-space: nowrap;">${docsPresent}</td>
+        <td style="padding: 5px 6px; border: 1px solid #cbd5e1; font-weight: bold; white-space: nowrap;">${escapeHtml(batch.batchNumber)}</td>
+        <td style="padding: 5px 6px; border: 1px solid #cbd5e1;">${escapeHtml(repairVietnameseText(supplier))}</td>
+        <td style="padding: 5px 6px; text-align: center; border: 1px solid #cbd5e1; white-space: nowrap;">${escapeHtml(docsPresent)}</td>
         <td style="padding: 5px 6px; text-align: right; border: 1px solid #cbd5e1; font-weight: bold;">${batch.matchRate}%</td>
         <td style="padding: 5px 6px; text-align: center; border: 1px solid #cbd5e1; white-space: nowrap;">
-          <span style="display: inline-block; padding: 2px 5px; border-radius: 3px; font-size: 9.5px; font-weight: 600; border: 1px solid #cbd5e1;">${statusMeta.label}</span>
+          <span style="display: inline-block; padding: 2px 5px; border-radius: 3px; font-size: 9.5px; font-weight: 600; border: 1px solid #cbd5e1;">${escapeHtml(statusMeta.label)}</span>
         </td>
         <td style="padding: 5px 6px; border: 1px solid #cbd5e1;">${issuesHtml}</td>
       </tr>
     `;
   }).join('');
+
+  const issueRows = issueStats.map((item, index) => `
+    <tr>
+      <td style="padding: 5px 6px; text-align: center; border: 1px solid #cbd5e1;">${index + 1}</td>
+      <td style="padding: 5px 6px; border: 1px solid #cbd5e1;">${escapeHtml(item.label)}</td>
+      <td style="padding: 5px 6px; text-align: right; border: 1px solid #cbd5e1; font-weight: bold;">${item.count}</td>
+    </tr>
+  `).join('');
+
+  const supplierRows = supplierStats.map((item, index) => `
+    <tr>
+      <td style="padding: 5px 6px; text-align: center; border: 1px solid #cbd5e1;">${index + 1}</td>
+      <td style="padding: 5px 6px; border: 1px solid #cbd5e1; font-weight: bold;">${escapeHtml(item.supplier)}</td>
+      <td style="padding: 5px 6px; text-align: right; border: 1px solid #cbd5e1;">${item.total}</td>
+      <td style="padding: 5px 6px; text-align: right; border: 1px solid #cbd5e1; color: #16a34a;">${item.matched}</td>
+      <td style="padding: 5px 6px; text-align: right; border: 1px solid #cbd5e1; color: #dc2626;">${item.needsAction}</td>
+      <td style="padding: 5px 6px; text-align: right; border: 1px solid #cbd5e1; font-weight: bold;">${item.avg}%</td>
+    </tr>
+  `).join('');
 
   return `<!DOCTYPE html>
 <html lang="vi">
@@ -283,7 +538,8 @@ function generatePrintHTML({
     <div class="meta-line">
       <div>Thời điểm xuất: <strong>${timeStr}</strong></div>
       <div>Người lập biểu: <strong>${accountantName}</strong></div>
-      ${overviewFilterLabel ? `<div>Nhóm dữ liệu: <strong>${overviewFilterLabel}</strong></div>` : ''}
+      <div>Kỳ báo cáo: <strong>${escapeHtml(periodLabel)}</strong></div>
+      ${overviewFilterLabel ? `<div>Nhóm dữ liệu: <strong>${escapeHtml(overviewFilterLabel)}</strong></div>` : ''}
     </div>
   </div>
 
@@ -303,11 +559,61 @@ function generatePrintHTML({
     </div>
     <div class="summary-card">
       <div class="label">Tỉ lệ khớp TB</div>
-      <div class="val" style="color: #1d4ed8;">${avgMatchRate}%</div>
+      <div class="val" style="color: #1d4ed8;">${summary.avgMatchRate}%</div>
     </div>
   </div>
 
-  <div class="section-title">II. Chi tiết đối soát</div>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="label">Thiếu dữ liệu</div>
+      <div class="val" style="color: #d97706;">${summary.missing || 0}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Đã duyệt</div>
+      <div class="val" style="color: #2563eb;">${summary.approved || 0}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Cần xử lý</div>
+      <div class="val" style="color: #dc2626;">${summary.needsAction || 0}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Trường lệch / thiếu</div>
+      <div class="val" style="color: #0f172a;">${summary.mismatchFields || 0}/${summary.missingFields || 0}</div>
+    </div>
+  </div>
+
+  <div class="section-title">II. Lỗi đối soát nổi bật</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">STT</th>
+        <th>Nhóm lỗi</th>
+        <th style="width: 80px; text-align: right;">Số batch</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${issueRows || '<tr><td colspan="3" style="text-align: center; padding: 14px; color: #64748b;">Không phát sinh lỗi trong phạm vi báo cáo.</td></tr>'}
+    </tbody>
+  </table>
+
+  <div class="section-title">III. Tổng hợp theo nhà cung cấp</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35px; text-align: center;">STT</th>
+        <th>Nhà cung cấp</th>
+        <th style="width: 60px; text-align: right;">Batch</th>
+        <th style="width: 70px; text-align: right;">Khớp</th>
+        <th style="width: 70px; text-align: right;">Cần xử lý</th>
+        <th style="width: 70px; text-align: right;">Match TB</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${supplierRows || '<tr><td colspan="6" style="text-align: center; padding: 14px; color: #64748b;">Không có dữ liệu nhà cung cấp.</td></tr>'}
+    </tbody>
+  </table>
+
+  <div class="section-title">IV. Chi tiết đối soát</div>
   <table>
     <thead>
       <tr style="text-align: center;">
@@ -352,22 +658,22 @@ function exportBatchesToCSV(batches, filename) {
     'Mã Batch',
     'Ngày cập nhật',
     'Nhà cung cấp',
+    'Người tạo / xử lý',
     'PO',
     'Invoice',
     'GRN',
     'Tỷ lệ khớp (%)',
     'Trạng thái',
+    'Số trường lệch',
+    'Số trường thiếu dữ liệu',
     'Ghi chú / Sai lệch',
   ];
 
   const rows = batches.map((batch, index) => {
-    const poDoc = batch.docs?.po;
-    const invDoc = batch.docs?.invoice;
-    const grnDoc = batch.docs?.grn;
-    const supplier = invDoc?.extractedData?.supplier_name || poDoc?.extractedData?.supplier_name || '-';
-    const poStatus = !poDoc?.missing ? (poDoc?.filename || 'Có') : 'Chưa có';
-    const invStatus = !invDoc?.missing ? (invDoc?.filename || 'Có') : 'Chưa có';
-    const grnStatus = !grnDoc?.missing ? (grnDoc?.filename || 'Có') : 'Chưa có';
+    const poStatus = getDocInfo(batch, 'po').label;
+    const invStatus = getDocInfo(batch, 'invoice').label;
+    const grnStatus = getDocInfo(batch, 'grn').label;
+    const supplier = getSupplierName(batch);
     const statusLabel = getStatusBadgeText(batch.status).label;
     const issues = (batch.issues || []).join('; ') || (batch.status === 'matched' ? 'Khớp 100%' : '-');
 
@@ -376,11 +682,14 @@ function exportBatchesToCSV(batches, filename) {
       `"${batch.batchNumber || ''}"`,
       `"${batch.updatedAt || ''}"`,
       `"${supplier.replace(/"/g, '""')}"`,
+      `"${(batch.owner || '').replace(/"/g, '""')}"`,
       `"${poStatus.replace(/"/g, '""')}"`,
       `"${invStatus.replace(/"/g, '""')}"`,
       `"${grnStatus.replace(/"/g, '""')}"`,
       batch.matchRate || 0,
       `"${statusLabel}"`,
+      batch.mismatchFields || 0,
+      batch.missingFields || 0,
       `"${issues.replace(/"/g, '""')}"`,
     ];
   });
@@ -407,27 +716,53 @@ export default function ReconciliationReportModal({
   currentUser = null,
 }) {
   const [zoomScale, setZoomScale] = useState(1);
+  const now = new Date();
+  const [periodType, setPeriodType] = useState('current');
+  const [periodValues, setPeriodValues] = useState({
+    month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+    quarter: getInitialQuarter(now),
+    year: String(now.getFullYear()),
+    customStart: overviewDateRange?.start ? toDateInputValue(overviewDateRange.start) : '',
+    customEnd: overviewDateRange?.end ? toDateInputValue(overviewDateRange.end) : '',
+  });
 
   if (!isOpen) return null;
 
   const { dateStr, timeStr, exportFileName } = formatReportDate();
-  const totalBatches = batches.length;
-  const avgMatchRate = totalBatches > 0
-    ? Math.round(batches.reduce((acc, b) => acc + (b.matchRate || 0), 0) / totalBatches)
-    : 0;
-
+  const selectedPeriodRange = periodType === 'current'
+    ? { start: null, end: null }
+    : getPeriodRange(periodType, periodValues);
+  const reportBatches = periodType === 'current'
+    ? batches
+    : batches.filter((batch) => isWithinRange(batch, selectedPeriodRange));
+  const totalBatches = reportBatches.length;
+  const reportSummary = buildReportSummary(reportBatches);
+  const issueStats = buildIssueStats(reportBatches);
+  const supplierStats = buildSupplierStats(reportBatches);
+  const periodLabel = periodType === 'current'
+    ? getRangeLabel(overviewDateRange)
+    : periodType === 'month'
+      ? getMonthLabel(periodValues.month)
+      : periodType === 'quarter'
+        ? getQuarterLabel(periodValues.quarter)
+        : periodType === 'year'
+          ? periodValues.year ? `Năm ${periodValues.year}` : 'Năm hiện tại'
+          : getRangeLabel(selectedPeriodRange);
+  const yearOptions = getYearOptions(batches);
   const accountantName = cleanPersonName(currentUser?.full_name);
 
   const handlePrint = () => {
     const reportHtml = generatePrintHTML({
-      batches,
-      summary,
+      batches: reportBatches,
+      summary: reportSummary,
       overviewFilterLabel,
+      periodLabel,
       accountantName,
       timeStr,
       dateStr,
-      avgMatchRate,
       totalBatches,
+      issueStats,
+      supplierStats,
     });
 
     const iframe = document.createElement('iframe');
@@ -456,7 +791,14 @@ export default function ReconciliationReportModal({
   };
 
   const handleExportCSV = () => {
-    exportBatchesToCSV(batches, exportFileName);
+    const safePeriod = periodLabel
+      .replace(/[^\p{L}\p{N}]+/gu, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 60);
+    const filename = safePeriod
+      ? exportFileName.replace('.csv', `_${safePeriod}.csv`)
+      : exportFileName;
+    exportBatchesToCSV(reportBatches, filename);
   };
 
   return (
@@ -477,7 +819,7 @@ export default function ReconciliationReportModal({
               Báo Cáo Tổng Hợp Đối Soát
             </h2>
             <p className="text-xs text-slate-400">
-              Tổng hợp {totalBatches} batch đối soát
+              {periodLabel} · {totalBatches} batch
             </p>
           </div>
         </div>
@@ -550,6 +892,100 @@ export default function ReconciliationReportModal({
         </div>
       </header>
 
+      <section className="w-full border-b border-slate-800 bg-slate-900/95 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-2 text-slate-300">
+            <CalendarDays size={16} className="text-brand-300" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-white">Kỳ báo cáo</p>
+              <p className="truncate text-xs text-slate-400">
+                {overviewFilterLabel ? `${overviewFilterLabel} · ` : ''}{periodLabel}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(150px,180px)_minmax(140px,170px)_minmax(120px,150px)_minmax(120px,150px)] lg:w-auto">
+            <select
+              value={periodType}
+              onChange={(event) => setPeriodType(event.target.value)}
+              className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+            >
+              {PERIOD_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            {periodType === 'month' && (
+              <input
+                type="month"
+                value={periodValues.month}
+                onChange={(event) => setPeriodValues((values) => ({ ...values, month: event.target.value }))}
+                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+              />
+            )}
+
+            {periodType === 'quarter' && (
+              <select
+                value={periodValues.quarter}
+                onChange={(event) => setPeriodValues((values) => ({ ...values, quarter: event.target.value }))}
+                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+              >
+                {yearOptions.map((year) => (
+                  [1, 2, 3, 4].map((quarter) => (
+                    <option key={`${year}-Q${quarter}`} value={`${year}-Q${quarter}`}>
+                      Quý {quarter}/{year}
+                    </option>
+                  ))
+                ))}
+              </select>
+            )}
+
+            {periodType === 'year' && (
+              <select
+                value={periodValues.year}
+                onChange={(event) => setPeriodValues((values) => ({ ...values, year: event.target.value }))}
+                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+              >
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    Năm {year}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {periodType === 'custom' && (
+              <>
+                <input
+                  type="date"
+                  value={periodValues.customStart}
+                  onChange={(event) => setPeriodValues((values) => ({ ...values, customStart: event.target.value }))}
+                  max={periodValues.customEnd || undefined}
+                  className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                  aria-label="Từ ngày"
+                />
+                <input
+                  type="date"
+                  value={periodValues.customEnd}
+                  onChange={(event) => setPeriodValues((values) => ({ ...values, customEnd: event.target.value }))}
+                  min={periodValues.customStart || undefined}
+                  className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                  aria-label="Đến ngày"
+                />
+              </>
+            )}
+
+            {periodType !== 'custom' && (
+              <div className="hidden h-9 rounded-lg border border-slate-800 bg-slate-950/40 px-3 text-xs font-semibold text-slate-400 sm:flex sm:items-center">
+                {reportBatches.length}/{batches.length} batch
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Main Preview Container with A4 Sheet Display */}
       <div className="flex-1 w-full overflow-y-auto bg-slate-300/80 p-3 sm:p-8 dark:bg-slate-950/80">
         
@@ -582,6 +1018,7 @@ export default function ReconciliationReportModal({
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs text-slate-600">
               <span>Thời điểm xuất: <strong>{timeStr}</strong></span>
               <span>Người lập biểu: <strong>{accountantName}</strong></span>
+              <span>Kỳ báo cáo: <strong>{periodLabel}</strong></span>
               {overviewFilterLabel && (
                 <span>Nhóm dữ liệu: <strong>{overviewFilterLabel}</strong></span>
               )}
@@ -602,80 +1039,185 @@ export default function ReconciliationReportModal({
               <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
                 <p className="text-[11px] font-medium text-gray-600">Khớp hoàn toàn</p>
                 <p className="mt-0.5 text-lg font-bold text-emerald-700 tabular-nums">
-                  {summary.matched || 0}
+                  {reportSummary.matched || 0}
                 </p>
               </div>
               <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
                 <p className="text-[11px] font-medium text-gray-600">Có sai lệch</p>
                 <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">
-                  {summary.mismatch || 0}
+                  {reportSummary.mismatch || 0}
                 </p>
               </div>
               <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
                 <p className="text-[11px] font-medium text-gray-600">Tỉ lệ khớp TB</p>
                 <p className="mt-0.5 text-lg font-bold text-blue-800 tabular-nums">
-                  {avgMatchRate}%
+                  {reportSummary.avgMatchRate}%
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2 grid grid-cols-4 gap-2 sm:gap-3 text-center">
+              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
+                <p className="text-[11px] font-medium text-gray-600">Thiếu dữ liệu</p>
+                <p className="mt-0.5 text-lg font-bold text-amber-700 tabular-nums">
+                  {reportSummary.missing || 0}
+                </p>
+              </div>
+              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
+                <p className="text-[11px] font-medium text-gray-600">Đã duyệt</p>
+                <p className="mt-0.5 text-lg font-bold text-blue-700 tabular-nums">
+                  {reportSummary.approved || 0}
+                </p>
+              </div>
+              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
+                <p className="text-[11px] font-medium text-gray-600">Cần xử lý</p>
+                <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">
+                  {reportSummary.needsAction || 0}
+                </p>
+              </div>
+              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
+                <p className="text-[11px] font-medium text-gray-600">Lệch / thiếu</p>
+                <p className="mt-0.5 text-lg font-bold text-black tabular-nums">
+                  {reportSummary.mismatchFields}/{reportSummary.missingFields}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Section II: Bảng chi tiết */}
+          {/* Section II: Lỗi nổi bật */}
           <div className="mt-5">
             <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
-              II. Chi tiết đối soát
+              II. Lỗi đối soát nổi bật
+            </h2>
+
+            <div className="rounded border border-gray-400 overflow-hidden">
+              <table className="w-full table-auto border-collapse text-left text-[11px] leading-tight">
+                <thead>
+                  <tr className="border-b border-gray-400 bg-gray-100 font-bold text-black">
+                    <th className="px-2 py-2 w-8 border-r border-gray-300 text-center">STT</th>
+                    <th className="px-2.5 py-2 border-r border-gray-300">Nhóm lỗi</th>
+                    <th className="px-2.5 py-2 w-20 text-right">Số batch</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-300">
+                  {issueStats.length > 0 ? (
+                    issueStats.map((item, index) => (
+                      <tr key={item.label}>
+                        <td className="px-2 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">{index + 1}</td>
+                        <td className="px-2.5 py-1.5 font-medium text-gray-900 border-r border-gray-300">{item.label}</td>
+                        <td className="px-2.5 py-1.5 text-right font-bold tabular-nums text-black">{item.count}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-5 text-center text-gray-500 italic">
+                        Không phát sinh lỗi trong phạm vi báo cáo.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section III: Nhà cung cấp */}
+          <div className="mt-5">
+            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
+              III. Tổng hợp theo nhà cung cấp
             </h2>
 
             <div className="rounded border border-gray-400 overflow-hidden">
               <table className="w-full table-auto border-collapse text-left text-[11px] leading-tight">
                 <thead>
                   <tr className="border-b border-gray-400 bg-gray-100 font-bold text-black text-center">
-                    <th className="px-2 py-2 w-7 border-r border-gray-300">STT</th>
-                    <th className="px-2.5 py-2 text-left border-r border-gray-300">Mã Batch</th>
+                    <th className="px-2 py-2 w-8 border-r border-gray-300">STT</th>
                     <th className="px-2.5 py-2 text-left border-r border-gray-300">Nhà cung cấp</th>
-                    <th className="px-2 py-2 border-r border-gray-300">Bộ chứng từ</th>
-                    <th className="px-2 py-2 text-right border-r border-gray-300 w-20">Tỷ lệ khớp</th>
-                    <th className="px-2.5 py-2 text-center border-r border-gray-300 w-24">Trạng thái</th>
-                    <th className="px-2.5 py-2 text-left">Ghi chú / Sai lệch</th>
+                    <th className="px-2.5 py-2 w-16 text-right border-r border-gray-300">Batch</th>
+                    <th className="px-2.5 py-2 w-16 text-right border-r border-gray-300">Khớp</th>
+                    <th className="px-2.5 py-2 w-20 text-right border-r border-gray-300">Cần xử lý</th>
+                    <th className="px-2.5 py-2 w-20 text-right">Match TB</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-300">
-                  {batches.length > 0 ? (
-                    batches.map((batch, index) => {
+                  {supplierStats.length > 0 ? (
+                    supplierStats.map((item, index) => (
+                      <tr key={item.supplier}>
+                        <td className="px-2 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">{index + 1}</td>
+                        <td className="px-2.5 py-1.5 font-bold text-black border-r border-gray-300">{item.supplier}</td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-gray-300">{item.total}</td>
+                        <td className="px-2.5 py-1.5 text-right font-bold text-emerald-700 tabular-nums border-r border-gray-300">{item.matched}</td>
+                        <td className="px-2.5 py-1.5 text-right font-bold text-rose-700 tabular-nums border-r border-gray-300">{item.needsAction}</td>
+                        <td className="px-2.5 py-1.5 text-right font-bold text-black tabular-nums">{item.avg}%</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-5 text-center text-gray-500 italic">
+                        Không có dữ liệu nhà cung cấp trong phạm vi báo cáo.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section IV: Bảng chi tiết */}
+          <div className="mt-5">
+            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
+              IV. Chi tiết đối soát
+            </h2>
+
+            <div className="rounded border border-gray-400 overflow-hidden">
+              <table className="w-full table-fixed border-collapse text-left text-[11px] leading-tight">
+                <thead>
+                  <tr className="border-b border-gray-400 bg-gray-100 font-bold text-black text-center">
+                    <th className="w-[6%] px-1.5 py-2 border-r border-gray-300">STT</th>
+                    <th className="w-[24%] px-2 py-2 text-left border-r border-gray-300">Mã Batch</th>
+                    <th className="w-[22%] px-2 py-2 text-left border-r border-gray-300">Nhà cung cấp</th>
+                    <th className="w-[15%] px-1.5 py-2 border-r border-gray-300">Bộ chứng từ</th>
+                    <th className="w-[8%] px-1.5 py-2 text-right border-r border-gray-300">Tỷ lệ khớp</th>
+                    <th className="w-[14%] px-1.5 py-2 text-center border-r border-gray-300">Trạng thái</th>
+                    <th className="w-[11%] px-1.5 py-2 text-left">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-300">
+                  {reportBatches.length > 0 ? (
+                    reportBatches.map((batch, index) => {
                       const statusMeta = getStatusBadgeText(batch.status);
-                      const poDoc = batch.docs?.po;
-                      const invDoc = batch.docs?.invoice;
-                      const grnDoc = batch.docs?.grn;
-                      const supplier = invDoc?.extractedData?.supplier_name || poDoc?.extractedData?.supplier_name || '-';
+                      const poDoc = getDocInfo(batch, 'po');
+                      const invDoc = getDocInfo(batch, 'invoice');
+                      const grnDoc = getDocInfo(batch, 'grn');
+                      const supplier = getSupplierName(batch);
                       const docsPresent = [
-                        !poDoc?.missing ? 'PO' : null,
-                        !invDoc?.missing ? 'Inv' : null,
-                        !grnDoc?.missing ? 'GRN' : null,
+                        poDoc.present ? 'PO' : null,
+                        invDoc.present ? 'Inv' : null,
+                        grnDoc.present ? 'GRN' : null,
                       ].filter(Boolean).join(' · ') || 'Chưa đủ';
 
                       return (
                         <tr key={batch.id} className="hover:bg-gray-50/80">
-                          <td className="px-2 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">
+                          <td className="px-1.5 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">
                             {index + 1}
                           </td>
-                          <td className="px-2.5 py-1.5 font-bold text-black border-r border-gray-300 whitespace-nowrap">
+                          <td className="break-words px-2 py-1.5 font-bold text-black border-r border-gray-300">
                             {batch.batchNumber}
                           </td>
-                          <td className="px-2.5 py-1.5 font-medium text-gray-900 border-r border-gray-300 max-w-[140px] truncate">
+                          <td className="whitespace-normal break-words px-2 py-1.5 font-medium leading-snug text-gray-900 border-r border-gray-300">
                             {repairVietnameseText(supplier)}
                           </td>
-                          <td className="px-2.5 py-1.5 text-center border-r border-gray-300 text-gray-700 whitespace-nowrap">
+                          <td className="px-1.5 py-1.5 text-center border-r border-gray-300 text-gray-700">
                             {docsPresent}
                           </td>
-                          <td className="px-2.5 py-1.5 text-right font-bold tabular-nums border-r border-gray-300 text-black">
+                          <td className="px-1.5 py-1.5 text-right font-bold tabular-nums border-r border-gray-300 text-black">
                             {batch.matchRate}%
                           </td>
-                          <td className="px-2.5 py-1.5 text-center border-r border-gray-300 whitespace-nowrap">
-                            <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold border ${statusMeta.color}`}>
+                          <td className="px-1.5 py-1.5 text-center border-r border-gray-300">
+                            <span className={`inline-flex max-w-full items-center justify-center rounded px-1 py-0.5 text-[9px] font-semibold leading-tight border ${statusMeta.color}`}>
                               {statusMeta.label}
                             </span>
                           </td>
-                          <td className="px-2.5 py-1.5 text-gray-800">
+                          <td className="break-words px-1.5 py-1.5 text-gray-800">
                             {batch.issues && batch.issues.length > 0 ? (
                               <ul className="list-disc pl-3 text-[10px] text-rose-700 space-y-0.5">
                                 {batch.issues.map((issue, i) => (
