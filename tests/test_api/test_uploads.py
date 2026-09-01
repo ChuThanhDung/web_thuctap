@@ -607,10 +607,14 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
     rejected_batch = db_session.get(DocumentBatch, batch.id)
     assert rejected_batch.status == "rejected"
     assert rejected_batch.rejection_note == "Sai số lượng GRN so với hóa đơn."
-    notification = db_session.query(Notification).filter_by(
-        batch_id=batch.id,
-        kind="batch_rejected",
-    ).one()
+    notification = (
+        db_session.query(Notification)
+        .filter_by(
+            batch_id=batch.id,
+            kind="batch_rejected",
+        )
+        .one()
+    )
     assert notification.recipient_id == user.id
     assert notification.read_at is None
     assert sent_email["to_email"] == user.email
@@ -642,9 +646,7 @@ async def test_chief_accountant_rejects_batch_with_reason(client, db_session, mo
     assert len(notifications_data["items"]) == 1
     assert notifications_data["items"][0]["kind"] == "batch_rejected"
 
-    read_response = await client.post(
-        f"/api/v1/notifications/{notifications_data['items'][0]['id']}/read"
-    )
+    read_response = await client.post(f"/api/v1/notifications/{notifications_data['items'][0]['id']}/read")
     assert read_response.status_code == 200
     assert read_response.json()["is_read"] is True
 
@@ -905,11 +907,15 @@ async def test_accountant_can_approve_fully_matched_batch(client, db_session, mo
     db_session.expire_all()
     assert db_session.get(DocumentBatch, batch["id"]).status == "approved"
     chief = db_session.query(User).filter(User.email == "chief.accountant@docusync.ai").one()
-    notification = db_session.query(Notification).filter_by(
-        recipient_id=chief.id,
-        batch_id=batch["id"],
-        kind="batch_submitted",
-    ).one()
+    notification = (
+        db_session.query(Notification)
+        .filter_by(
+            recipient_id=chief.id,
+            batch_id=batch["id"],
+            kind="batch_submitted",
+        )
+        .one()
+    )
     assert notification.read_at is None
 
 
@@ -1215,5 +1221,3 @@ async def test_upload_multiple_grn_files_in_batch(client, monkeypatch):
     app_res = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
     assert app_res.status_code == 200
     assert app_res.json()["status"] == "approved"
-
-

@@ -27,6 +27,7 @@ import {
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import FilePreviewModal from '../components/FilePreviewModal.jsx';
 import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
+import ReconciliationReportModal from '../components/ReconciliationReportModal.jsx';
 import {
   calculateMatchSummary,
   compareDocumentField,
@@ -1106,7 +1107,7 @@ function mapApiBatchToAuditBatch(batch) {
   };
 }
 
-export default function AuditTrail({ token, role }) {
+export default function AuditTrail({ token, role, currentUser }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedBatchId = searchParams.get('batchId');
@@ -1138,6 +1139,7 @@ export default function AuditTrail({ token, role }) {
   const [approvingBatchIds, setApprovingBatchIds] = useState([]);
   const [approveConfirm, setApproveConfirm] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState('');
 
@@ -1399,10 +1401,17 @@ export default function AuditTrail({ token, role }) {
     );
   }
 
-  if (!selectedBatch) {
+  if (batches.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-        Chưa có batch nào đã đủ PO, Invoice và GRN. Các batch còn thiếu chứng từ vẫn nằm ở Hàng đợi xử lý.
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Batch đối soát</h1>
+          </div>
+        </div>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+          Chưa có batch nào đã đủ PO, Invoice và GRN. Các batch còn thiếu chứng từ vẫn nằm ở Hàng đợi xử lý.
+        </div>
       </div>
     );
   }
@@ -1418,7 +1427,12 @@ export default function AuditTrail({ token, role }) {
             </p>
           )}
         </div>
-        <button type="button" className="btn-primary self-start lg:self-auto">
+        <button
+          type="button"
+          onClick={() => setIsReportModalOpen(true)}
+          className="btn-primary self-start lg:self-auto"
+          title="Xuất báo cáo đối soát dạng PDF / In"
+        >
           <FileSearch size={16} />
           Xuất báo cáo
         </button>
@@ -1494,7 +1508,7 @@ export default function AuditTrail({ token, role }) {
 
           <div className="space-y-3">
             {paginatedBatches.map((batch) => {
-              const isSelected = isSameBatchId(batch.id, selectedBatch.id);
+              const isSelected = isSameBatchId(batch.id, selectedBatch?.id);
               const completion = getCompletion(batch);
               const meta = STATUS_META[batch.status];
               const hasMissingData = batch.status === 'missing';
@@ -1607,7 +1621,21 @@ export default function AuditTrail({ token, role }) {
 
             {filteredBatches.length === 0 && (
               <div className="rounded-lg border border-dashed border-slate-300 px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                Không có batch phù hợp với bộ lọc hiện tại.
+                <FileSearch size={36} className="mx-auto mb-2 opacity-40" />
+                <p className="font-semibold text-slate-700 dark:text-slate-200">Không tìm thấy batch phù hợp với bộ lọc hiện tại.</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc.</p>
+                {(searchQuery || statusFilter !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                    }}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Xóa bộ lọc & tìm kiếm
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1642,156 +1670,158 @@ export default function AuditTrail({ token, role }) {
           )}
         </div>
 
-        <div className="hidden">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedBatch.batchNumber}</h2>
-                  {role !== 'chief_accountant' && <StatusBadge status={selectedBatch.status} />}
+        {selectedBatch && (
+          <div className="hidden">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedBatch.batchNumber}</h2>
+                    {role !== 'chief_accountant' && <StatusBadge status={selectedBatch.status} />}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Xử lý bởi {selectedBatch.owner} · Cập nhật {selectedBatch.updatedAt}
+                  </p>
                 </div>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Xử lý bởi {selectedBatch.owner} · Cập nhật {selectedBatch.updatedAt}
-                </p>
+                <button type="button" className="btn-secondary self-start">
+                  <Eye size={16} />
+                  Xem hồ sơ
+                </button>
               </div>
-              <button type="button" className="btn-secondary self-start">
-                <Eye size={16} />
-                Xem hồ sơ
-              </button>
+
+              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                <p className="text-xs font-semibold uppercase text-slate-400">Kết luận</p>
+                <p className="mt-1 text-sm font-medium leading-6 text-slate-800 dark:text-slate-200">{selectedBatch.decision}</p>
+              </div>
             </div>
 
-            <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              <p className="text-xs font-semibold uppercase text-slate-400">Kết luận</p>
-              <p className="mt-1 text-sm font-medium leading-6 text-slate-800 dark:text-slate-200">{selectedBatch.decision}</p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {DOC_TYPES.map((type) => {
-              const list = selectedBatch.docList?.[type.key] || [];
-              if (list.length === 0) {
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {DOC_TYPES.map((type) => {
+                const list = selectedBatch.docList?.[type.key] || [];
+                if (list.length === 0) {
+                  return (
+                    <DocumentCard
+                      key={`${type.key}-missing`}
+                      type={type}
+                      doc={{ filename: '', missing: true, fields: {} }}
+                      onOpenFile={handleOpenUploadedFile}
+                    />
+                  );
+                }
                 return (
                   <DocumentCard
-                    key={`${type.key}-missing`}
+                    key={type.key}
                     type={type}
-                    doc={{ filename: '', missing: true, fields: {} }}
+                    docs={list}
                     onOpenFile={handleOpenUploadedFile}
                   />
                 );
-              }
-              return (
-                <DocumentCard
-                  key={type.key}
-                  type={type}
-                  docs={list}
-                  onOpenFile={handleOpenUploadedFile}
-                />
-              );
-            })}
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Hiện rõ từng trường AI đã lấy ra từ 3 chứng từ và kết quả so khớp.
-              </p>
+              })}
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Trường</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">PO</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Invoice</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">GRN</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {documentComparisons.length > 0 ? (
-                    documentComparisons.map((item) => (
-                      <tr key={`${selectedBatch.id}-${item.field}`} className="table-row-hover">
-                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
-                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
-                        <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
-                        <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                        Chưa có dữ liệu đối chiếu. Hãy bổ sung đủ 3 chứng từ để hệ thống bắt đầu so khớp.
-                      </td>
+
+            <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  Hiện rõ từng trường AI đã lấy ra từ 3 chứng từ và kết quả so khớp.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Trường</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">PO</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Invoice</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">GRN</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Mỗi dòng là một mã hàng trong PO, Invoice và GRN để kiểm tra chủng loại, ĐVT, số lượng và giá.
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Mã hàng / Tên hàng</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL PO</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá PO</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
-                    <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {lineItems.length > 0 ? (
-                    lineItems.map((item) => (
-                      <tr key={`${selectedBatch.id}-${item.sku}`} className="table-row-hover">
-                        <td className="px-4 py-3">
-                          <p className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{item.name || item.sku}</p>
-                          <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {documentComparisons.length > 0 ? (
+                      documentComparisons.map((item) => (
+                        <tr key={`${selectedBatch.id}-${item.field}`} className="table-row-hover">
+                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
+                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
+                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                          Chưa có dữ liệu đối chiếu. Hãy bổ sung đủ 3 chứng từ để hệ thống bắt đầu so khớp.
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
-                        <td className={`border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
-                        <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                        Chưa có dữ liệu hàng hóa. Khi đủ chứng từ, hệ thống sẽ tách từng dòng hàng để đối chiếu.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
 
-          <ReconciliationHistorySection
-            history={selectedBatch?.history}
-            onOpenFile={handleOpenUploadedFile}
-          />
-        </div>
+            <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  Mỗi dòng là một mã hàng trong PO, Invoice và GRN để kiểm tra chủng loại, ĐVT, số lượng và giá.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[980px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Mã hàng / Tên hàng</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL PO</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá PO</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
+                      <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {lineItems.length > 0 ? (
+                      lineItems.map((item) => (
+                        <tr key={`${selectedBatch.id}-${item.sku}`} className="table-row-hover">
+                          <td className="px-4 py-3">
+                            <p className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{item.name || item.sku}</p>
+                            <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
+                          <td className={`border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
+                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
+                          <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                          Chưa có dữ liệu hàng hóa. Khi đủ chứng từ, hệ thống sẽ tách từng dòng hàng để đối chiếu.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <ReconciliationHistorySection
+              history={selectedBatch?.history}
+              onOpenFile={handleOpenUploadedFile}
+            />
+          </div>
+        )}
       </div>
 
       {modalBatch && (
@@ -2002,6 +2032,15 @@ export default function AuditTrail({ token, role }) {
         onConfirm={handleApproveBatch}
       />
       <FilePreviewModal filePreview={filePreview} onClose={closeFilePreview} />
+      <ReconciliationReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        batches={filteredBatches}
+        summary={summary}
+        overviewFilterLabel={overviewFilterLabel}
+        overviewDateRange={overviewDateRange}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

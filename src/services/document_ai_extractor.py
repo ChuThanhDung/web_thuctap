@@ -31,8 +31,7 @@ OFFICE_OPEN_XML_CONTENT_TYPES = {
 }
 LEGACY_DOC_CONTENT_TYPES = {"application/msword"}
 LOW_IMAGE_QUALITY_WARNING = (
-    "Chất lượng file thấp, dữ liệu trích xuất có thể không chính xác. "
-    "Vui lòng kiểm tra lại dữ liệu trích xuất."
+    "Chất lượng file thấp, dữ liệu trích xuất có thể không chính xác. Vui lòng kiểm tra lại dữ liệu trích xuất."
 )
 UNREADABLE_PDF_MESSAGE = "File PDF bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
 UNREADABLE_FILE_MESSAGE = "File tải lên bị lỗi hoặc không thể đọc nội dung. Vui lòng kiểm tra và tải lại file khác."
@@ -357,7 +356,9 @@ def _analyze_image_quality(content: bytes, filename: str, content_type: str | No
     return ImageQualityAnalysis(is_low_quality=sum(low_quality_signals) >= 2, metrics=metrics)
 
 
-def _run_openai_analysis(content: bytes, filename: str, content_type: str | None, expected_doc_type: str) -> dict[str, Any]:
+def _run_openai_analysis(
+    content: bytes, filename: str, content_type: str | None, expected_doc_type: str
+) -> dict[str, Any]:
     settings = get_settings()
     client = OpenAI(api_key=settings.openai_api_key)
     prompt = _build_prompt(expected_doc_type, filename)
@@ -414,7 +415,9 @@ def _infer_doc_type_offline(content: bytes, filename: str) -> str:
         return "grn"
     if any(keyword in text for keyword in ["invoice", "hoa don", "hóa đơn", "invoicenumber"]):
         return "invoice"
-    if any(keyword in text for keyword in ["purchase order", "don dat hang", "đơn đặt hàng"]) or re.search(r"\bpo\b", text):
+    if any(keyword in text for keyword in ["purchase order", "don dat hang", "đơn đặt hàng"]) or re.search(
+        r"\bpo\b", text
+    ):
         return "po"
     return "unknown"
 
@@ -427,8 +430,14 @@ def _offline_analysis(content: bytes, filename: str, expected_doc_type: str) -> 
     except Exception:
         extracted_data = {"type": detected_doc_type if detected_doc_type != "unknown" else None, "line_items": []}
 
-    extracted_data["type"] = extracted_data.get("type") or (detected_doc_type if detected_doc_type != "unknown" else None)
-    is_correct_type = detected_doc_type in {"po", "invoice", "grn"} if expected_doc_type == "auto" else detected_doc_type == expected_doc_type
+    extracted_data["type"] = extracted_data.get("type") or (
+        detected_doc_type if detected_doc_type != "unknown" else None
+    )
+    is_correct_type = (
+        detected_doc_type in {"po", "invoice", "grn"}
+        if expected_doc_type == "auto"
+        else detected_doc_type == expected_doc_type
+    )
     return {
         "detected_doc_type": detected_doc_type,
         "is_correct_type": is_correct_type,
@@ -466,7 +475,9 @@ def analyze_uploaded_document(
         except Exception as exc:
             logger.exception("OpenAI document analysis failed for %s", filename)
             if settings.document_ai_validation_required:
-                raise ValueError(f"AI chua doc duoc chung tu. Vui long thu lai hoac kiem tra OPENAI_API_KEY. Chi tiet: {exc}") from exc
+                raise ValueError(
+                    f"AI chua doc duoc chung tu. Vui long thu lai hoac kiem tra OPENAI_API_KEY. Chi tiet: {exc}"
+                ) from exc
             raw_response = _offline_analysis(content, filename, expected_doc_type)
             raw_response["validation_message"] = (
                 f"AI dang tam thoi khong doc duoc file ({exc}), he thong dung che do offline de tiep tuc upload."

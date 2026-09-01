@@ -113,9 +113,7 @@ async def update_threshold(
 
     if payload.category is not None:
         category = payload.category.strip()
-        duplicate = db.scalars(
-            select(Threshold).where(Threshold.category == category, Threshold.id != uid)
-        ).first()
+        duplicate = db.scalars(select(Threshold).where(Threshold.category == category, Threshold.id != uid)).first()
         if duplicate is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tên quy tắc đã tồn tại.")
         threshold.category = category
