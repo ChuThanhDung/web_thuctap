@@ -786,3 +786,8 @@ app.include_router(uploads_router, prefix="/api/v1")
 @app.get("/health")
 async def health():
     return {"status": "ok", "env": settings.app_env}
+
+
+@app.head("/health")
+async def health_head():
+    return None
