@@ -347,36 +347,31 @@ def get_managed_user(db: Session, user_id: str) -> User:
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="user_id không hợp lệ.") from exc
 
-    user = db.scalars(
-        select(User).options(selectinload(User.role)).where(User.id == parsed_id)
-    ).first()
+    user = db.scalars(select(User).options(selectinload(User.role)).where(User.id == parsed_id)).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy người dùng.")
     return user
 
 
 def count_active_chief_accountants(db: Session) -> int:
-    return db.scalar(
-        select(func.count(User.id))
-        .join(Role)
-        .where(Role.code == "chief_accountant", User.status == "ACTIVE")
-    ) or 0
+    return (
+        db.scalar(
+            select(func.count(User.id)).join(Role).where(Role.code == "chief_accountant", User.status == "ACTIVE")
+        )
+        or 0
+    )
 
 
 def ensure_unique_user_fields(db: Session, target_user: User, payload: UserUpdateRequest) -> None:
     if payload.email is not None:
         email_clean = payload.email.lower().strip()
-        exists = db.scalars(
-            select(User).where(User.email == email_clean, User.id != target_user.id)
-        ).first()
+        exists = db.scalars(select(User).where(User.email == email_clean, User.id != target_user.id)).first()
         if exists:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email này đã được sử dụng.")
 
     if payload.citizen_id:
         citizen_id = payload.citizen_id.strip()
-        exists = db.scalars(
-            select(User).where(User.citizen_id == citizen_id, User.id != target_user.id)
-        ).first()
+        exists = db.scalars(select(User).where(User.citizen_id == citizen_id, User.id != target_user.id)).first()
         if exists:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Căn cước công dân này đã tồn tại.")
 

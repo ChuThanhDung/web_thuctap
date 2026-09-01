@@ -179,7 +179,7 @@ export default function App() {
               element={
                 role === 'chief_accountant' 
                   ? <ChiefAccountantBatches token={auth.access_token} />
-                  : <AuditTrail token={auth.access_token} role={role} />
+                  : <AuditTrail token={auth.access_token} role={role} currentUser={auth.user} />
               } 
             />
             <Route
