@@ -39,7 +39,8 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./src:/app/src
-      - ./storage/avatars:/app/storage/avatars
+      - ./storage:/app/storage
+      - ./invoice:/app/invoice
     depends_on:
       postgres:
         condition: service_healthy
