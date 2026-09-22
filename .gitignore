@@ -60,3 +60,5 @@ out/
 *.pyc
 *.pyo
 
+# Local memory / notes
+memory.md
