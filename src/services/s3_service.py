@@ -12,7 +12,12 @@ def get_s3_client():
         aws_access_key_id=settings.storage_access_key_id or None,
         aws_secret_access_key=settings.storage_secret_access_key or None,
         region_name=settings.storage_region,
-        config=Config(signature_version="s3v4"),
+        config=Config(
+            signature_version="s3v4",
+            request_checksum_calculation="when_required",
+            response_checksum_validation="when_required",
+            s3={"checksum_algorithm": "when_required"},
+        ),
     )
 
 
