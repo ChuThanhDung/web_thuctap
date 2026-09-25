@@ -783,6 +783,16 @@ app.include_router(thresholds_router, prefix="/api/v1")
 app.include_router(uploads_router, prefix="/api/v1")
 
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "DocuSyncAI Backend is running", "env": settings.app_env}
+
+
+@app.head("/")
+async def root_head():
+    return None
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "env": settings.app_env}
