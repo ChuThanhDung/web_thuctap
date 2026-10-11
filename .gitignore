@@ -48,7 +48,6 @@ htmlcov/
 coverage.xml
 
 # Docker
-docker-compose.override.yml
 
 # Node (frontend)
 node_modules/
@@ -62,3 +61,9 @@ out/
 
 # Local memory / notes
 memory.md
+
+# Backups, archives and tooling caches
+backups/
+*.zip
+frontend/.vite/
+src/crash.txt

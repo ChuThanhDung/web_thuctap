@@ -20,6 +20,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 COPY --from=builder /opt/venv /opt/venv
+COPY alembic.ini ./
+COPY migrations ./migrations
 COPY src ./src
 COPY raw_data ./raw_data
 COPY scripts ./scripts
@@ -30,7 +32,6 @@ USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/health/ready', timeout=5)" || exit 1
 
 CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers

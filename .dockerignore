@@ -35,3 +35,6 @@ logs
 *.log
 
 docker-compose.override.yml
+
+backups
+deploy

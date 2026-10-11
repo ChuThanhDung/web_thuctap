@@ -12,21 +12,17 @@ langchain>=0.3.0,<0.4.0
 langchain-openai>=0.3.0,<0.4.0
 langgraph>=0.2.0,<0.3.0
 openai>=1.0.0
-google-generativeai>=0.8.0
+google-genai>=1.0.0,<2.0.0
 
 # Database
 sqlalchemy>=2.0.0
+alembic>=1.13.0,<2.0.0
 psycopg[binary]>=3.2.0,<4.0.0
 passlib[bcrypt]>=1.7.4,<2.0.0
-bcrypt>=4.0.1,<5.0.0
+# passlib 1.7.4 đọc bcrypt.__about__ (đã bị bỏ từ bcrypt 4.1) nên ghim phiên bản này.
+bcrypt==4.0.1
 boto3>=1.34.0,<2.0.0
 Pillow==11.3.0
 
 # Vector Store (uncomment as needed)
 # chromadb>=0.5.0
-
-# Dev tools
-ruff>=0.8.0
-pytest>=8.0.0
-pytest-asyncio>=0.24.0
-httpx>=0.28.0

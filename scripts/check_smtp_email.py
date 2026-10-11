@@ -9,9 +9,9 @@ Run from the project root on the same environment that runs the backend:
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import socket
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:

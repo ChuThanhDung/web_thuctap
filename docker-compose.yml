@@ -1,20 +1,20 @@
+# Cấu hình production-safe: không mount mã nguồn, không mở cổng backend/DB ra ngoài, không nạp dữ liệu demo.
+# Production:  docker compose -f docker-compose.yml up -d --build        (chỉ định -f để bỏ qua override)
+# Có HTTPS:    docker compose -f docker-compose.yml --profile https up -d --build  (cần DOMAIN trong .env)
+# Dev:         docker compose up -d --build                                (tự nạp docker-compose.override.yml)
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Admin@123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong .env}
       POSTGRES_DB: ${POSTGRES_DB:-docusyncai}
       TZ: Asia/Ho_Chi_Minh
       PGTZ: Asia/Ho_Chi_Minh
     command: ["postgres", "-c", "timezone=Asia/Ho_Chi_Minh"]
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init_auth.sql:/docker-entrypoint-initdb.d/001_init_auth.sql:ro
-      - ./scripts/002_seed_data.sql:/docker-entrypoint-initdb.d/002_seed_data.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -33,14 +33,21 @@ services:
       APP_HOST: 0.0.0.0
       APP_PORT: 8000
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
-      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+psycopg://admin:Admin%40123@postgres:5432/docusyncai}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:?Đặt DOCKER_DATABASE_URL trong .env}
       AVATAR_STORAGE_DIR: /app/storage/avatars
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
     volumes:
-      - ./src:/app/src
-      - ./storage:/app/storage
-      - ./invoice:/app/invoice
+      - storage_data:/app/storage
+      - invoice_data:/app/invoice
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,12 +60,37 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      # Khi dùng profile https, đặt FRONTEND_BIND=127.0.0.1 để chỉ Caddy truy cập được.
+      - "${FRONTEND_BIND:-0.0.0.0}:${FRONTEND_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+  # HTTPS tự động (Let's Encrypt). Chỉ chạy khi bật profile `https`.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
 
 volumes:
   postgres_data:
-
-
-# fix docker compose
+  storage_data:
+  invoice_data:
+  caddy_data:
+  caddy_config:
