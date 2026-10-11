@@ -18,10 +18,10 @@ def parse_vision_document(file_bytes: bytes, filename: str, doc_type_hint: str =
     # 1. Thử gọi Gemini Vision API nếu có GEMINI_API_KEY
     if gemini_key:
         try:
-            import google.generativeai as genai
+            from google import genai
+            from google.genai import types as genai_types
 
-            genai.configure(api_key=gemini_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            client = genai.Client(api_key=gemini_key)
 
             mime_type = "application/pdf" if ext == ".pdf" else "image/png"
             if ext in [".jpg", ".jpeg"]:
@@ -55,7 +55,10 @@ def parse_vision_document(file_bytes: bytes, filename: str, doc_type_hint: str =
             Chỉ trả về JSON hợp lệ, không bao gồm mã markdown nào khác.
             """
 
-            response = model.generate_content([prompt, {"mime_type": mime_type, "data": file_bytes}])
+            response = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                contents=[prompt, genai_types.Part.from_bytes(data=file_bytes, mime_type=mime_type)],
+            )
 
             raw_text = response.text.strip()
             # Clean markdown codeblocks

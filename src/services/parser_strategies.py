@@ -5,10 +5,13 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 from openai import OpenAI
 
 from src.services.document_parser import detect_and_parse_document
+
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 class BaseParserStrategy(ABC):
@@ -38,7 +41,7 @@ class GeminiParserStrategy(BaseParserStrategy):
         if not api_key:
             raise ValueError("GEMINI_API_KEY chưa được cấu hình.")
 
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
 
         # Xác định MIME type
         ext = os.path.splitext(filename.lower())[1]
@@ -127,8 +130,10 @@ class GeminiParserStrategy(BaseParserStrategy):
         prompt += "\nTrả về DUY NHẤT chuỗi JSON hợp lệ, không bọc trong ```json hay bất kỳ văn bản giải thích nào khác."
 
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content([{"mime_type": mime_type, "data": content}, prompt])
+            response = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
+                contents=[genai_types.Part.from_bytes(data=content, mime_type=mime_type), prompt],
+            )
 
             # Làm sạch kết quả trả về
             text = response.text.strip()

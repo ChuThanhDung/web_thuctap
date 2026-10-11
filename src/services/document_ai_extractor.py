@@ -13,6 +13,7 @@ from xml.etree import ElementTree
 from openai import OpenAI
 
 from src.config import get_settings
+from src.services.document_parser import detect_and_parse_document
 from src.services.parser_strategies import LocalOcrParserStrategy
 
 DOC_TYPE_LABELS = {
@@ -451,6 +452,30 @@ def _offline_analysis(content: bytes, filename: str, expected_doc_type: str) -> 
     }
 
 
+def _is_xml_upload(filename: str, content_type: str | None) -> bool:
+    return filename.lower().endswith(".xml") or (content_type or "").lower() in {"application/xml", "text/xml"}
+
+
+def _xml_analysis(content: bytes, filename: str, expected_doc_type: str) -> dict[str, Any] | None:
+    """XML có cấu trúc nên đọc bằng parser cục bộ: chính xác, nhanh, không tốn phí AI. None nếu không đọc được."""
+    try:
+        parsed = detect_and_parse_document(content, filename)
+    except ValueError:
+        return None
+
+    detected_doc_type = parsed.get("type")
+    is_correct_type = detected_doc_type in {"po", "invoice", "grn"} and (
+        expected_doc_type == "auto" or detected_doc_type == expected_doc_type
+    )
+    return {
+        "detected_doc_type": detected_doc_type,
+        "is_correct_type": is_correct_type,
+        "confidence": 1,
+        "validation_message": "Đã đọc XML bằng parser cục bộ.",
+        "extracted_data": parsed,
+    }
+
+
 def _should_use_openai_document_analysis(settings) -> bool:
     if not settings.openai_api_key:
         return False
@@ -469,7 +494,12 @@ def analyze_uploaded_document(
     validate_readable_upload(content, filename, content_type)
     image_quality = _analyze_image_quality(content, filename, content_type)
 
-    if _should_use_openai_document_analysis(settings):
+    xml_response = _xml_analysis(content, filename, expected_doc_type) if _is_xml_upload(filename, content_type) else None
+
+    if xml_response is not None:
+        raw_response = xml_response
+        model_name = "local-xml-parser"
+    elif _should_use_openai_document_analysis(settings):
         try:
             raw_response = _run_openai_analysis(content, filename, content_type, expected_doc_type)
         except Exception as exc:
