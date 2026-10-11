@@ -26,6 +26,7 @@ import {
   verifyPasswordOtp,
 } from '../api.js';
 import { repairVietnameseText } from '../text.js';
+import { getPasswordPolicyError } from '../passwordPolicy.js';
 
 function getInitials(fullName) {
   return fullName
@@ -181,7 +182,8 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
     resetFeedback();
     const nextErrors = {};
     if (!currentPassword) nextErrors.current = 'Vui lòng nhập mật khẩu hiện tại.';
-    if (newPassword.length < 6) nextErrors.new = 'Mật khẩu mới phải có tối thiểu 6 ký tự.';
+    const policyError = getPasswordPolicyError(newPassword);
+    if (policyError) nextErrors.new = policyError;
     if (newPassword && newPassword === currentPassword) nextErrors.new = 'Mật khẩu mới phải khác mật khẩu hiện tại.';
     if (confirmPassword !== newPassword) nextErrors.confirm = 'Xác nhận mật khẩu mới không khớp.';
     setPasswordErrors(nextErrors);

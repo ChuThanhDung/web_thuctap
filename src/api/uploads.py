@@ -228,6 +228,18 @@ def update_batch_status(db: Session, batch: DocumentBatch) -> None:
     db.add(batch)
 
 
+LOCKED_BATCH_STATUSES = ("approved", "final_approved")
+
+
+def ensure_batch_unlocked(batch: DocumentBatch) -> None:
+    """Bộ chứng từ đã được duyệt là hồ sơ lưu trữ: không thêm, xóa hay thay chứng từ. Muốn sửa phải bị từ chối trước."""
+    if batch.status in LOCKED_BATCH_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Bộ chứng từ đã được duyệt nên không thể thêm hoặc xóa chứng từ.",
+        )
+
+
 def require_accountant(current_user: User) -> None:
     if current_user.role.code != "accountant":
         raise HTTPException(
@@ -973,6 +985,11 @@ async def update_upload_batch(
     if batch is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay bo doi soat.")
     require_batch_access(current_user, batch)
+    if batch.status == "final_approved":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Bộ chứng từ đã được duyệt cuối nên không thể sửa ghi chú.",
+        )
 
     next_note = payload.note.strip() if payload.note else None
     batch.note = next_note or None
@@ -1163,7 +1180,7 @@ async def reject_upload_batch(
     rejection_note = payload.rejection_note.strip()
     if not rejection_note:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Vui lòng nhập lý do từ chối batch.",
         )
 
@@ -1360,6 +1377,7 @@ async def delete_uploaded_file(
     batch = db.get(DocumentBatch, upload.batch_id) if upload.batch_id else None
     if batch is not None:
         require_batch_access(current_user, batch)
+        ensure_batch_unlocked(batch)
     deleted_filename = Path(upload.storage_key).name
     try:
         delete_uploaded_file_from_storage(upload)
@@ -1409,8 +1427,17 @@ async def upload_document(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    max_upload_bytes = get_settings().max_upload_bytes
+    content = await file.read(max_upload_bytes + 1)
+    if len(content) > max_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File vượt quá dung lượng tối đa {max_upload_bytes // (1024 * 1024)} MB.",
+        )
+
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
+    ensure_batch_unlocked(batch)
     is_supplemental_rejected_upload = batch.status == "rejected" or bool(batch.rejection_note)
     if is_supplemental_rejected_upload and batch.status == "rejected":
         snapshot_batch_history(db, batch, rejection_note=batch.rejection_note, rejected_by=None)
@@ -1419,7 +1446,6 @@ async def upload_document(
         batch.approved_by_id = None
         batch.chief_approved_by_id = None
 
-    content = await file.read()
     content_type = file.content_type or "application/octet-stream"
     content_hash = calculate_content_hash(content)
     duplicate_upload = find_duplicate_upload_by_content(batch, content_hash)
@@ -1433,7 +1459,7 @@ async def upload_document(
         ai_analysis = analyze_uploaded_document(content, filename, content_type, requested_doc_type)
     except UnreadableDocumentError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
     except ValueError as exc:
@@ -1446,7 +1472,7 @@ async def upload_document(
         selected_doc_type = ai_analysis.detected_doc_type
         if selected_doc_type not in ALLOWED_DOC_TYPES:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Chưa nhận diện được file chứng từ. Vui lòng kiểm tra lại và kéo thả đúng file PO/Invoice hoặc GRN.",
             )
         ai_analysis.expected_doc_type = selected_doc_type

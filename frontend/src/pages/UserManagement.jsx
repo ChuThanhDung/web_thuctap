@@ -23,6 +23,7 @@ import {
 } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { repairVietnameseText } from '../text.js';
+import { getPasswordPolicyError } from '../passwordPolicy.js';
 
 const EMPTY_FORM = {
   email: '',
@@ -211,7 +212,10 @@ export default function UserManagement({ token, currentUser }) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email.trim())) return 'Email không hợp lệ.';
     if (!form.full_name.trim()) return 'Vui lòng nhập họ và tên.';
-    if (!editingUser && form.password.length < 6) return 'Mật khẩu phải có tối thiểu 6 ký tự.';
+    if (!editingUser) {
+      const passwordError = getPasswordPolicyError(form.password);
+      if (passwordError) return passwordError;
+    }
     if (!/^\d{10}$/.test(form.phone)) return 'Số điện thoại phải đủ 10 số.';
     if (!/^\d{12}$/.test(form.citizen_id)) return 'Căn cước công dân phải đủ 12 số.';
     if (!form.address.trim()) return 'Vui lòng nhập địa chỉ.';

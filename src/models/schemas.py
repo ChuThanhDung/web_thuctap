@@ -5,7 +5,7 @@ src/models/schemas.py — Pydantic schemas cho toàn bộ dự án
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH SCHEMAS (giữ nguyên)
@@ -48,6 +48,21 @@ class LoginResponse(BaseModel):
     user: AuthUser
 
 
+PASSWORD_MIN_LENGTH = 8
+COMMON_WEAK_PASSWORDS = {"123456", "12345678", "123456789", "password", "password1", "admin123", "qwerty123", "11111111"}
+
+
+def validate_password_strength(value: str) -> str:
+    """Chính sách mật khẩu: tối thiểu 8 ký tự, có cả chữ và số, không thuộc danh sách mật khẩu phổ biến."""
+    if len(value) < PASSWORD_MIN_LENGTH:
+        raise ValueError(f"Mật khẩu phải có tối thiểu {PASSWORD_MIN_LENGTH} ký tự.")
+    if not any(ch.isalpha() for ch in value) or not any(ch.isdigit() for ch in value):
+        raise ValueError("Mật khẩu phải gồm cả chữ và số.")
+    if value.lower() in COMMON_WEAK_PASSWORDS:
+        raise ValueError("Mật khẩu quá phổ biến, vui lòng chọn mật khẩu khác.")
+    return value
+
+
 class ProfileUpdateRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
     date_of_birth: date | None = None
@@ -66,6 +81,11 @@ class PasswordChangeInitiateRequest(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=128)
     confirm_password: str = Field(..., min_length=6, max_length=128)
 
+    @field_validator("new_password")
+    @classmethod
+    def new_password_is_strong(cls, value: str) -> str:
+        return validate_password_strength(value)
+
 
 class OtpVerifyRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
@@ -82,6 +102,11 @@ class UserCreateRequest(BaseModel):
     citizen_id: str = Field(..., pattern=r"^\d{12}$")
     address: str = Field(..., min_length=1, max_length=255)
     date_of_birth: date | None = None
+
+    @field_validator("password")
+    @classmethod
+    def password_is_strong(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class UserUpdateRequest(BaseModel):

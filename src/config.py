@@ -1,8 +1,10 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+WEAK_PASSWORDS = {"123456", "12345678", "password", "admin123", "Admin@123"}
 
 
 class Settings(BaseSettings):
@@ -18,10 +20,16 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, ge=1, le=65535)
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    log_format: Literal["text", "json"] = "text"
     cors_origins: str = (
         "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,https://docusyncai-frontend.vercel.app"
     )
     app_frontend_url: str = ""
+    # Swagger/OpenAPI chỉ bật ngoài production.
+    docs_enabled_in_production: bool = False
+
+    # Agent chat mẫu (LangGraph). Frontend không dùng; tắt mặc định để không lộ endpoint gọi LLM.
+    enable_agent_chat_api: bool = False
 
     # LLM
     openai_api_key: str = ""
@@ -33,6 +41,11 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+psycopg://admin:Admin%40123@localhost:5433/docusyncai"
     database_timezone: str = "Asia/Ho_Chi_Minh"
+    # Chạy `alembic upgrade head` khi khởi động. Tắt nếu muốn chạy migration như một bước deploy riêng.
+    run_migrations_on_startup: bool = True
+
+    # Upload
+    max_upload_bytes: int = Field(default=20 * 1024 * 1024, ge=1024)
 
     # File storage
     storage_provider: Literal["local", "r2", "s3"] = "local"
@@ -50,9 +63,9 @@ class Settings(BaseSettings):
     # SMTP Email
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
-    smtp_user: str = "chuthanhdungtruong@gmail.com"
+    smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "chuthanhdungtruong@gmail.com"
+    smtp_from: str = ""
     smtp_tls: bool = True
 
     # Password change security
@@ -61,6 +74,31 @@ class Settings(BaseSettings):
     password_otp_max_attempts: int = Field(default=5, ge=1, le=10)
     password_otp_max_requests: int = Field(default=3, ge=1, le=20)
     password_otp_request_window_minutes: int = Field(default=15, ge=1, le=1440)
+
+    # Login brute-force protection (đếm số lần LOGIN_FAILED trong audit_logs)
+    login_max_attempts: int = Field(default=5, ge=1, le=100)  # cùng email + cùng IP
+    login_max_attempts_per_ip: int = Field(default=30, ge=1, le=10000)
+    login_max_attempts_per_email: int = Field(default=20, ge=1, le=10000)
+    login_lockout_minutes: int = Field(default=15, ge=1, le=1440)
+
+    # Seed tài khoản ban đầu. Bỏ trống mật khẩu để hệ thống tự sinh ngẫu nhiên và ghi log một lần.
+    seed_default_users: bool = True
+    seed_default_password: str = ""
+
+    @model_validator(mode="after")
+    def reject_insecure_production_config(self) -> "Settings":
+        if self.app_env != "production":
+            return self
+        problems = []
+        if "Admin%40123" in self.database_url or "Admin@123" in self.database_url:
+            problems.append("DATABASE_URL đang dùng mật khẩu mặc định Admin@123")
+        if self.seed_default_password and (
+            len(self.seed_default_password) < 10 or self.seed_default_password in WEAK_PASSWORDS
+        ):
+            problems.append("SEED_DEFAULT_PASSWORD quá yếu (cần tối thiểu 10 ký tự)")
+        if problems:
+            raise ValueError("Cấu hình production không an toàn: " + "; ".join(problems))
+        return self
 
 
 @lru_cache

@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from src.config import get_settings
 from src.database import get_db
 from src.models.role import Role
 from src.models.schemas import (
@@ -30,6 +31,7 @@ from src.services.auth import (
     create_user_session,
     get_user_by_session_token,
     initiate_password_change,
+    is_login_rate_limited,
     verify_password_change_otp,
     write_audit_log,
 )
@@ -89,6 +91,23 @@ async def login(
 ) -> LoginResponse:
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
+
+    if is_login_rate_limited(db, payload.email, ip_address):
+        write_audit_log(
+            db=db,
+            action="LOGIN_BLOCKED",
+            user=None,
+            details={"email": payload.email.lower().strip()},
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        lockout_seconds = get_settings().login_lockout_minutes * 60
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau ít phút.",
+            headers={"Retry-After": str(lockout_seconds)},
+        )
+
     user = authenticate_user(db, payload.email, payload.password)
 
     if user is None:

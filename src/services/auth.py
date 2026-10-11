@@ -17,6 +17,9 @@ from src.services.email import send_otp_email, send_password_changed_email
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Mật khẩu mặc định cũ của các tài khoản seed; không còn được phép dùng ở production.
+LEGACY_DEFAULT_PASSWORD = "123456"
+
 
 class PasswordChangeError(ValueError):
     def __init__(self, message: str, *, retry_after: int | None = None):
@@ -72,6 +75,54 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
         return None
 
     return user
+
+
+def is_login_rate_limited(db: Session, email: str, ip_address: str | None) -> bool:
+    """Chặn brute-force: đếm LOGIN_FAILED gần đây theo (email + IP), theo IP và theo email."""
+    settings = get_settings()
+    since = datetime.now(UTC) - timedelta(minutes=settings.login_lockout_minutes)
+    email_match = AuditLog.details["email"].astext == email.lower().strip()
+    base = select(func.count(AuditLog.id)).where(AuditLog.action == "LOGIN_FAILED", AuditLog.created_at >= since)
+
+    if (db.scalar(base.where(email_match)) or 0) >= settings.login_max_attempts_per_email:
+        return True
+    if ip_address is None:
+        return False
+    if (db.scalar(base.where(AuditLog.ip_address == ip_address)) or 0) >= settings.login_max_attempts_per_ip:
+        return True
+    pair_count = db.scalar(base.where(email_match, AuditLog.ip_address == ip_address)) or 0
+    return pair_count >= settings.login_max_attempts
+
+
+def lock_known_default_password_accounts(
+    db: Session,
+    *,
+    production: bool,
+    users: list[User] | None = None,
+) -> list[str]:
+    """Tìm tài khoản còn dùng mật khẩu mặc định cũ. Ở production: đặt mật khẩu ngẫu nhiên và thu hồi phiên.
+
+    `users` giới hạn phạm vi kiểm tra; mặc định kiểm tra toàn bộ người dùng.
+    """
+    flagged: list[User] = []
+    for user in users if users is not None else db.scalars(select(User)).all():
+        try:
+            if verify_password(LEGACY_DEFAULT_PASSWORD, user.password_hash):
+                flagged.append(user)
+        except ValueError:
+            continue
+
+    if production and flagged:
+        now = datetime.now(UTC)
+        for user in flagged:
+            user.password_hash = hash_password(token_urlsafe(24))
+            db.execute(
+                update(UserSession)
+                .where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None))
+                .values(revoked_at=now)
+            )
+        db.commit()
+    return [user.email for user in flagged]
 
 
 def create_user_session(
