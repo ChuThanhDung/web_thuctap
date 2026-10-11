@@ -6,9 +6,7 @@ DocuSyncAI là hệ thống quản lý chứng từ và đối soát ba bên gi�
 
 Demo: <https://c3-app-007.docusyncai.asia/>
 
-- Kế toán viên: `quyhslc11@gmail.com`
-- Kế toán trưởng: `skyticket.work@gmail.com`
-- Mật khẩu chung: `123456`
+Tài khoản demo được cấp riêng cho từng người đánh giá; liên hệ nhóm phát triển để nhận thông tin đăng nhập.
 
 ## Tech stack
 
@@ -16,11 +14,11 @@ Demo: <https://c3-app-007.docusyncai.asia/>
 |---|---|
 | Frontend | React 18, Vite 5, React Router, Tailwind CSS, Recharts |
 | Backend | Python, FastAPI, Uvicorn, Pydantic |
-| AI workflow | LangGraph, LangChain, OpenAI API |
-| Database | PostgreSQL 16 |
-| Storage | Cloudflare R2 |
-| Testing | pytest, pytest-asyncio, HTTPX |
-| Deployment | Docker, Docker Compose, Nginx, Vercel configuration |
+| AI | OpenAI API và Google Gemini (`google-genai`) cho PDF và ảnh; LangGraph cho agent mẫu |
+| Database | PostgreSQL 16, quản lý schema bằng Alembic |
+| Storage | Local, Cloudflare R2 hoặc S3 |
+| Testing | pytest, pytest-asyncio, HTTPX, pytest-cov; Vitest cho frontend |
+| Deployment | Docker, Docker Compose, Nginx, Caddy (HTTPS tùy chọn), GitHub Actions CI |
 
 ## Cấu trúc thư mục
 
@@ -32,15 +30,21 @@ Demo: <https://c3-app-007.docusyncai.asia/>
 │   ├── api/                # FastAPI endpoints
 │   ├── models/             # SQLAlchemy models và Pydantic schemas
 │   ├── services/           # Auth, parser, AI, reconciliation, storage
-│   └── main.py             # FastAPI entry point và database bootstrap
-├── tests/                  # API và agent tests
+│   └── main.py             # FastAPI entry point, seed dữ liệu ban đầu, middleware
+├── migrations/             # Alembic: mỗi thay đổi schema là một revision
+├── tests/                  # Backend tests (API, service, migration, bảo mật)
 ├── dataset/                # Bộ chứng từ mẫu
 ├── storage/upload/         # File upload khi dùng local storage
-├── eval/                   # Evaluation reports/evidence
-├── docs/                   # Tài liệu kiến trúc
+├── eval/                   # Báo cáo đánh giá và script đo (run_eval.py, measure_api_latency.py)
+├── scripts/                # Backup/restore DB, reset mật khẩu, kiểm tra SMTP
+├── deploy/                 # Caddyfile cho HTTPS
+├── docs/                   # Tài liệu bổ sung
 ├── presentation/           # Video demo và tài liệu thuyết trình
-└── docker-compose.yml      # PostgreSQL, backend và frontend services
+├── docker-compose.yml          # Cấu hình production-safe
+└── docker-compose.override.yml # Tiện ích dev, tự nạp khi chạy `docker compose up`
 ```
+
+Xem thêm [ARCHITECTURE.md](ARCHITECTURE.md) (kiến trúc, luồng nghiệp vụ, bảo mật) và [DEPLOYMENT.md](DEPLOYMENT.md) (triển khai production, HTTPS, sao lưu).
 
 ## Yêu cầu hệ thống
 
@@ -65,7 +69,7 @@ Trên PowerShell, dùng:
 Copy-Item .env.example .env
 ```
 
-Kiểm tra `.env` trước khi chạy. Không commit API key hoặc thông tin đăng nhập thật.
+Kiểm tra `.env` trước khi chạy: thay `<PASSWORD>` bằng mật khẩu thật cho `POSTGRES_PASSWORD`, `DATABASE_URL` và `DOCKER_DATABASE_URL`. Không commit API key hoặc thông tin đăng nhập thật.
 
 ### 2. Khởi động PostgreSQL
 
@@ -82,7 +86,7 @@ Windows PowerShell:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -91,15 +95,15 @@ macOS/Linux:
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Backend tự tạo/cập nhật các bảng và seed tài khoản demo khi khởi động.
+Khi khởi động, backend chạy `alembic upgrade head` và tạo hai tài khoản ban đầu (`accountant@docusync.ai`, `chief.accountant@docusync.ai`). Mật khẩu lấy từ `SEED_DEFAULT_PASSWORD`; nếu để trống, hệ thống sinh mật khẩu ngẫu nhiên và ghi vào log đúng một lần.
 
-- Health check: <http://127.0.0.1:8000/health>
-- Swagger UI: <http://127.0.0.1:8000/docs>
-- OpenAPI JSON: <http://127.0.0.1:8000/openapi.json>
+- Health check: <http://127.0.0.1:8000/health> (liveness) và <http://127.0.0.1:8000/health/ready> (kèm kiểm tra database)
+- Swagger UI: <http://127.0.0.1:8000/docs> (chỉ bật ngoài production)
+- OpenAPI JSON: <http://127.0.0.1:8000/openapi.json> (chỉ bật ngoài production)
 
 ### 4. Khởi động frontend
 
@@ -115,13 +119,23 @@ npm run dev
 
 ## Chạy toàn bộ bằng Docker
 
+Môi trường dev (nạp `docker-compose.override.yml`, có dữ liệu demo):
+
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 - Frontend: <http://localhost:3000>
-- Backend: <http://localhost:8000>
-- PostgreSQL: `localhost:5433`
+- Backend: <http://localhost:8000> (đổi bằng `BACKEND_PORT`)
+- PostgreSQL: `127.0.0.1:5433`
+
+Production (không mount mã nguồn, không mở cổng backend và DB, không dữ liệu demo):
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
+Hướng dẫn đầy đủ gồm HTTPS, sao lưu và danh sách kiểm tra: [DEPLOYMENT.md](DEPLOYMENT.md).
 
 Dừng services:
 
@@ -134,7 +148,7 @@ docker compose down
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"accountant@docusync.ai","password":"123456"}'
+  -d '{"email":"accountant@docusync.ai","password":"<mật khẩu seed>"}'
 ```
 
 Response trả về `access_token`, `token_type` và thông tin user. Dùng token cho các request tiếp theo:
@@ -159,16 +173,22 @@ curl -X POST http://127.0.0.1:8000/api/v1/uploads \
 ## Chạy test và kiểm tra chất lượng
 
 ```bash
-pytest tests -v
-ruff check src tests
+pytest tests -v --cov=src          # cần PostgreSQL đang chạy và DATABASE_URL hợp lệ
+ruff check src tests migrations scripts eval
+python eval/run_eval.py            # đánh giá pipeline XML trên dataset
 ```
 
-Build frontend để kiểm tra trước khi merge/deploy:
+Frontend:
 
 ```bash
 cd frontend
+npm test
 npm run build
 ```
+
+Test backend tự chạy trên database riêng `<tên database>_test` (tự tạo nếu chưa có) và thư mục lưu file tạm, nên không bao giờ làm mất dữ liệu đang dùng.
+
+CI (GitHub Actions) chạy lint, migration, test backend với ngưỡng độ phủ 75%, đánh giá dataset, test và build frontend, và kiểm tra cấu hình Compose. Số liệu đánh giá mới nhất: [eval/results/report.md](eval/results/report.md).
 
 ## Environment variables
 
@@ -181,6 +201,17 @@ Danh sách đầy đủ và giá trị mẫu nằm trong [`.env.example`](.env.e
 | `CORS_ORIGINS` | Có | Danh sách frontend origins, phân cách bằng dấu phẩy |
 | `DATABASE_URL` | Có | PostgreSQL URL khi chạy backend local |
 | `DOCKER_DATABASE_URL` | Docker | PostgreSQL URL nội bộ Docker Compose |
+| `POSTGRES_PASSWORD` | Docker | Mật khẩu PostgreSQL; bắt buộc, không có giá trị mặc định |
+| `SEED_DEFAULT_PASSWORD` | Không | Mật khẩu tài khoản ban đầu; để trống để sinh ngẫu nhiên (production yêu cầu từ 10 ký tự) |
+| `SEED_DEFAULT_USERS` | Không | `false` để không tạo tài khoản ban đầu |
+| `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCKOUT_MINUTES` | Không | Giới hạn đăng nhập sai (mặc định 5 lần trong 15 phút) |
+| `MAX_UPLOAD_BYTES` | Không | Dung lượng tối đa mỗi file upload (mặc định 20 MB) |
+| `RUN_MIGRATIONS_ON_STARTUP` | Không | `false` để chạy `alembic upgrade head` như bước deploy riêng |
+| `LOG_LEVEL`, `LOG_FORMAT` | Không | Mức log và định dạng `text` hoặc `json` |
+| `DOCS_ENABLED_IN_PRODUCTION` | Không | `true` để bật Swagger ở production (mặc định tắt) |
+| `ENABLE_AGENT_CHAT_API` | Không | Bật endpoint agent mẫu `/api/v1/chat` (mặc định tắt) |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Không | Bóc tách PDF và ảnh bằng Gemini |
+| `DOMAIN` | HTTPS | Domain cho profile `https` (Caddy) |
 | `OPENAI_API_KEY` | Tùy chế độ | API key dùng cho LLM và document extraction |
 | `MODEL_NAME` | Không | Model cho agent/chat; giá trị mẫu trong `.env.example` là `gpt-5.6-sol` |
 | `OPENAI_DOCUMENT_MODEL` | Không | Model dùng để phân tích chứng từ |
@@ -205,7 +236,8 @@ Các endpoint nghiệp vụ dùng prefix `/api/v1`. Phần lớn endpoint yêu c
 
 | Method | Endpoint | Chức năng |
 |---|---|---|
-| `GET` | `/health` | Kiểm tra backend |
+| `GET` | `/health` | Kiểm tra backend (liveness) |
+| `GET` | `/health/ready` | Kiểm tra backend và database (readiness) |
 | `POST` | `/api/v1/auth/login` | Đăng nhập |
 | `GET/PATCH` | `/api/v1/auth/me` | Xem/cập nhật hồ sơ |
 | `POST` | `/api/v1/uploads/batches` | Tạo document batch |
