@@ -1,0 +1,59 @@
+{
+  "base_url": "http://localhost:8001",
+  "summary": {
+    "login": {
+      "samples": 5,
+      "p50_ms": 228.7,
+      "p95_ms": 275.9,
+      "max_ms": 275.9
+    },
+    "health": {
+      "samples": 30,
+      "p50_ms": 15.6,
+      "p95_ms": 26.1,
+      "max_ms": 29.6
+    },
+    "health_ready": {
+      "samples": 30,
+      "p50_ms": 14.3,
+      "p95_ms": 29.0,
+      "max_ms": 29.5
+    },
+    "auth_me": {
+      "samples": 30,
+      "p50_ms": 7.5,
+      "p95_ms": 30.9,
+      "max_ms": 31.5
+    },
+    "thresholds": {
+      "samples": 30,
+      "p50_ms": 9.8,
+      "p95_ms": 31.9,
+      "max_ms": 32.4
+    },
+    "reconciliations": {
+      "samples": 30,
+      "p50_ms": 29.3,
+      "p95_ms": 36.2,
+      "max_ms": 37.4
+    },
+    "dashboard_stats": {
+      "samples": 30,
+      "p50_ms": 19.2,
+      "p95_ms": 36.8,
+      "max_ms": 38.5
+    },
+    "upload_batches": {
+      "samples": 30,
+      "p50_ms": 32.2,
+      "p95_ms": 58.5,
+      "max_ms": 59.2
+    },
+    "audit_logs": {
+      "samples": 30,
+      "p50_ms": 15.6,
+      "p95_ms": 34.0,
+      "max_ms": 34.0
+    }
+  }
+}

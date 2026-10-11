@@ -6,11 +6,12 @@ import pytest
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+import src.api.uploads as uploads_api
 from src.api.auth import get_current_user
-from src.api.uploads import PROJECT_ROOT
 from src.database import get_db
 from src.main import app
 from src.models.user import User
+from tests.conftest import purge_batch_tables
 
 VALID_PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
@@ -61,13 +62,7 @@ def auth_override():
 
 @pytest.fixture(autouse=True)
 def clean_db_fixture(db_session):
-    from src.main import ensure_uploaded_document_extraction_tables
-    from src.models.reconciliation import UploadedDocumentExtraction, UploadedFile
-
-    ensure_uploaded_document_extraction_tables()
-    db_session.query(UploadedDocumentExtraction).delete()
-    db_session.query(UploadedFile).delete()
-    db_session.commit()
+    purge_batch_tables(db_session)
 
 
 @pytest.mark.asyncio
@@ -93,7 +88,7 @@ async def test_upload_png_po_duplicate_content_returns_conflict(client):
     assert first_data["status"] == "completed"
     assert_stored_filename(first_data, "po", "png")
     assert first_data["storage_key"].startswith("storage/upload/po/")
-    assert Path(PROJECT_ROOT / first_data["storage_key"]).exists()
+    assert Path(uploads_api.PROJECT_ROOT / first_data["storage_key"]).exists()
     assert "đã được tải lên" in dup_response.json()["detail"]
 
 
@@ -120,5 +115,5 @@ async def test_upload_pdf_grn_duplicate_content_returns_conflict(client):
     assert first_data["status"] == "completed"
     assert_stored_filename(first_data, "grn", "pdf")
     assert first_data["storage_key"].startswith("storage/upload/grn/")
-    assert Path(PROJECT_ROOT / first_data["storage_key"]).exists()
+    assert Path(uploads_api.PROJECT_ROOT / first_data["storage_key"]).exists()
     assert "đã được tải lên" in dup_response.json()["detail"]

@@ -1,0 +1,68 @@
+{
+  "dataset": "dataset/xml",
+  "batches": [
+    {
+      "batch": "batch_01_match",
+      "expected": "MATCH",
+      "parsed": true,
+      "error": null,
+      "latency_ms": 95.2,
+      "status": "matched",
+      "predicted": "MATCH",
+      "verdict_correct": true,
+      "flagged_lines": 0
+    },
+    {
+      "batch": "batch_02_match",
+      "expected": "MATCH",
+      "parsed": true,
+      "error": null,
+      "latency_ms": 5.6,
+      "status": "matched",
+      "predicted": "MATCH",
+      "verdict_correct": true,
+      "flagged_lines": 0,
+      "numbers_correct": true,
+      "totals_correct": true
+    },
+    {
+      "batch": "batch_03_mismatch",
+      "expected": "MISMATCH",
+      "parsed": true,
+      "error": null,
+      "latency_ms": 6.3,
+      "status": "major_diff",
+      "predicted": "MISMATCH",
+      "verdict_correct": true,
+      "flagged_lines": 2,
+      "numbers_correct": true,
+      "totals_correct": true
+    },
+    {
+      "batch": "batch_04_mismatch",
+      "expected": "MISMATCH",
+      "parsed": true,
+      "error": null,
+      "latency_ms": 4.8,
+      "status": "major_diff",
+      "predicted": "MISMATCH",
+      "verdict_correct": true,
+      "flagged_lines": 2
+    }
+  ],
+  "summary": {
+    "batches_total": 4,
+    "parse_success_rate": 1.0,
+    "verdict_accuracy": 1.0,
+    "ground_truth_batches": 2,
+    "document_numbers_accuracy": 1.0,
+    "totals_accuracy": 1.0,
+    "corrupt_xml": {
+      "recovered": 2,
+      "rejected": 1,
+      "crashed": 0
+    },
+    "latency_ms_p50": 6.0,
+    "latency_ms_max": 95.2
+  }
+}

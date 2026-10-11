@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 import src.api.uploads as uploads_api
 from src.api.auth import get_current_user
-from src.api.uploads import PROJECT_ROOT, build_cloud_storage_key
+from src.api.uploads import build_cloud_storage_key
 from src.config import get_settings
 from src.database import get_db
 from src.main import app
@@ -19,6 +19,7 @@ from src.models.notification import Notification
 from src.models.reconciliation import DocumentBatch, ReconciliationCase, UploadedFile
 from src.models.user import User
 from src.services.document_ai_extractor import DocumentAiAnalysis
+from tests.conftest import purge_batch_tables
 
 VALID_PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
@@ -84,15 +85,7 @@ def auth_override():
 
 @pytest.fixture(autouse=True)
 def clean_db_fixture(db_session):
-    from src.main import ensure_uploaded_document_extraction_tables
-    from src.models.reconciliation import DocumentBatch, UploadedDocumentExtraction, UploadedFile
-
-    ensure_uploaded_document_extraction_tables()
-    db_session.query(UploadedDocumentExtraction).delete()
-    db_session.query(UploadedFile).delete()
-    db_session.query(Notification).delete()
-    db_session.query(DocumentBatch).delete()
-    db_session.commit()
+    purge_batch_tables(db_session)
 
 
 @pytest.mark.asyncio
@@ -123,7 +116,7 @@ async def test_upload_valid_invoice(client):
     assert data["storage_provider"] == "local"
     assert data["storage_key"].startswith("storage/upload/invoice/")
     assert data["file_url"] == f"/api/v1/uploads/{data['id']}/file"
-    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+    assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
@@ -173,7 +166,7 @@ async def test_upload_pdf_invoice_only_stores_file(client):
     assert data["file_ext"] == "pdf"
     assert_stored_filename(data, "invoice", "pdf")
     assert data["storage_key"].startswith("storage/upload/invoice/")
-    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+    assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
@@ -207,7 +200,7 @@ async def test_uploaded_file_can_be_deleted_and_removed_from_batch(client):
 
     assert upload_response.status_code == 200
     upload = upload_response.json()
-    file_path = PROJECT_ROOT / upload["storage_key"]
+    file_path = uploads_api.PROJECT_ROOT / upload["storage_key"]
     assert file_path.exists()
 
     delete_response = await client.delete(f"/api/v1/uploads/{upload['id']}")
@@ -364,7 +357,7 @@ async def test_upload_po_png_only_stores_file(client):
     assert data["file_ext"] == "png"
     assert_stored_filename(data, "po", "png")
     assert data["storage_key"].startswith("storage/upload/po/")
-    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+    assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
@@ -383,7 +376,7 @@ async def test_upload_selected_type_controls_storage_folder(client):
     assert data["original_filename"] is None
     assert_stored_filename(data, "po", "xml")
     assert data["storage_key"].startswith("storage/upload/po/")
-    assert Path(PROJECT_ROOT / data["storage_key"]).exists()
+    assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 
 @pytest.mark.asyncio
@@ -475,9 +468,8 @@ async def test_upload_batch_note_is_optional_and_updateable(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_accountant_only_sees_own_upload_batches(client, db_session):
+async def test_accountant_only_sees_own_upload_batches(client, db_session, other_accountant):
     accountant = db_session.query(User).filter(User.email == "accountant@docusync.ai").first()
-    other_accountant = db_session.query(User).filter(User.email == "chuthanhdung@gmail.com").first()
     own_batch = DocumentBatch(
         batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_80",
         created_by_id=accountant.public_id,
@@ -510,8 +502,7 @@ async def test_accountant_only_sees_own_upload_batches(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_accountant_cannot_access_other_accountants_batch(client, db_session):
-    other_accountant = db_session.query(User).filter(User.email == "chuthanhdung@gmail.com").first()
+async def test_accountant_cannot_access_other_accountants_batch(client, db_session, other_accountant):
     other_batch = DocumentBatch(
         batch_number=f"BATCH_{datetime.now().strftime('%d_%m_%Y')}_82",
         created_by_id=other_accountant.public_id,
