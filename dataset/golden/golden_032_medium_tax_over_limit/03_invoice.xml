@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTP</KHHDon>
+      <SHDon>00005032</SHDon>
+      <NLap>2026-04-26</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</Ten>
+        <MST>0411275559</MST>
+        <DChi>Số 27 Cộng Hòa, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>APQ04-HL</MHHDVu>
+          <THHDVu>Áo phản quang vàng size XL Hưng Long</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>280</SLuong>
+          <DGia>49000</DGia>
+          <ThTien>13720000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>ATD02-KS</MHHDVu>
+          <THHDVu>Áo thun đồng phục size M Kim Sơn</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>22</SLuong>
+          <DGia>120500</DGia>
+          <ThTien>2651000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>ATD04-KS</MHHDVu>
+          <THHDVu>Áo thun đồng phục size XL Kim Sơn</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>36</SLuong>
+          <DGia>122000</DGia>
+          <ThTien>4392000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>ATD05-TA</MHHDVu>
+          <THHDVu>Áo thun đồng phục size XXL Tân Á</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>29</SLuong>
+          <DGia>117000</DGia>
+          <ThTien>3393000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>DDA02-TA</MHHDVu>
+          <THHDVu>Dây đai an toàn toàn thân 1 móc Tân Á</THHDVu>
+          <DVTinh>Bộ</DVTinh>
+          <SLuong>24</SLuong>
+          <DGia>805000</DGia>
+          <ThTien>19320000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>GBH01-DP</MHHDVu>
+          <THHDVu>Giày bảo hộ size 39 Đại Phát</THHDVu>
+          <DVTinh>Đôi</DVTinh>
+          <SLuong>29</SLuong>
+          <DGia>450000</DGia>
+          <ThTien>13050000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>GBH02-PG</MHHDVu>
+          <THHDVu>Giày bảo hộ size 40 Phú Gia</THHDVu>
+          <DVTinh>Đôi</DVTinh>
+          <SLuong>9</SLuong>
+          <DGia>487000</DGia>
+          <ThTien>4383000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>GBH04-HL</MHHDVu>
+          <THHDVu>Giày bảo hộ size 42 Hưng Long</THHDVu>
+          <DVTinh>Đôi</DVTinh>
+          <SLuong>13</SLuong>
+          <DGia>444000</DGia>
+          <ThTien>5772000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>GBH05-TA</MHHDVu>
+          <THHDVu>Giày bảo hộ size 43 Tân Á</THHDVu>
+          <DVTinh>Đôi</DVTinh>
+          <SLuong>5</SLuong>
+          <DGia>472000</DGia>
+          <ThTien>2360000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>GTB01-HL</MHHDVu>
+          <THHDVu>Găng tay bảo hộ len Hưng Long</THHDVu>
+          <DVTinh>Đôi</DVTinh>
+          <SLuong>240</SLuong>
+          <DGia>8300</DGia>
+          <ThTien>1992000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>11</STT>
+          <MHHDVu>KBH01-TA</MHHDVu>
+          <THHDVu>Kính bảo hộ trong suốt Tân Á</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>125</SLuong>
+          <DGia>26000</DGia>
+          <ThTien>3250000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>12</STT>
+          <MHHDVu>KBH02-DP</MHHDVu>
+          <THHDVu>Kính bảo hộ chống bụi Đại Phát</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>165</SLuong>
+          <DGia>73000</DGia>
+          <ThTien>12045000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>13</STT>
+          <MHHDVu>KTY01-DP</MHHDVu>
+          <THHDVu>Khẩu trang y tế 3 lớp (50 cái) Đại Phát</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>19</SLuong>
+          <DGia>36000</DGia>
+          <ThTien>684000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>14</STT>
+          <MHHDVu>KTY02-KS</MHHDVu>
+          <THHDVu>Khẩu trang y tế 4 lớp (50 cái) Kim Sơn</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>38</SLuong>
+          <DGia>170000</DGia>
+          <ThTien>6460000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>15</STT>
+          <MHHDVu>MBH02-PG</MHHDVu>
+          <THHDVu>Mũ bảo hộ vàng Phú Gia</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>55</SLuong>
+          <DGia>71000</DGia>
+          <ThTien>3905000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>97377000</ThTien>
+            <TThue>9739691</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>97377000</TgTCThue>
+        <TgTThue>9739691</TgTThue>
+        <TgTTTBSo>107116691</TgTTTBSo>
+        <TgTTTBChu>Một trăm lẻ bảy triệu một trăm mười sáu nghìn sáu trăm chín mươi mốt đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

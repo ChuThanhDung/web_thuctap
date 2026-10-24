@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TPL</KHHDon>
+      <SHDon>00005012</SHDon>
+      <NLap>2026-03-26</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</Ten>
+        <MST>0697212710</MST>
+        <DChi>Số 120 Quốc lộ 1A, Phường Linh Trung, TP. Thủ Đức, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>PVC04-HL</MHHDVu>
+          <THHDVu>Ống nhựa PVC 4m phi 42 Hưng Long</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>16</SLuong>
+          <DGia>107500</DGia>
+          <ThTien>1720000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>PVC05-TA</MHHDVu>
+          <THHDVu>Ống nhựa PVC 4m phi 60 Tân Á</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>18</SLuong>
+          <DGia>151500</DGia>
+          <ThTien>2727000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>4447000</ThTien>
+            <TThue>355760</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>4447000</TgTCThue>
+        <TgTThue>355760</TgTThue>
+        <TgTTTBSo>4802760</TgTTTBSo>
+        <TgTTTBChu>Bốn triệu tám trăm lẻ hai nghìn bảy trăm sáu mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

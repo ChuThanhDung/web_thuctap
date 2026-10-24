@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_015_small_vat_rate_mismatch",
+  "format": "xml",
+  "category": "small",
+  "kind": "vat_rate_mismatch",
+  "line_count": 1,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0015",
+    "goods_receipt": "PNK-0115",
+    "invoice": "1C26TSG-00005015"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH BAO BÌ SÀI GÒN",
+  "po_total": 17382600,
+  "invoice_total": 17704500,
+  "discrepancies": [
+    {
+      "type": "vat_rate",
+      "document": "invoice",
+      "description": "Thuế suất hóa đơn 10% khác PO 8%"
+    }
+  ]
+}

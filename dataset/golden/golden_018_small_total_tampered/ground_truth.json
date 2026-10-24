@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_018_small_total_tampered",
+  "format": "xml",
+  "category": "small",
+  "kind": "total_tampered",
+  "line_count": 3,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0018",
+    "goods_receipt": "PNK-0118",
+    "invoice": "1C26TMK-00005018"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH ĐIỆN MÁY MINH KHANG",
+  "po_total": 6177060,
+  "invoice_total": 6677060,
+  "discrepancies": [
+    {
+      "type": "total",
+      "document": "invoice",
+      "description": "Tổng thanh toán trên hóa đơn lớn hơn tổng các dòng hàng"
+    }
+  ]
+}

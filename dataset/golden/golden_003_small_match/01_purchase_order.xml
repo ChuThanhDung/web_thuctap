@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0003</SoDon>
+  <NgayLap>2026-06-08</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</Ten>
+    <MST>0697212710</MST>
+    <DiaChi>Số 120 Quốc lộ 1A, Phường Linh Trung, TP. Thủ Đức, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>PVC02-TA</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 27 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>125</SoLuong>
+      <DonGia>52500</DonGia>
+      <ThanhTien>6562500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>THP06-TA</MaHang>
+      <TenHang>Thép cây phi 20 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>23</SoLuong>
+      <DonGia>512000</DonGia>
+      <ThanhTien>11776000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>18338500</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>1833850</TienThueGTGT>
+  <TongTienThanhToan>20172350</TongTienThanhToan>
+  <BangChu>Hai mươi triệu một trăm bảy mươi hai nghìn ba trăm năm mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

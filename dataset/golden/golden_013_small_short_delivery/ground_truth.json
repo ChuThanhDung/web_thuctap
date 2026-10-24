@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_013_small_short_delivery",
+  "format": "xml",
+  "category": "small",
+  "kind": "short_delivery",
+  "line_count": 1,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0013",
+    "goods_receipt": "PNK-0113",
+    "invoice": "1C26THB-00005013"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH",
+  "po_total": 12105500,
+  "invoice_total": 12105500,
+  "discrepancies": [
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 538 trên 710 đặt",
+      "sku": "BUL04-PG"
+    }
+  ]
+}

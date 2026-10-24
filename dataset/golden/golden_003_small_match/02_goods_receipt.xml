@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0103</SoPhieu>
+  <NgayLap>2026-06-13</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0003 ngày 2026-06-08</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Lê Minh Châu - CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>PVC02-TA</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 27 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>125</SoLuongTheoChungTu>
+      <SoLuongThucNhap>125</SoLuongThucNhap>
+      <DonGia>52500</DonGia>
+      <ThanhTien>6562500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>THP06-TA</MaHang>
+      <TenHang>Thép cây phi 20 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>23</SoLuongTheoChungTu>
+      <SoLuongThucNhap>23</SoLuongThucNhap>
+      <DonGia>512000</DonGia>
+      <ThanhTien>11776000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>18338500</TongTien>
+  <BangChu>Mười tám triệu ba trăm ba mươi tám nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0003)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TSG</KHHDon>
+      <SHDon>00005033</SHDon>
+      <NLap>2026-09-16</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH BAO BÌ SÀI GÒN</Ten>
+        <MST>0136896007</MST>
+        <DChi>Lô C4, KCN Tân Bình, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BKH01-HL</MHHDVu>
+          <THHDVu>Băng keo đóng hàng trong 100 yard Hưng Long</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>290</SLuong>
+          <DGia>14000</DGia>
+          <ThTien>4059504</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>BKH02-HL</MHHDVu>
+          <THHDVu>Băng keo đóng hàng trong 200 yard Hưng Long</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>440</SLuong>
+          <DGia>30500</DGia>
+          <ThTien>13420000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>PLN03-PG</MHHDVu>
+          <THHDVu>Pallet nhựa 1100x1100mm Phú Gia</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>45</SLuong>
+          <DGia>1000000</DGia>
+          <ThTien>45000000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>TC302-KS</MHHDVu>
+          <THHDVu>Thùng carton 3 lớp 40x30x30cm Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>990</SLuong>
+          <DGia>11500</DGia>
+          <ThTien>11385000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>TC303-DP</MHHDVu>
+          <THHDVu>Thùng carton 3 lớp 50x40x40cm Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>900</SLuong>
+          <DGia>16000</DGia>
+          <ThTien>14400000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>TC501-HL</MHHDVu>
+          <THHDVu>Thùng carton 5 lớp 30x20x20cm Hưng Long</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>1410</SLuong>
+          <DGia>9300</DGia>
+          <ThTien>13113000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>TC504-KS</MHHDVu>
+          <THHDVu>Thùng carton 5 lớp 60x40x40cm Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>125</SLuong>
+          <DGia>37500</DGia>
+          <ThTien>4687500</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>XOP01-TA</MHHDVu>
+          <THHDVu>Xốp hơi chống sốc 0.5m x 100m Tân Á</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>3</SLuong>
+          <DGia>183000</DGia>
+          <ThTien>549000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>XOP02-KS</MHHDVu>
+          <THHDVu>Xốp hơi chống sốc 1m x 100m Kim Sơn</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>21</SLuong>
+          <DGia>318000</DGia>
+          <ThTien>6678000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>113292004</ThTien>
+            <TThue>9063360</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>113292004</TgTCThue>
+        <TgTThue>9063360</TgTThue>
+        <TgTTTBSo>122355364</TgTTTBSo>
+        <TgTTTBChu>Một trăm hai mươi hai triệu ba trăm năm mươi lăm nghìn ba trăm sáu mươi bốn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

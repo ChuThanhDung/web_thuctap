@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0107</SoPhieu>
+  <NgayLap>2026-08-16</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0007 ngày 2026-08-11</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Phạm Quốc Dũng - CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>RAM02-TA</MaHang>
+      <TenHang>RAM laptop DDR4 16GB Tân Á</TenHang>
+      <DonViTinh>Thanh</DonViTinh>
+      <SoLuongTheoChungTu>21</SoLuongTheoChungTu>
+      <SoLuongThucNhap>21</SoLuongThucNhap>
+      <DonGia>1059000</DonGia>
+      <ThanhTien>22239000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>22239000</TongTien>
+  <BangChu>Hai mươi hai triệu hai trăm ba mươi chín nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0007)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_014_small_tax_id_mismatch",
+  "format": "xml",
+  "category": "small",
+  "kind": "tax_id_mismatch",
+  "line_count": 3,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0014",
+    "goods_receipt": "PNK-0114",
+    "invoice": "1C26TTP-00005014"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ",
+  "po_total": 29259450,
+  "invoice_total": 29259450,
+  "discrepancies": [
+    {
+      "type": "tax_id",
+      "document": "invoice",
+      "description": "MST hóa đơn 0704323307 khác PO/GRN 0411275559"
+    }
+  ]
+}

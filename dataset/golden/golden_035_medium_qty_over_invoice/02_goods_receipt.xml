@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0135</SoPhieu>
+  <NgayLap>2026-02-17</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0035 ngày 2026-02-12</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Hồ Minh Tuấn - CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>GVS02-HL</MaHang>
+      <TenHang>Giấy vệ sinh cuộn lớn 3 lớp 10 cuộn Hưng Long</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>23</SoLuongTheoChungTu>
+      <SoLuongThucNhap>23</SoLuongThucNhap>
+      <DonGia>540000</DonGia>
+      <ThanhTien>12420000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>KGL02-PG</MaHang>
+      <TenHang>Khăn giấy lau tay 2 lớp 20 gói Phú Gia</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>30</SoLuongTheoChungTu>
+      <SoLuongThucNhap>30</SoLuongThucNhap>
+      <DonGia>550000</DonGia>
+      <ThanhTien>16500000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>NLS01-PG</MaHang>
+      <TenHang>Nước lau sàn 5L hương chanh Phú Gia</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuongTheoChungTu>60</SoLuongTheoChungTu>
+      <SoLuongThucNhap>60</SoLuongThucNhap>
+      <DonGia>133000</DonGia>
+      <ThanhTien>7980000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>NLS02-HL</MaHang>
+      <TenHang>Nước lau sàn 5L hương sả Hưng Long</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuongTheoChungTu>5</SoLuongTheoChungTu>
+      <SoLuongThucNhap>5</SoLuongThucNhap>
+      <DonGia>125000</DonGia>
+      <ThanhTien>625000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>NLS03-DP</MaHang>
+      <TenHang>Nước lau sàn 5L hương lavender Đại Phát</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuongTheoChungTu>38</SoLuongTheoChungTu>
+      <SoLuongThucNhap>38</SoLuongThucNhap>
+      <DonGia>125000</DonGia>
+      <ThanhTien>4750000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>NRC02-TA</MaHang>
+      <TenHang>Nước rửa chén 5kg Tân Á</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuongTheoChungTu>70</SoLuongTheoChungTu>
+      <SoLuongThucNhap>70</SoLuongThucNhap>
+      <DonGia>154500</DonGia>
+      <ThanhTien>10815000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>NRT02-HL</MaHang>
+      <TenHang>Nước rửa tay 1L Hưng Long</TenHang>
+      <DonViTinh>Chai</DonViTinh>
+      <SoLuongTheoChungTu>165</SoLuongTheoChungTu>
+      <SoLuongThucNhap>165</SoLuongThucNhap>
+      <DonGia>79000</DonGia>
+      <ThanhTien>13035000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>66125000</TongTien>
+  <BangChu>Sáu mươi sáu triệu một trăm hai mươi lăm nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0035)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

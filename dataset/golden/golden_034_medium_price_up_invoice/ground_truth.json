@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_034_medium_price_up_invoice",
+  "format": "xml",
+  "category": "medium",
+  "kind": "price_up_invoice",
+  "line_count": 13,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0034",
+    "goods_receipt": "PNK-0134",
+    "invoice": "1C26TDV-00005034"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT",
+  "po_total": 236587450,
+  "invoice_total": 236933950,
+  "discrepancies": [
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 97,000 đ, PO/GRN 86,500 đ",
+      "sku": "CHU01-TA"
+    }
+  ]
+}

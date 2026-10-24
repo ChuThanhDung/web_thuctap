@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_012_small_qty_over_invoice",
+  "format": "xml",
+  "category": "small",
+  "kind": "qty_over_invoice",
+  "line_count": 2,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0012",
+    "goods_receipt": "PNK-0112",
+    "invoice": "1C26TPL-00005012"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC",
+  "po_total": 3821040,
+  "invoice_total": 4802760,
+  "discrepancies": [
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 18, PO đặt và kho nhập 12",
+      "sku": "PVC05-TA"
+    }
+  ]
+}

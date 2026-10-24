@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0138</SoPhieu>
+  <NgayLap>2026-07-07</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0038 ngày 2026-07-02</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Bùi Văn Khoa - CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>FHS01-PG</MaHang>
+      <TenHang>File hồ sơ lá A4 Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>25</SoLuongTheoChungTu>
+      <SoLuongThucNhap>25</SoLuongThucNhap>
+      <DonGia>9300</DonGia>
+      <ThanhTien>232500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>FHS02-DP</MaHang>
+      <TenHang>File hồ sơ nhựa 20 lá Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>75</SoLuongTheoChungTu>
+      <SoLuongThucNhap>75</SoLuongThucNhap>
+      <DonGia>28000</DonGia>
+      <ThanhTien>2100000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>MIN03-DP</MaHang>
+      <TenHang>Máy in laser A3 đơn năng Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>1</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1</SoLuongThucNhap>
+      <DonGia>17710000</DonGia>
+      <ThanhTien>17710000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>MUC02-TA</MaHang>
+      <TenHang>Hộp mực in laser mã 05A Tân Á</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>5</SoLuongTheoChungTu>
+      <SoLuongThucNhap>5</SoLuongThucNhap>
+      <DonGia>693000</DonGia>
+      <ThanhTien>3465000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>MUC04-KS</MaHang>
+      <TenHang>Hộp mực in laser mã 85A Kim Sơn</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>2</SoLuongTheoChungTu>
+      <SoLuongThucNhap>2</SoLuongThucNhap>
+      <DonGia>1515000</DonGia>
+      <ThanhTien>3030000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>TUS03-DP</MaHang>
+      <TenHang>Tủ hồ sơ sắt 4 ngăn kéo Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>2</SoLuongTheoChungTu>
+      <SoLuongThucNhap>2</SoLuongThucNhap>
+      <DonGia>6450000</DonGia>
+      <ThanhTien>12900000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>39437500</TongTien>
+  <BangChu>Ba mươi chín triệu bốn trăm ba mươi bảy nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0038)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

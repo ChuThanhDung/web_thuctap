@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_033_medium_rounding_line",
+  "format": "xml",
+  "category": "medium",
+  "kind": "rounding_line",
+  "line_count": 9,
+  "expected_result": "MISMATCH",
+  "expected_status": "minor_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0033",
+    "goods_receipt": "PNK-0133",
+    "invoice": "1C26TSG-00005033"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH BAO BÌ SÀI GÒN",
+  "po_total": 122355900,
+  "invoice_total": 122355364,
+  "discrepancies": [
+    {
+      "type": "rounding",
+      "document": "invoice",
+      "description": "Thành tiền dòng lệch -496 đ do làm tròn",
+      "sku": "BKH01-HL"
+    }
+  ]
+}

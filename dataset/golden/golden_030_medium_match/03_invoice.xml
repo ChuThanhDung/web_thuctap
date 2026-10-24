@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TPL</KHHDon>
+      <SHDon>00005030</SHDon>
+      <NLap>2026-02-09</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</Ten>
+        <MST>0697212710</MST>
+        <DChi>Số 120 Quốc lộ 1A, Phường Linh Trung, TP. Thủ Đức, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BUL01-HL</MHHDVu>
+          <THHDVu>Bu lông inox M6x30 Hưng Long</THHDVu>
+          <DVTinh>Con</DVTinh>
+          <SLuong>170</SLuong>
+          <DGia>1400</DGia>
+          <ThTien>238000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>BUL02-PG</MHHDVu>
+          <THHDVu>Bu lông inox M8x40 Phú Gia</THHDVu>
+          <DVTinh>Con</DVTinh>
+          <SLuong>300</SLuong>
+          <DGia>6100</DGia>
+          <ThTien>1830000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>BUL05-PG</MHHDVu>
+          <THHDVu>Bu lông inox M16x80 Phú Gia</THHDVu>
+          <DVTinh>Con</DVTinh>
+          <SLuong>170</SLuong>
+          <DGia>19000</DGia>
+          <ThTien>3230000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>DAX01-TA</MHHDVu>
+          <THHDVu>Đá xây dựng 4x6 Tân Á</THHDVu>
+          <DVTinh>Khối</DVTinh>
+          <SLuong>29</SLuong>
+          <DGia>297000</DGia>
+          <ThTien>8613000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>DAX02-HL</MHHDVu>
+          <THHDVu>Đá xây dựng 1x2 Hưng Long</THHDVu>
+          <DVTinh>Khối</DVTinh>
+          <SLuong>22</SLuong>
+          <DGia>347000</DGia>
+          <ThTien>7634000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>DAX03-PG</MHHDVu>
+          <THHDVu>Đá xây dựng 0x4 Phú Gia</THHDVu>
+          <DVTinh>Khối</DVTinh>
+          <SLuong>37</SLuong>
+          <DGia>487000</DGia>
+          <ThTien>18019000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>GOL01-PG</MHHDVu>
+          <THHDVu>Gạch ốp lát 30x30 chống trơn Phú Gia</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>280</SLuong>
+          <DGia>175500</DGia>
+          <ThTien>49140000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>KDG02-PG</MHHDVu>
+          <THHDVu>Keo dán gạch 25kg loại C2 Phú Gia</THHDVu>
+          <DVTinh>Bao</DVTinh>
+          <SLuong>40</SLuong>
+          <DGia>261000</DGia>
+          <ThTien>10440000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>SON02-DP</MHHDVu>
+          <THHDVu>Sơn nước nội thất 5L xanh ngọc Đại Phát</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>21</SLuong>
+          <DGia>1197000</DGia>
+          <ThTien>25137000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>THP01-PG</MHHDVu>
+          <THHDVu>Thép cây phi 10 Phú Gia</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>340</SLuong>
+          <DGia>104500</DGia>
+          <ThTien>35530000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>11</STT>
+          <MHHDVu>THP04-DP</MHHDVu>
+          <THHDVu>Thép cây phi 16 Đại Phát</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>36</SLuong>
+          <DGia>340000</DGia>
+          <ThTien>12240000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>12</STT>
+          <MHHDVu>VIT02-DP</MHHDVu>
+          <THHDVu>Vít bắn tôn 5x35 Đại Phát (hộp 100 con)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>85</SLuong>
+          <DGia>77000</DGia>
+          <ThTien>6545000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>13</STT>
+          <MHHDVu>XMG02-PG</MHHDVu>
+          <THHDVu>Xi măng PCB40 50kg Phú Gia</THHDVu>
+          <DVTinh>Bao</DVTinh>
+          <SLuong>180</SLuong>
+          <DGia>103500</DGia>
+          <ThTien>18630000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>197226000</ThTien>
+            <TThue>15778080</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>197226000</TgTCThue>
+        <TgTThue>15778080</TgTThue>
+        <TgTTTBSo>213004080</TgTTTBSo>
+        <TgTTTBChu>Hai trăm mười ba triệu không trăm lẻ bốn nghìn không trăm tám mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_037_medium_tax_id_mismatch",
+  "format": "pdf",
+  "category": "medium",
+  "kind": "tax_id_mismatch",
+  "line_count": 8,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0037",
+    "goods_receipt": "PNK-0137",
+    "invoice": "1C26TNV-00005037"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT",
+  "po_total": 75785220,
+  "invoice_total": 75785220,
+  "discrepancies": [
+    {
+      "type": "tax_id",
+      "document": "invoice",
+      "description": "MST hóa đơn 0670789914 khác PO/GRN 0615395616"
+    }
+  ]
+}

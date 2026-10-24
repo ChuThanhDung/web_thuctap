@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TDV</KHHDon>
+      <SHDon>00005007</SHDon>
+      <NLap>2026-08-18</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</Ten>
+        <MST>0409084131</MST>
+        <DChi>Số 15 Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>RAM02-TA</MHHDVu>
+          <THHDVu>RAM laptop DDR4 16GB Tân Á</THHDVu>
+          <DVTinh>Thanh</DVTinh>
+          <SLuong>21</SLuong>
+          <DGia>1059000</DGia>
+          <ThTien>22239000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>22239000</ThTien>
+            <TThue>2223900</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>22239000</TgTCThue>
+        <TgTThue>2223900</TgTThue>
+        <TgTTTBSo>24462900</TgTTTBSo>
+        <TgTTTBChu>Hai mươi bốn triệu bốn trăm sáu mươi hai nghìn chín trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

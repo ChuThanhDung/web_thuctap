@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0104</SoPhieu>
+  <NgayLap>2026-06-14</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0004 ngày 2026-06-09</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Hồ Minh Tuấn - CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>KDG02-HL</MaHang>
+      <TenHang>Keo dán gạch 25kg loại C2 Hưng Long</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuongTheoChungTu>38</SoLuongTheoChungTu>
+      <SoLuongThucNhap>38</SoLuongThucNhap>
+      <DonGia>237000</DonGia>
+      <ThanhTien>9006000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>THP05-TA</MaHang>
+      <TenHang>Thép cây phi 18 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>125</SoLuongTheoChungTu>
+      <SoLuongThucNhap>125</SoLuongThucNhap>
+      <DonGia>443000</DonGia>
+      <ThanhTien>55375000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>XMG01-HL</MaHang>
+      <TenHang>Xi măng PCB30 50kg Hưng Long</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuongTheoChungTu>330</SoLuongTheoChungTu>
+      <SoLuongThucNhap>330</SoLuongThucNhap>
+      <DonGia>73500</DonGia>
+      <ThanhTien>24255000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>88636000</TongTien>
+  <BangChu>Tám mươi tám triệu sáu trăm ba mươi sáu nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0004)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

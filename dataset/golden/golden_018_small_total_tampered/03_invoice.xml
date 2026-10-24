@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TMK</KHHDon>
+      <SHDon>00005018</SHDon>
+      <NLap>2026-01-12</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH ĐIỆN MÁY MINH KHANG</Ten>
+        <MST>0830544446</MST>
+        <DChi>Số 45 Lý Thường Kiệt, Phường 7, Quận Tân Bình, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>DAT02-KS</MHHDVu>
+          <THHDVu>Đèn LED âm trần 9W Kim Sơn</THHDVu>
+          <DVTinh>Bộ</DVTinh>
+          <SLuong>15</SLuong>
+          <DGia>126500</DGia>
+          <ThTien>1897500</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>OLD01-DP</MHHDVu>
+          <THHDVu>Ống luồn dây điện phi 16 Đại Phát</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>26</SLuong>
+          <DGia>12000</DGia>
+          <ThTien>312000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>OLD02-KS</MHHDVu>
+          <THHDVu>Ống luồn dây điện phi 20 Kim Sơn</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>180</SLuong>
+          <DGia>19500</DGia>
+          <ThTien>3510000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>5719500</ThTien>
+            <TThue>457560</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>5719500</TgTCThue>
+        <TgTThue>457560</TgTThue>
+        <TgTTTBSo>6677060</TgTTTBSo>
+        <TgTTTBChu>Sáu triệu sáu trăm bảy mươi bảy nghìn không trăm sáu mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

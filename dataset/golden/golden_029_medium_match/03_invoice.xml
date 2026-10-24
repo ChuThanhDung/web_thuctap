@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTD</KHHDon>
+      <SHDon>00005029</SHDon>
+      <NLap>2026-09-17</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+        <MST>0368573115</MST>
+        <DChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BBI02-TA</MHHDVu>
+          <THHDVu>Bút bi đỏ 0.5mm Tân Á (hộp 20 cây)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>25</SLuong>
+          <DGia>68000</DGia>
+          <ThTien>1700000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>BBI03-HL</MHHDVu>
+          <THHDVu>Bút bi đen 0.5mm Hưng Long (hộp 20 cây)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>24</SLuong>
+          <DGia>66000</DGia>
+          <ThTien>1584000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>BDQ02-PG</MHHDVu>
+          <THHDVu>Bút dạ quang xanh lá Phú Gia (hộp 10 cây)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>25</SLuong>
+          <DGia>89000</DGia>
+          <ThTien>2225000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>BDQ04-PG</MHHDVu>
+          <THHDVu>Bút dạ quang cam Phú Gia (hộp 10 cây)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>25</SLuong>
+          <DGia>93000</DGia>
+          <ThTien>2325000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>GA301-PG</MHHDVu>
+          <THHDVu>Giấy in A3 70gsm Phú Gia</THHDVu>
+          <DVTinh>Ram</DVTinh>
+          <SLuong>13</SLuong>
+          <DGia>150000</DGia>
+          <ThTien>1950000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>GA302-TA</MHHDVu>
+          <THHDVu>Giấy in A3 80gsm Tân Á</THHDVu>
+          <DVTinh>Ram</DVTinh>
+          <SLuong>36</SLuong>
+          <DGia>186500</DGia>
+          <ThTien>6714000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>KEP01-TA</MHHDVu>
+          <THHDVu>Kẹp giấy số 1 Tân Á</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>11</SLuong>
+          <DGia>3900</DGia>
+          <ThTien>42900</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>MIN01-HL</MHHDVu>
+          <THHDVu>Máy in laser A4 đơn năng Hưng Long</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>4</SLuong>
+          <DGia>3180000</DGia>
+          <ThTien>12720000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>MIN03-HL</MHHDVu>
+          <THHDVu>Máy in laser A3 đơn năng Hưng Long</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>17080000</DGia>
+          <ThTien>34160000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>MUC01-DP</MHHDVu>
+          <THHDVu>Hộp mực in laser mã 12A Đại Phát</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>11</SLuong>
+          <DGia>278000</DGia>
+          <ThTien>3058000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>11</STT>
+          <MHHDVu>MUC03-TA</MHHDVu>
+          <THHDVu>Hộp mực in laser mã 26A Tân Á</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>10</SLuong>
+          <DGia>1041000</DGia>
+          <ThTien>10410000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>12</STT>
+          <MHHDVu>SGC03-DP</MHHDVu>
+          <THHDVu>Sổ ghi chép A4 200 trang Đại Phát</THHDVu>
+          <DVTinh>Quyển</DVTinh>
+          <SLuong>170</SLuong>
+          <DGia>66500</DGia>
+          <ThTien>11305000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>13</STT>
+          <MHHDVu>TUS01-DP</MHHDVu>
+          <THHDVu>Tủ hồ sơ sắt 2 cánh kính Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>3</SLuong>
+          <DGia>2160000</DGia>
+          <ThTien>6480000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>14</STT>
+          <MHHDVu>TUS03-TA</MHHDVu>
+          <THHDVu>Tủ hồ sơ sắt 4 ngăn kéo Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>4</SLuong>
+          <DGia>6650000</DGia>
+          <ThTien>26600000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>121273900</ThTien>
+            <TThue>12127390</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>121273900</TgTCThue>
+        <TgTThue>12127390</TgTThue>
+        <TgTTTBSo>133401290</TgTTTBSo>
+        <TgTTTBChu>Một trăm ba mươi ba triệu bốn trăm lẻ một nghìn hai trăm chín mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

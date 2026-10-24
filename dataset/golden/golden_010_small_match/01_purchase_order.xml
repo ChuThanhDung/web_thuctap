@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0010</SoDon>
+  <NgayLap>2026-02-20</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+    <MST>0615395616</MST>
+    <DiaChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>OLD02-PG</MaHang>
+      <TenHang>Ống luồn dây điện phi 20 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>34</SoLuong>
+      <DonGia>20500</DonGia>
+      <ThanhTien>697000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>697000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>69700</TienThueGTGT>
+  <TongTienThanhToan>766700</TongTienThanhToan>
+  <BangChu>Bảy trăm sáu mươi sáu nghìn bảy trăm đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTP</KHHDon>
+      <SHDon>00005005</SHDon>
+      <NLap>2026-04-17</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</Ten>
+        <MST>0411275559</MST>
+        <DChi>Số 27 Cộng Hòa, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>APQ01-PG</MHHDVu>
+          <THHDVu>Áo phản quang cam size L Phú Gia</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>55</SLuong>
+          <DGia>54000</DGia>
+          <ThTien>2970000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>APQ02-TA</MHHDVu>
+          <THHDVu>Áo phản quang vàng size L Tân Á</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>60</SLuong>
+          <DGia>52000</DGia>
+          <ThTien>3120000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>6090000</ThTien>
+            <TThue>609000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>6090000</TgTCThue>
+        <TgTThue>609000</TgTThue>
+        <TgTTTBSo>6699000</TgTTTBSo>
+        <TgTTTBChu>Sáu triệu sáu trăm chín mươi chín nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

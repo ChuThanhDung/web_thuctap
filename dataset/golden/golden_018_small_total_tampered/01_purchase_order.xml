@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0018</SoDon>
+  <NgayLap>2026-01-05</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH ĐIỆN MÁY MINH KHANG</Ten>
+    <MST>0830544446</MST>
+    <DiaChi>Số 45 Lý Thường Kiệt, Phường 7, Quận Tân Bình, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>DAT02-KS</MaHang>
+      <TenHang>Đèn LED âm trần 9W Kim Sơn</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>15</SoLuong>
+      <DonGia>126500</DonGia>
+      <ThanhTien>1897500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>OLD01-DP</MaHang>
+      <TenHang>Ống luồn dây điện phi 16 Đại Phát</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>26</SoLuong>
+      <DonGia>12000</DonGia>
+      <ThanhTien>312000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>OLD02-KS</MaHang>
+      <TenHang>Ống luồn dây điện phi 20 Kim Sơn</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>180</SoLuong>
+      <DonGia>19500</DonGia>
+      <ThanhTien>3510000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>5719500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>457560</TienThueGTGT>
+  <TongTienThanhToan>6177060</TongTienThanhToan>
+  <BangChu>Sáu triệu một trăm bảy mươi bảy nghìn không trăm sáu mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

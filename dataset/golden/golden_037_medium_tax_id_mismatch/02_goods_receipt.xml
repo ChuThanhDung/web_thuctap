@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0137</SoPhieu>
+  <NgayLap>2026-01-07</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0037 ngày 2026-01-02</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Hoàng Thu Hà - CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BKD01-DP</MaHang>
+      <TenHang>Băng keo điện đen 10m Đại Phát</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>380</SoLuongTheoChungTu>
+      <SoLuongThucNhap>380</SoLuongThucNhap>
+      <DonGia>4300</DonGia>
+      <ThanhTien>1634000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BLB03-DP</MaHang>
+      <TenHang>Bóng đèn LED bulb 15W Đại Phát</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuongTheoChungTu>210</SoLuongTheoChungTu>
+      <SoLuongThucNhap>210</SoLuongThucNhap>
+      <DonGia>72500</DonGia>
+      <ThanhTien>15225000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>CAP04-TA</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x6mm2 Tân Á</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuongTheoChungTu>210</SoLuongTheoChungTu>
+      <SoLuongThucNhap>210</SoLuongThucNhap>
+      <DonGia>47000</DonGia>
+      <ThanhTien>9870000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>CTC04-DP</MaHang>
+      <TenHang>Công tắc ba 1 chiều Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>110</SoLuongTheoChungTu>
+      <SoLuongThucNhap>110</SoLuongThucNhap>
+      <DonGia>92000</DonGia>
+      <ThanhTien>10120000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>DAT04-TA</MaHang>
+      <TenHang>Đèn LED âm trần 18W Tân Á</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuongTheoChungTu>15</SoLuongTheoChungTu>
+      <SoLuongThucNhap>15</SoLuongThucNhap>
+      <DonGia>232000</DonGia>
+      <ThanhTien>3480000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>DDN01-PG</MaHang>
+      <TenHang>Dây điện đơn 1x1.5mm2 100m Phú Gia</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>437000</DonGia>
+      <ThanhTien>24035000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>OCM03-DP</MaHang>
+      <TenHang>Ổ cắm đôi 3 chấu Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>25</SoLuongTheoChungTu>
+      <SoLuongThucNhap>25</SoLuongThucNhap>
+      <DonGia>133500</DonGia>
+      <ThanhTien>3337500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>OLD03-PG</MaHang>
+      <TenHang>Ống luồn dây điện phi 25 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>95</SoLuongTheoChungTu>
+      <SoLuongThucNhap>95</SoLuongThucNhap>
+      <DonGia>26000</DonGia>
+      <ThanhTien>2470000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>70171500</TongTien>
+  <BangChu>Bảy mươi triệu một trăm bảy mươi mốt nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0037)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

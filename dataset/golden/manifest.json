@@ -1,0 +1,486 @@
+{
+  "seed": 20261024,
+  "count": 60,
+  "batches": [
+    {
+      "batch_id": "golden_001_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 3,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_002_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 3,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_003_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 2,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_004_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 3,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_005_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 2,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_006_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 2,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_007_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 1,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_008_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 1,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_009_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 3,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_010_small_match",
+      "category": "small",
+      "kind": "match",
+      "line_count": 1,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_011_small_price_up_invoice",
+      "category": "small",
+      "kind": "price_up_invoice",
+      "line_count": 3,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_012_small_qty_over_invoice",
+      "category": "small",
+      "kind": "qty_over_invoice",
+      "line_count": 2,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_013_small_short_delivery",
+      "category": "small",
+      "kind": "short_delivery",
+      "line_count": 1,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_014_small_tax_id_mismatch",
+      "category": "small",
+      "kind": "tax_id_mismatch",
+      "line_count": 3,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_015_small_vat_rate_mismatch",
+      "category": "small",
+      "kind": "vat_rate_mismatch",
+      "line_count": 1,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_016_small_product_missing_on_grn",
+      "category": "small",
+      "kind": "product_missing_on_grn",
+      "line_count": 3,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_017_small_extra_product_on_invoice",
+      "category": "small",
+      "kind": "extra_product_on_invoice",
+      "line_count": 3,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_018_small_total_tampered",
+      "category": "small",
+      "kind": "total_tampered",
+      "line_count": 3,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_019_small_short_by_one",
+      "category": "small",
+      "kind": "short_by_one",
+      "line_count": 1,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_020_small_price_off_small",
+      "category": "small",
+      "kind": "price_off_small",
+      "line_count": 1,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_021_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 12,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_022_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 14,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_023_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 9,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_024_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 9,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_025_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 10,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_026_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 11,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_027_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 12,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_028_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 13,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_029_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 14,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_030_medium_match",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 13,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_031_medium_rounding_vat",
+      "category": "medium",
+      "kind": "rounding_vat",
+      "line_count": 6,
+      "expected_result": "MISMATCH",
+      "expected_status": "minor_diff"
+    },
+    {
+      "batch_id": "golden_032_medium_tax_over_limit",
+      "category": "medium",
+      "kind": "tax_over_limit",
+      "line_count": 15,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_033_medium_rounding_line",
+      "category": "medium",
+      "kind": "rounding_line",
+      "line_count": 9,
+      "expected_result": "MISMATCH",
+      "expected_status": "minor_diff"
+    },
+    {
+      "batch_id": "golden_034_medium_price_up_invoice",
+      "category": "medium",
+      "kind": "price_up_invoice",
+      "line_count": 13,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_035_medium_qty_over_invoice",
+      "category": "medium",
+      "kind": "qty_over_invoice",
+      "line_count": 7,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_036_medium_short_delivery",
+      "category": "medium",
+      "kind": "short_delivery",
+      "line_count": 11,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_037_medium_tax_id_mismatch",
+      "category": "medium",
+      "kind": "tax_id_mismatch",
+      "line_count": 8,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_038_medium_vat_rate_mismatch",
+      "category": "medium",
+      "kind": "vat_rate_mismatch",
+      "line_count": 6,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_039_medium_product_missing_on_grn",
+      "category": "medium",
+      "kind": "product_missing_on_grn",
+      "line_count": 14,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_040_medium_extra_product_on_invoice",
+      "category": "medium",
+      "kind": "extra_product_on_invoice",
+      "line_count": 14,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_041_large_match",
+      "category": "large",
+      "kind": "match",
+      "line_count": 72,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_042_large_match",
+      "category": "large",
+      "kind": "match",
+      "line_count": 42,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_043_large_match",
+      "category": "large",
+      "kind": "match",
+      "line_count": 70,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_044_large_match",
+      "category": "large",
+      "kind": "match",
+      "line_count": 49,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_045_large_match",
+      "category": "large",
+      "kind": "match",
+      "line_count": 58,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_046_large_match",
+      "category": "large",
+      "kind": "match",
+      "line_count": 59,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_047_large_total_tampered",
+      "category": "large",
+      "kind": "total_tampered",
+      "line_count": 37,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_048_large_short_by_one",
+      "category": "large",
+      "kind": "short_by_one",
+      "line_count": 68,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_049_large_price_off_small",
+      "category": "large",
+      "kind": "price_off_small",
+      "line_count": 61,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_050_large_rounding_vat",
+      "category": "large",
+      "kind": "rounding_vat",
+      "line_count": 63,
+      "expected_result": "MISMATCH",
+      "expected_status": "minor_diff"
+    },
+    {
+      "batch_id": "golden_051_large_tax_over_limit",
+      "category": "large",
+      "kind": "tax_over_limit",
+      "line_count": 61,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_052_large_rounding_line",
+      "category": "large",
+      "kind": "rounding_line",
+      "line_count": 38,
+      "expected_result": "MISMATCH",
+      "expected_status": "minor_diff"
+    },
+    {
+      "batch_id": "golden_053_xlarge_match",
+      "category": "xlarge",
+      "kind": "match",
+      "line_count": 285,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_054_xlarge_match",
+      "category": "xlarge",
+      "kind": "match",
+      "line_count": 257,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_055_xlarge_match",
+      "category": "xlarge",
+      "kind": "match",
+      "line_count": 232,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_056_xlarge_price_up_invoice",
+      "category": "xlarge",
+      "kind": "price_up_invoice",
+      "line_count": 154,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_057_xlarge_qty_over_invoice",
+      "category": "xlarge",
+      "kind": "qty_over_invoice",
+      "line_count": 151,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_058_xlarge_short_delivery",
+      "category": "xlarge",
+      "kind": "short_delivery",
+      "line_count": 165,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_059_stress_match",
+      "category": "stress",
+      "kind": "match",
+      "line_count": 994,
+      "expected_result": "MATCH",
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_060_stress_tax_id_mismatch",
+      "category": "stress",
+      "kind": "tax_id_mismatch",
+      "line_count": 805,
+      "expected_result": "MISMATCH",
+      "expected_status": "major_diff"
+    }
+  ]
+}

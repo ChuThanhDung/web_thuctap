@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26THB</KHHDon>
+      <SHDon>00005004</SHDon>
+      <NLap>2026-06-16</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH</Ten>
+        <MST>0174007702</MST>
+        <DChi>Số 9 Nguyễn Văn Linh, Quận Long Biên, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>KDG02-HL</MHHDVu>
+          <THHDVu>Keo dán gạch 25kg loại C2 Hưng Long</THHDVu>
+          <DVTinh>Bao</DVTinh>
+          <SLuong>38</SLuong>
+          <DGia>237000</DGia>
+          <ThTien>9006000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>THP05-TA</MHHDVu>
+          <THHDVu>Thép cây phi 18 Tân Á</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>125</SLuong>
+          <DGia>443000</DGia>
+          <ThTien>55375000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>XMG01-HL</MHHDVu>
+          <THHDVu>Xi măng PCB30 50kg Hưng Long</THHDVu>
+          <DVTinh>Bao</DVTinh>
+          <SLuong>330</SLuong>
+          <DGia>73500</DGia>
+          <ThTien>24255000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>88636000</ThTien>
+            <TThue>7090880</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>88636000</TgTCThue>
+        <TgTThue>7090880</TgTThue>
+        <TgTTTBSo>95726880</TgTTTBSo>
+        <TgTTTBChu>Chín mươi lăm triệu bảy trăm hai mươi sáu nghìn tám trăm tám mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_006_small_match",
+  "format": "xml",
+  "category": "small",
+  "kind": "match",
+  "line_count": 2,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0006",
+    "goods_receipt": "PNK-0106",
+    "invoice": "1C26TSG-00005006"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH BAO BÌ SÀI GÒN",
+  "po_total": 7531920,
+  "invoice_total": 7531920,
+  "discrepancies": []
+}

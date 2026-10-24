@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_032_medium_tax_over_limit",
+  "format": "xml",
+  "category": "medium",
+  "kind": "tax_over_limit",
+  "line_count": 15,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0032",
+    "goods_receipt": "PNK-0132",
+    "invoice": "1C26TTP-00005032"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ",
+  "po_total": 107114700,
+  "invoice_total": 107116691,
+  "discrepancies": [
+    {
+      "type": "total",
+      "document": "invoice",
+      "description": "Tiền thuế GTGT trên hóa đơn lệch +1,991 đ, vượt ngưỡng 1.000 đ"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0026</SoDon>
+  <NgayLap>2026-04-05</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN</Ten>
+    <MST>0658815752</MST>
+    <DiaChi>Số 61 Phan Đăng Lưu, Phường 3, Quận Bình Thạnh, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>CLN02-KS</MaHang>
+      <TenHang>Cây lau nhà xoay 360 Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>3</SoLuong>
+      <DonGia>405000</DonGia>
+      <ThanhTien>1215000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>GVS01-HL</MaHang>
+      <TenHang>Giấy vệ sinh cuộn lớn 2 lớp 12 cuộn Hưng Long</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>2</SoLuong>
+      <DonGia>306000</DonGia>
+      <ThanhTien>612000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>GVS02-HL</MaHang>
+      <TenHang>Giấy vệ sinh cuộn lớn 3 lớp 10 cuộn Hưng Long</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>11</SoLuong>
+      <DonGia>562000</DonGia>
+      <ThanhTien>6182000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>KGL01-HL</MaHang>
+      <TenHang>Khăn giấy lau tay 1 lớp 40 gói Hưng Long</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>3</SoLuong>
+      <DonGia>273000</DonGia>
+      <ThanhTien>819000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>NLS02-KS</MaHang>
+      <TenHang>Nước lau sàn 5L hương sả Kim Sơn</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuong>6</SoLuong>
+      <DonGia>133500</DonGia>
+      <ThanhTien>801000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>NRC01-HL</MaHang>
+      <TenHang>Nước rửa chén 3.6kg Hưng Long</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuong>70</SoLuong>
+      <DonGia>83000</DonGia>
+      <ThanhTien>5810000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>NRC02-HL</MaHang>
+      <TenHang>Nước rửa chén 5kg Hưng Long</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuong>32</SoLuong>
+      <DonGia>141000</DonGia>
+      <ThanhTien>4512000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>NRT01-HL</MaHang>
+      <TenHang>Nước rửa tay 500ml Hưng Long</TenHang>
+      <DonViTinh>Chai</DonViTinh>
+      <SoLuong>15</SoLuong>
+      <DonGia>30500</DonGia>
+      <ThanhTien>457500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>NRT02-KS</MaHang>
+      <TenHang>Nước rửa tay 1L Kim Sơn</TenHang>
+      <DonViTinh>Chai</DonViTinh>
+      <SoLuong>25</SoLuong>
+      <DonGia>84000</DonGia>
+      <ThanhTien>2100000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>TRC02-KS</MaHang>
+      <TenHang>Túi rác đen 64x78 Kim Sơn</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuong>24</SoLuong>
+      <DonGia>43500</DonGia>
+      <ThanhTien>1044000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>TRC03-DP</MaHang>
+      <TenHang>Túi rác đen 90x110 Đại Phát</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuong>170</SoLuong>
+      <DonGia>40000</DonGia>
+      <ThanhTien>6800000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>30352500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>2428200</TienThueGTGT>
+  <TongTienThanhToan>32780700</TongTienThanhToan>
+  <BangChu>Ba mươi hai triệu bảy trăm tám mươi nghìn bảy trăm đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

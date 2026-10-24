@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0020</SoDon>
+  <NgayLap>2026-03-02</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+    <MST>0368573115</MST>
+    <DiaChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>MIN03-KS</MaHang>
+      <TenHang>Máy in laser A3 đơn năng Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>2</SoLuong>
+      <DonGia>19150000</DonGia>
+      <ThanhTien>38300000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>38300000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>3830000</TienThueGTGT>
+  <TongTienThanhToan>42130000</TongTienThanhToan>
+  <BangChu>Bốn mươi hai triệu một trăm ba mươi nghìn đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

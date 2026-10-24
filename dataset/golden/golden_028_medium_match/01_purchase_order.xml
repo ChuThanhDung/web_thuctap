@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0028</SoDon>
+  <NgayLap>2026-02-07</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+    <MST>0615395616</MST>
+    <DiaChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APT04-HL</MaHang>
+      <TenHang>Aptomat 1 pha 32A Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>15</SoLuong>
+      <DonGia>205000</DonGia>
+      <ThanhTien>3075000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BKD01-KS</MaHang>
+      <TenHang>Băng keo điện đen 10m Kim Sơn</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuong>90</SoLuong>
+      <DonGia>4600</DonGia>
+      <ThanhTien>414000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>BLB01-KS</MaHang>
+      <TenHang>Bóng đèn LED bulb 9W Kim Sơn</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuong>125</SoLuong>
+      <DonGia>27000</DonGia>
+      <ThanhTien>3375000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>BLB03-PG</MaHang>
+      <TenHang>Bóng đèn LED bulb 15W Phú Gia</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuong>320</SoLuong>
+      <DonGia>82500</DonGia>
+      <ThanhTien>26400000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>BLB05-HL</MaHang>
+      <TenHang>Bóng đèn LED bulb 30W Hưng Long</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuong>26</SoLuong>
+      <DonGia>120500</DonGia>
+      <ThanhTien>3133000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>CAP01-HL</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x1.5mm2 Hưng Long</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuong>65</SoLuong>
+      <DonGia>8900</DonGia>
+      <ThanhTien>578500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>CTC03-DP</MaHang>
+      <TenHang>Công tắc đôi 1 chiều Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>35</SoLuong>
+      <DonGia>67500</DonGia>
+      <ThanhTien>2362500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>DAT03-PG</MaHang>
+      <TenHang>Đèn LED âm trần 12W Phú Gia</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>14</SoLuong>
+      <DonGia>195000</DonGia>
+      <ThanhTien>2730000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>DAT04-TA</MaHang>
+      <TenHang>Đèn LED âm trần 18W Tân Á</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>330</SoLuong>
+      <DonGia>236000</DonGia>
+      <ThanhTien>77880000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>DDN04-PG</MaHang>
+      <TenHang>Dây điện đơn 1x6mm2 100m Phú Gia</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuong>11</SoLuong>
+      <DonGia>2500000</DonGia>
+      <ThanhTien>27500000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>OCM02-DP</MaHang>
+      <TenHang>Ổ cắm đôi 2 chấu Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>110</SoLuong>
+      <DonGia>82000</DonGia>
+      <ThanhTien>9020000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>OLD01-TA</MaHang>
+      <TenHang>Ống luồn dây điện phi 16 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>270</SoLuong>
+      <DonGia>12500</DonGia>
+      <ThanhTien>3375000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>13</STT>
+      <MaHang>OLD02-HL</MaHang>
+      <TenHang>Ống luồn dây điện phi 20 Hưng Long</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>75</SoLuong>
+      <DonGia>17500</DonGia>
+      <ThanhTien>1312500</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>161155500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>12892440</TienThueGTGT>
+  <TongTienThanhToan>174047940</TongTienThanhToan>
+  <BangChu>Một trăm bảy mươi bốn triệu không trăm bốn mươi bảy nghìn chín trăm bốn mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

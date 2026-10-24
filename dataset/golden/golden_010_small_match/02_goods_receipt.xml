@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0110</SoPhieu>
+  <NgayLap>2026-02-25</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0010 ngày 2026-02-20</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Hồ Minh Tuấn - CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>OLD02-PG</MaHang>
+      <TenHang>Ống luồn dây điện phi 20 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>34</SoLuongTheoChungTu>
+      <SoLuongThucNhap>34</SoLuongThucNhap>
+      <DonGia>20500</DonGia>
+      <ThanhTien>697000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>697000</TongTien>
+  <BangChu>Sáu trăm chín mươi bảy nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0010)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

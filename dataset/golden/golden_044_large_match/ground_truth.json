@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_044_large_match",
+  "format": "xml",
+  "category": "large",
+  "kind": "match",
+  "line_count": 49,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0044",
+    "goods_receipt": "PNK-0144",
+    "invoice": "1C26TAP-00005044"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN PHÂN PHỐI VẬT TƯ AN PHÚ",
+  "po_total": 677780950,
+  "invoice_total": 677780950,
+  "discrepancies": []
+}

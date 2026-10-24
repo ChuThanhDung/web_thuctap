@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_039_medium_product_missing_on_grn",
+  "format": "xml",
+  "category": "medium",
+  "kind": "product_missing_on_grn",
+  "line_count": 14,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0039",
+    "goods_receipt": "PNK-0139",
+    "invoice": "1C26TPL-00005039"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC",
+  "po_total": 278300000,
+  "invoice_total": 278300000,
+  "discrepancies": [
+    {
+      "type": "missing_product",
+      "document": "grn",
+      "description": "Phiếu nhập kho không có mặt hàng Xi măng PCB40 50kg Tân Á",
+      "sku": "XMG02-TA"
+    }
+  ]
+}

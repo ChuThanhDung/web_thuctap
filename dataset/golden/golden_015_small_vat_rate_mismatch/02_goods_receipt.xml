@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0115</SoPhieu>
+  <NgayLap>2026-07-16</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0015 ngày 2026-07-11</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Tạ Thị Thảo - CÔNG TY TNHH BAO BÌ SÀI GÒN</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>TPE02-HL</MaHang>
+      <TenHang>Túi nilon PE 40x60cm Hưng Long</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuongTheoChungTu>370</SoLuongTheoChungTu>
+      <SoLuongThucNhap>370</SoLuongThucNhap>
+      <DonGia>43500</DonGia>
+      <ThanhTien>16095000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>16095000</TongTien>
+  <BangChu>Mười sáu triệu không trăm chín mươi lăm nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0015)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

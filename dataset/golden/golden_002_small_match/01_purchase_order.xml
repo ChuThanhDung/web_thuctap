@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0002</SoDon>
+  <NgayLap>2026-04-02</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+    <MST>0368573115</MST>
+    <DiaChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BDQ03-DP</MaHang>
+      <TenHang>Bút dạ quang hồng Đại Phát (hộp 10 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>20</SoLuong>
+      <DonGia>83500</DonGia>
+      <ThanhTien>1670000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>GA401-TA</MaHang>
+      <TenHang>Giấy in A4 70gsm Tân Á</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuong>45</SoLuong>
+      <DonGia>68500</DonGia>
+      <ThanhTien>3082500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>GA402-HL</MaHang>
+      <TenHang>Giấy in A4 80gsm Hưng Long</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuong>60</SoLuong>
+      <DonGia>90500</DonGia>
+      <ThanhTien>5430000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>10182500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>814600</TienThueGTGT>
+  <TongTienThanhToan>10997100</TongTienThanhToan>
+  <BangChu>Mười triệu chín trăm chín mươi bảy nghìn một trăm đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

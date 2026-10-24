@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0102</SoPhieu>
+  <NgayLap>2026-04-07</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0002 ngày 2026-04-02</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Bùi Văn Khoa - CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BDQ03-DP</MaHang>
+      <TenHang>Bút dạ quang hồng Đại Phát (hộp 10 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>20</SoLuongTheoChungTu>
+      <SoLuongThucNhap>20</SoLuongThucNhap>
+      <DonGia>83500</DonGia>
+      <ThanhTien>1670000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>GA401-TA</MaHang>
+      <TenHang>Giấy in A4 70gsm Tân Á</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuongTheoChungTu>45</SoLuongTheoChungTu>
+      <SoLuongThucNhap>45</SoLuongThucNhap>
+      <DonGia>68500</DonGia>
+      <ThanhTien>3082500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>GA402-HL</MaHang>
+      <TenHang>Giấy in A4 80gsm Hưng Long</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuongTheoChungTu>60</SoLuongTheoChungTu>
+      <SoLuongThucNhap>60</SoLuongThucNhap>
+      <DonGia>90500</DonGia>
+      <ThanhTien>5430000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>10182500</TongTien>
+  <BangChu>Mười triệu một trăm tám mươi hai nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0002)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

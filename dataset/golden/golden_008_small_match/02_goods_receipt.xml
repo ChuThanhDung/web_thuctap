@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0108</SoPhieu>
+  <NgayLap>2026-03-08</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0008 ngày 2026-03-03</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Phạm Quốc Dũng - CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>GVS02-TA</MaHang>
+      <TenHang>Giấy vệ sinh cuộn lớn 3 lớp 10 cuộn Tân Á</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>590000</DonGia>
+      <ThanhTien>1770000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>1770000</TongTien>
+  <BangChu>Một triệu bảy trăm bảy mươi nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0008)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -96,3 +96,41 @@ Chưa có buổi demo nào được ghi nhận trong repo. Điền ngày, số n
 - [ ] Tổ chức demo với người dùng thật và thu thập đánh giá hài lòng.
 - [ ] Nâng độ phủ `api/reconciliations` (49%) và `services/auth` (56%), nhất là luồng OTP đổi mật khẩu.
 - [ ] Thêm kiểm thử chịu tải trước khi nhận đối tác có khối lượng lớn.
+
+## Bộ dữ liệu vàng (golden dataset), 60 bộ XML
+
+Đo ngày 2026-10-24. Dataset sinh bằng `scripts/generate_golden_dataset.py` (xác định, seed 20261024) vào `dataset/golden/`:
+60 bộ PO + Phiếu nhập kho + Hóa đơn, từ 1 đến 994 dòng hàng, 30 bộ khớp, 26 bộ lệch nặng và 4 bộ lệch nhẹ.
+Đáp án (`ground_truth.json`) do kịch bản sinh dữ liệu quyết định, không lấy từ engine. 13 loại sai lệch: đơn giá hóa đơn
+tăng, đơn giá lệch 100 đ, số lượng hóa đơn vượt, giao thiếu, kho thiếu đúng 1 đơn vị, sai mã số thuế, sai thuế suất, thiếu
+hàng trên phiếu nhập kho, hàng thừa trên hóa đơn, tổng tiền bị sửa, tiền thuế lệch quá 1.000 đ (lệch nặng), tiền thuế
+và thành tiền lệch do làm tròn dưới 1.000 đ (lệch nhẹ).
+
+Ngưỡng dùng là mặc định của engine, không phụ thuộc cấu hình trong DB: mã số thuế, thuế suất, đơn giá và số lượng phải
+khớp tuyệt đối; tiền (thành tiền, thuế, tổng) chỉ được lệch tối đa 1.000 đ do làm tròn. Ngưỡng % bằng 0 nghĩa là không
+xét theo %. Hàng hóa lấy từ danh mục theo ngành (điện, văn phòng phẩm, vật liệu xây dựng, bảo hộ lao động, bao bì, tin
+học, vệ sinh) với giá và số lượng theo quy cách; mỗi nhà cung cấp có MST và địa chỉ cố định, đơn trên 25 dòng mua của
+nhà phân phối tổng hợp.
+
+| Nhóm theo số dòng | Số bộ | Đúng trạng thái | Thời gian xử lý tối đa |
+|---|---|---|---|
+| small (1 đến 3) | 20 | 100% | 26 ms |
+| medium (5 đến 15) | 20 | 100% | 15 ms |
+| large (30 đến 80) | 12 | 100% | 32 ms |
+| xlarge (150 đến 300) | 6 | 100% | 61 ms |
+| stress (800 đến 1000) | 2 | 100% | 347 ms |
+
+Lần đo đầu (trước khi sửa) chỉ đạt 90% khi dùng ngưỡng mặc định. Nguyên nhân là lỗi ghép dòng hàng trong
+`reconciliation_engine.py`: tên chứa nhau ("gói 10" và "gói 100") bị ghép nhầm, và tổng phiếu nhập kho tính bằng tên mà
+bỏ qua mã SKU, nên bộ khớp có nhiều dòng bị báo lệch tới hàng tỷ đồng. Đã sửa, kèm test hồi quy.
+
+Bản PDF và ảnh: `scripts/generate_golden_documents.py` dựng 18 bộ (11 PDF, có bộ 285 dòng nhiều trang; 7 ảnh JPG giả
+ảnh chụp) vào `dataset/golden_docs/`, cùng số liệu và đáp án với bản XML. Bố cục theo mẫu đơn đặt hàng, phiếu nhập kho
+01-VT và bản thể hiện hóa đơn GTGT điện tử. Chưa đo độ chính xác khi AI đọc các file này (mỗi bộ tốn 3 lần gọi API).
+
+```
+python scripts/generate_golden_dataset.py
+python scripts/generate_golden_documents.py   # cần reportlab, Pillow, PyMuPDF
+python eval/run_eval.py --dataset dataset/golden --json eval/results/golden_metrics.json
+pytest tests/test_golden_dataset.py
+```

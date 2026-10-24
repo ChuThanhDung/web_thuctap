@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TDV</KHHDon>
+      <SHDon>00005016</SHDon>
+      <NLap>2026-06-27</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</Ten>
+        <MST>0409084131</MST>
+        <DChi>Số 15 Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BPH01-KS</MHHDVu>
+          <THHDVu>Bàn phím có dây Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>44</SLuong>
+          <DGia>156500</DGia>
+          <ThTien>6886000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>CHU02-DP</MHHDVu>
+          <THHDVu>Chuột máy tính không dây Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>60</SLuong>
+          <DGia>361000</DGia>
+          <ThTien>21660000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>CMG02-DP</MHHDVu>
+          <THHDVu>Cáp mạng thùng 305m Cat6 UTP Đại Phát</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>6</SLuong>
+          <DGia>2150000</DGia>
+          <ThTien>12900000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>41446000</ThTien>
+            <TThue>4144600</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>41446000</TgTCThue>
+        <TgTThue>4144600</TgTThue>
+        <TgTTTBSo>45590600</TgTTTBSo>
+        <TgTTTBChu>Bốn mươi lăm triệu năm trăm chín mươi nghìn sáu trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

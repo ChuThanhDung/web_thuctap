@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0006</SoDon>
+  <NgayLap>2026-01-15</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH BAO BÌ SÀI GÒN</Ten>
+    <MST>0136896007</MST>
+    <DiaChi>Lô C4, KCN Tân Bình, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>TPE01-HL</MaHang>
+      <TenHang>Túi nilon PE 30x40cm Hưng Long</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuong>22</SoLuong>
+      <DonGia>37000</DonGia>
+      <ThanhTien>814000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>XOP01-PG</MaHang>
+      <TenHang>Xốp hơi chống sốc 0.5m x 100m Phú Gia</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuong>32</SoLuong>
+      <DonGia>192500</DonGia>
+      <ThanhTien>6160000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>6974000</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>557920</TienThueGTGT>
+  <TongTienThanhToan>7531920</TongTienThanhToan>
+  <BangChu>Bảy triệu năm trăm ba mươi mốt nghìn chín trăm hai mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

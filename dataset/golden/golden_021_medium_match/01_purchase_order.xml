@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0021</SoDon>
+  <NgayLap>2026-07-18</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</Ten>
+    <MST>0697212710</MST>
+    <DiaChi>Số 120 Quốc lộ 1A, Phường Linh Trung, TP. Thủ Đức, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BUL01-PG</MaHang>
+      <TenHang>Bu lông inox M6x30 Phú Gia</TenHang>
+      <DonViTinh>Con</DonViTinh>
+      <SoLuong>260</SoLuong>
+      <DonGia>1600</DonGia>
+      <ThanhTien>416000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BUL05-HL</MaHang>
+      <TenHang>Bu lông inox M16x80 Hưng Long</TenHang>
+      <DonViTinh>Con</DonViTinh>
+      <SoLuong>270</SoLuong>
+      <DonGia>17500</DonGia>
+      <ThanhTien>4725000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>DAX02-HL</MaHang>
+      <TenHang>Đá xây dựng 1x2 Hưng Long</TenHang>
+      <DonViTinh>Khối</DonViTinh>
+      <SoLuong>23</SoLuong>
+      <DonGia>348000</DonGia>
+      <ThanhTien>8004000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>GOL02-TA</MaHang>
+      <TenHang>Gạch ốp lát 30x60 men bóng Tân Á</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>180</SoLuong>
+      <DonGia>274000</DonGia>
+      <ThanhTien>49320000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>GOL04-TA</MaHang>
+      <TenHang>Gạch ốp lát 80x80 bóng kính Tân Á</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>11</SoLuong>
+      <DonGia>472000</DonGia>
+      <ThanhTien>5192000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>PVC01-HL</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 21 Hưng Long</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>24</SoLuong>
+      <DonGia>18000</DonGia>
+      <ThanhTien>432000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>PVC02-HL</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 27 Hưng Long</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>130</SoLuong>
+      <DonGia>49000</DonGia>
+      <ThanhTien>6370000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>PVC03-DP</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 34 Đại Phát</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>145</SoLuong>
+      <DonGia>83500</DonGia>
+      <ThanhTien>12107500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>PVC04-HL</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 42 Hưng Long</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>260</SoLuong>
+      <DonGia>110500</DonGia>
+      <ThanhTien>28730000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>SON02-TA</MaHang>
+      <TenHang>Sơn nước nội thất 5L xanh ngọc Tân Á</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>7</SoLuong>
+      <DonGia>1283000</DonGia>
+      <ThanhTien>8981000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>THP03-KS</MaHang>
+      <TenHang>Thép cây phi 14 Kim Sơn</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>80</SoLuong>
+      <DonGia>273000</DonGia>
+      <ThanhTien>21840000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>VIT02-TA</MaHang>
+      <TenHang>Vít bắn tôn 5x35 Tân Á (hộp 100 con)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>16</SoLuong>
+      <DonGia>78500</DonGia>
+      <ThanhTien>1256000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>147373500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>11789880</TienThueGTGT>
+  <TongTienThanhToan>159163380</TongTienThanhToan>
+  <BangChu>Một trăm năm mươi chín triệu một trăm sáu mươi ba nghìn ba trăm tám mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

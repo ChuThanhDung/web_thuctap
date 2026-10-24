@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0106</SoPhieu>
+  <NgayLap>2026-01-20</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0006 ngày 2026-01-15</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Đinh Thị Quỳnh - CÔNG TY TNHH BAO BÌ SÀI GÒN</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>TPE01-HL</MaHang>
+      <TenHang>Túi nilon PE 30x40cm Hưng Long</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuongTheoChungTu>22</SoLuongTheoChungTu>
+      <SoLuongThucNhap>22</SoLuongThucNhap>
+      <DonGia>37000</DonGia>
+      <ThanhTien>814000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>XOP01-PG</MaHang>
+      <TenHang>Xốp hơi chống sốc 0.5m x 100m Phú Gia</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>32</SoLuongTheoChungTu>
+      <SoLuongThucNhap>32</SoLuongThucNhap>
+      <DonGia>192500</DonGia>
+      <ThanhTien>6160000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>6974000</TongTien>
+  <BangChu>Sáu triệu chín trăm bảy mươi bốn nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0006)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

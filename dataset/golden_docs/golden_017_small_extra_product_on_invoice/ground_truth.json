@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_017_small_extra_product_on_invoice",
+  "format": "image",
+  "category": "small",
+  "kind": "extra_product_on_invoice",
+  "line_count": 3,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0017",
+    "goods_receipt": "PNK-0117",
+    "invoice": "1C26TBA-00005017"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN",
+  "po_total": 14222520,
+  "invoice_total": 18820080,
+  "discrepancies": [
+    {
+      "type": "extra_product",
+      "document": "invoice",
+      "description": "Hóa đơn có mặt hàng Cây lau nhà xoay 360 Đại Phát không có trong PO và GRN"
+    }
+  ]
+}

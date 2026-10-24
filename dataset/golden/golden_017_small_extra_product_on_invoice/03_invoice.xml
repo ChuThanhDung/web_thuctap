@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TBA</KHHDon>
+      <SHDon>00005017</SHDon>
+      <NLap>2026-01-26</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN</Ten>
+        <MST>0658815752</MST>
+        <DChi>Số 61 Phan Đăng Lưu, Phường 3, Quận Bình Thạnh, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>GVS01-PG</MHHDVu>
+          <THHDVu>Giấy vệ sinh cuộn lớn 2 lớp 12 cuộn Phú Gia</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>4</SLuong>
+          <DGia>350000</DGia>
+          <ThTien>1400000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>KGL01-DP</MHHDVu>
+          <THHDVu>Khăn giấy lau tay 1 lớp 40 gói Đại Phát</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>22</SLuong>
+          <DGia>283000</DGia>
+          <ThTien>6226000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>NLS01-HL</MHHDVu>
+          <THHDVu>Nước lau sàn 5L hương chanh Hưng Long</THHDVu>
+          <DVTinh>Can</DVTinh>
+          <SLuong>46</SLuong>
+          <DGia>120500</DGia>
+          <ThTien>5543000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>CLN02-DP</MHHDVu>
+          <THHDVu>Cây lau nhà xoay 360 Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>11</SLuong>
+          <DGia>387000</DGia>
+          <ThTien>4257000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>17426000</ThTien>
+            <TThue>1394080</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>17426000</TgTCThue>
+        <TgTThue>1394080</TgTThue>
+        <TgTTTBSo>18820080</TgTTTBSo>
+        <TgTTTBChu>Mười tám triệu tám trăm hai mươi nghìn không trăm tám mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

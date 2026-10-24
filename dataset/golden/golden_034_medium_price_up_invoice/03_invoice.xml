@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TDV</KHHDon>
+      <SHDon>00005034</SHDon>
+      <NLap>2026-02-16</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</Ten>
+        <MST>0409084131</MST>
+        <DChi>Số 15 Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BPH01-TA</MHHDVu>
+          <THHDVu>Bàn phím có dây Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>55</SLuong>
+          <DGia>152500</DGia>
+          <ThTien>8387500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>CHU01-TA</MHHDVu>
+          <THHDVu>Chuột máy tính có dây Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>30</SLuong>
+          <DGia>97000</DGia>
+          <ThTien>2910000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>CMG01-TA</MHHDVu>
+          <THHDVu>Cáp mạng thùng 305m Cat5e UTP Tân Á</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>8</SLuong>
+          <DGia>1278000</DGia>
+          <ThTien>10224000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>CMG03-HL</MHHDVu>
+          <THHDVu>Cáp mạng thùng 305m Cat6 FTP Hưng Long</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>11</SLuong>
+          <DGia>3120000</DGia>
+          <ThTien>34320000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>MAN02-TA</MHHDVu>
+          <THHDVu>Màn hình 24 inch FHD Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>6</SLuong>
+          <DGia>4480000</DGia>
+          <ThTien>26880000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>RAM02-TA</MHHDVu>
+          <THHDVu>RAM laptop DDR4 16GB Tân Á</THHDVu>
+          <DVTinh>Thanh</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>1069000</DGia>
+          <ThTien>2138000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>RJ401-HL</MHHDVu>
+          <THHDVu>Hạt mạng RJ45 Cat5e Hưng Long (hộp 100 cái)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>7</SLuong>
+          <DGia>80000</DGia>
+          <ThTien>560000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>RJ402-TA</MHHDVu>
+          <THHDVu>Hạt mạng RJ45 Cat6 Tân Á (hộp 100 cái)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>3</SLuong>
+          <DGia>273000</DGia>
+          <ThTien>819000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>SSD01-DP</MHHDVu>
+          <THHDVu>Ổ cứng SSD 256GB SATA Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>9</SLuong>
+          <DGia>652000</DGia>
+          <ThTien>5868000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>SSD04-KS</MHHDVu>
+          <THHDVu>Ổ cứng SSD 1TB NVMe Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>35</SLuong>
+          <DGia>2780000</DGia>
+          <ThTien>97300000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>11</STT>
+          <MHHDVu>SWI02-TA</MHHDVu>
+          <THHDVu>Switch mạng 16 cổng Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>1919000</DGia>
+          <ThTien>3838000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>12</STT>
+          <MHHDVu>USB02-KS</MHHDVu>
+          <THHDVu>USB 64GB Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>90</SLuong>
+          <DGia>215000</DGia>
+          <ThTien>19350000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>13</STT>
+          <MHHDVu>WIF03-TA</MHHDVu>
+          <THHDVu>Bộ phát wifi AX3000 Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>1</SLuong>
+          <DGia>2800000</DGia>
+          <ThTien>2800000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>215394500</ThTien>
+            <TThue>21539450</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>215394500</TgTCThue>
+        <TgTThue>21539450</TgTThue>
+        <TgTTTBSo>236933950</TgTTTBSo>
+        <TgTTTBChu>Hai trăm ba mươi sáu triệu chín trăm ba mươi ba nghìn chín trăm năm mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TBA</KHHDon>
+      <SHDon>00005008</SHDon>
+      <NLap>2026-03-10</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN</Ten>
+        <MST>0658815752</MST>
+        <DChi>Số 61 Phan Đăng Lưu, Phường 3, Quận Bình Thạnh, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>GVS02-TA</MHHDVu>
+          <THHDVu>Giấy vệ sinh cuộn lớn 3 lớp 10 cuộn Tân Á</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>3</SLuong>
+          <DGia>590000</DGia>
+          <ThTien>1770000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>1770000</ThTien>
+            <TThue>177000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>1770000</TgTCThue>
+        <TgTThue>177000</TgTThue>
+        <TgTTTBSo>1947000</TgTTTBSo>
+        <TgTTTBChu>Một triệu chín trăm bốn mươi bảy nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

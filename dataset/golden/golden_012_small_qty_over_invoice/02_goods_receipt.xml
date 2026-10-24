@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0112</SoPhieu>
+  <NgayLap>2026-03-24</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0012 ngày 2026-03-19</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Dương Thị Mai - CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>PVC04-HL</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 42 Hưng Long</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>16</SoLuongTheoChungTu>
+      <SoLuongThucNhap>16</SoLuongThucNhap>
+      <DonGia>107500</DonGia>
+      <ThanhTien>1720000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>PVC05-TA</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 60 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>12</SoLuongTheoChungTu>
+      <SoLuongThucNhap>12</SoLuongThucNhap>
+      <DonGia>151500</DonGia>
+      <ThanhTien>1818000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>3538000</TongTien>
+  <BangChu>Ba triệu năm trăm ba mươi tám nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0012)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26THB</KHHDon>
+      <SHDon>00005013</SHDon>
+      <NLap>2026-08-12</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH</Ten>
+        <MST>0174007702</MST>
+        <DChi>Số 9 Nguyễn Văn Linh, Quận Long Biên, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BUL04-PG</MHHDVu>
+          <THHDVu>Bu lông inox M12x60 Phú Gia</THHDVu>
+          <DVTinh>Con</DVTinh>
+          <SLuong>710</SLuong>
+          <DGia>15500</DGia>
+          <ThTien>11005000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>11005000</ThTien>
+            <TThue>1100500</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>11005000</TgTCThue>
+        <TgTThue>1100500</TgTThue>
+        <TgTTTBSo>12105500</TgTTTBSo>
+        <TgTTTBChu>Mười hai triệu một trăm lẻ năm nghìn năm trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

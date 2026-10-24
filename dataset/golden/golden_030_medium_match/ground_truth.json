@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_030_medium_match",
+  "format": "xml",
+  "category": "medium",
+  "kind": "match",
+  "line_count": 13,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0030",
+    "goods_receipt": "PNK-0130",
+    "invoice": "1C26TPL-00005030"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC",
+  "po_total": 213004080,
+  "invoice_total": 213004080,
+  "discrepancies": []
+}

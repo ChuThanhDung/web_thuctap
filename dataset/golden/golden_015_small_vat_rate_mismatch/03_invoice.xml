@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TSG</KHHDon>
+      <SHDon>00005015</SHDon>
+      <NLap>2026-07-18</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH BAO BÌ SÀI GÒN</Ten>
+        <MST>0136896007</MST>
+        <DChi>Lô C4, KCN Tân Bình, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>TPE02-HL</MHHDVu>
+          <THHDVu>Túi nilon PE 40x60cm Hưng Long</THHDVu>
+          <DVTinh>Kg</DVTinh>
+          <SLuong>370</SLuong>
+          <DGia>43500</DGia>
+          <ThTien>16095000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>16095000</ThTien>
+            <TThue>1609500</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>16095000</TgTCThue>
+        <TgTThue>1609500</TgTThue>
+        <TgTTTBSo>17704500</TgTTTBSo>
+        <TgTTTBChu>Mười bảy triệu bảy trăm lẻ bốn nghìn năm trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

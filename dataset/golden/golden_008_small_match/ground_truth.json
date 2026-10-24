@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_008_small_match",
+  "format": "xml",
+  "category": "small",
+  "kind": "match",
+  "line_count": 1,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0008",
+    "goods_receipt": "PNK-0108",
+    "invoice": "1C26TBA-00005008"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN",
+  "po_total": 1947000,
+  "invoice_total": 1947000,
+  "discrepancies": []
+}

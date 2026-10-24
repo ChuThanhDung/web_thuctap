@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0127</SoPhieu>
+  <NgayLap>2026-06-21</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0027 ngày 2026-06-16</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Lương Thị Uyên - CÔNG TY TNHH ĐIỆN MÁY MINH KHANG</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APT02-HL</MaHang>
+      <TenHang>Aptomat 1 pha 16A Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>13</SoLuongTheoChungTu>
+      <SoLuongThucNhap>13</SoLuongThucNhap>
+      <DonGia>124500</DonGia>
+      <ThanhTien>1618500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BKD01-PG</MaHang>
+      <TenHang>Băng keo điện đen 10m Phú Gia</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>200</SoLuongTheoChungTu>
+      <SoLuongThucNhap>200</SoLuongThucNhap>
+      <DonGia>4900</DonGia>
+      <ThanhTien>980000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>BKD02-TA</MaHang>
+      <TenHang>Băng keo điện đen 20m Tân Á</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>165</SoLuongTheoChungTu>
+      <SoLuongThucNhap>165</SoLuongThucNhap>
+      <DonGia>8700</DonGia>
+      <ThanhTien>1435500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>BLB03-DP</MaHang>
+      <TenHang>Bóng đèn LED bulb 15W Đại Phát</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuongTheoChungTu>370</SoLuongTheoChungTu>
+      <SoLuongThucNhap>370</SoLuongThucNhap>
+      <DonGia>74000</DonGia>
+      <ThanhTien>27380000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>BLB05-DP</MaHang>
+      <TenHang>Bóng đèn LED bulb 30W Đại Phát</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuongTheoChungTu>210</SoLuongTheoChungTu>
+      <SoLuongThucNhap>210</SoLuongThucNhap>
+      <DonGia>124500</DonGia>
+      <ThanhTien>26145000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>CAP04-HL</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x6mm2 Hưng Long</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>43000</DonGia>
+      <ThanhTien>2365000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>CTC02-PG</MaHang>
+      <TenHang>Công tắc 2 chiều Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>105</SoLuongTheoChungTu>
+      <SoLuongThucNhap>105</SoLuongThucNhap>
+      <DonGia>50000</DonGia>
+      <ThanhTien>5250000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>DAT03-HL</MaHang>
+      <TenHang>Đèn LED âm trần 12W Hưng Long</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuongTheoChungTu>17</SoLuongTheoChungTu>
+      <SoLuongThucNhap>17</SoLuongThucNhap>
+      <DonGia>168000</DonGia>
+      <ThanhTien>2856000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>DAT04-HL</MaHang>
+      <TenHang>Đèn LED âm trần 18W Hưng Long</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuongTheoChungTu>220</SoLuongTheoChungTu>
+      <SoLuongThucNhap>220</SoLuongThucNhap>
+      <DonGia>217000</DonGia>
+      <ThanhTien>47740000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>OCM01-DP</MaHang>
+      <TenHang>Ổ cắm đơn 3 chấu Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>10</SoLuongTheoChungTu>
+      <SoLuongThucNhap>10</SoLuongThucNhap>
+      <DonGia>35000</DonGia>
+      <ThanhTien>350000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>OCM03-HL</MaHang>
+      <TenHang>Ổ cắm đôi 3 chấu Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>90</SoLuongTheoChungTu>
+      <SoLuongThucNhap>90</SoLuongThucNhap>
+      <DonGia>131000</DonGia>
+      <ThanhTien>11790000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>OCM04-PG</MaHang>
+      <TenHang>Ổ cắm đôi có USB Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>13</SoLuongTheoChungTu>
+      <SoLuongThucNhap>13</SoLuongThucNhap>
+      <DonGia>191500</DonGia>
+      <ThanhTien>2489500</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>130399500</TongTien>
+  <BangChu>Một trăm ba mươi triệu ba trăm chín mươi chín nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0027)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

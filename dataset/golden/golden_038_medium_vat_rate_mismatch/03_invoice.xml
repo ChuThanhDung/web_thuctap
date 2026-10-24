@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTD</KHHDon>
+      <SHDon>00005038</SHDon>
+      <NLap>2026-07-09</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+        <MST>0368573115</MST>
+        <DChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>FHS01-PG</MHHDVu>
+          <THHDVu>File hồ sơ lá A4 Phú Gia</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>25</SLuong>
+          <DGia>9300</DGia>
+          <ThTien>232500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>FHS02-DP</MHHDVu>
+          <THHDVu>File hồ sơ nhựa 20 lá Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>75</SLuong>
+          <DGia>28000</DGia>
+          <ThTien>2100000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>MIN03-DP</MHHDVu>
+          <THHDVu>Máy in laser A3 đơn năng Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>1</SLuong>
+          <DGia>17710000</DGia>
+          <ThTien>17710000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>MUC02-TA</MHHDVu>
+          <THHDVu>Hộp mực in laser mã 05A Tân Á</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>5</SLuong>
+          <DGia>693000</DGia>
+          <ThTien>3465000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>MUC04-KS</MHHDVu>
+          <THHDVu>Hộp mực in laser mã 85A Kim Sơn</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>1515000</DGia>
+          <ThTien>3030000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>TUS03-DP</MHHDVu>
+          <THHDVu>Tủ hồ sơ sắt 4 ngăn kéo Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>6450000</DGia>
+          <ThTien>12900000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>39437500</ThTien>
+            <TThue>3943750</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>39437500</TgTCThue>
+        <TgTThue>3943750</TgTThue>
+        <TgTTTBSo>43381250</TgTTTBSo>
+        <TgTTTBChu>Bốn mươi ba triệu ba trăm tám mươi mốt nghìn hai trăm năm mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0031</SoDon>
+  <NgayLap>2026-09-17</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH</Ten>
+    <MST>0174007702</MST>
+    <DiaChi>Số 9 Nguyễn Văn Linh, Quận Long Biên, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>DAX01-TA</MaHang>
+      <TenHang>Đá xây dựng 4x6 Tân Á</TenHang>
+      <DonViTinh>Khối</DonViTinh>
+      <SoLuong>10</SoLuong>
+      <DonGia>291000</DonGia>
+      <ThanhTien>2910000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>PVC04-TA</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 42 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>160</SoLuong>
+      <DonGia>118500</DonGia>
+      <ThanhTien>18960000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>PVC06-PG</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 90 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>95</SoLuong>
+      <DonGia>195000</DonGia>
+      <ThanhTien>18525000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>SON04-DP</MaHang>
+      <TenHang>Sơn nước nội thất 18L trắng Đại Phát</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>9</SoLuong>
+      <DonGia>2850000</DonGia>
+      <ThanhTien>25650000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>XMG02-TA</MaHang>
+      <TenHang>Xi măng PCB40 50kg Tân Á</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuong>640</SoLuong>
+      <DonGia>95500</DonGia>
+      <ThanhTien>61120000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>XMG03-KS</MaHang>
+      <TenHang>Xi măng PCB50 50kg Kim Sơn</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuong>410</SoLuong>
+      <DonGia>117500</DonGia>
+      <ThanhTien>48175000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>175340000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>17534000</TienThueGTGT>
+  <TongTienThanhToan>192874000</TongTienThanhToan>
+  <BangChu>Một trăm chín mươi hai triệu tám trăm bảy mươi bốn nghìn đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

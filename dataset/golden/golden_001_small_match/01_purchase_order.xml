@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0001</SoDon>
+  <NgayLap>2026-03-03</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+    <MST>0615395616</MST>
+    <DiaChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BLB01-HL</MaHang>
+      <TenHang>Bóng đèn LED bulb 9W Hưng Long</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuong>35</SoLuong>
+      <DonGia>25000</DonGia>
+      <ThanhTien>875000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>CAP04-DP</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x6mm2 Đại Phát</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuong>100</SoLuong>
+      <DonGia>44000</DonGia>
+      <ThanhTien>4400000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>OLD01-TA</MaHang>
+      <TenHang>Ống luồn dây điện phi 16 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>75</SoLuong>
+      <DonGia>12500</DonGia>
+      <ThanhTien>937500</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>6212500</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>621250</TienThueGTGT>
+  <TongTienThanhToan>6833750</TongTienThanhToan>
+  <BangChu>Sáu triệu tám trăm ba mươi ba nghìn bảy trăm năm mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

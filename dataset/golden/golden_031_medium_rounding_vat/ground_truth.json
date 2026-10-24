@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_031_medium_rounding_vat",
+  "format": "xml",
+  "category": "medium",
+  "kind": "rounding_vat",
+  "line_count": 6,
+  "expected_result": "MISMATCH",
+  "expected_status": "minor_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0031",
+    "goods_receipt": "PNK-0131",
+    "invoice": "1C26THB-00005031"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH",
+  "po_total": 192874000,
+  "invoice_total": 192873812,
+  "discrepancies": [
+    {
+      "type": "rounding",
+      "document": "invoice",
+      "description": "Tiền thuế GTGT trên hóa đơn lệch -188 đ do làm tròn"
+    }
+  ]
+}

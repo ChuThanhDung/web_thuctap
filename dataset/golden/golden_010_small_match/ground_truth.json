@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_010_small_match",
+  "format": "xml",
+  "category": "small",
+  "kind": "match",
+  "line_count": 1,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0010",
+    "goods_receipt": "PNK-0110",
+    "invoice": "1C26TNV-00005010"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT",
+  "po_total": 766700,
+  "invoice_total": 766700,
+  "discrepancies": []
+}

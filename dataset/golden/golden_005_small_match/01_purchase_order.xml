@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0005</SoDon>
+  <NgayLap>2026-04-10</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</Ten>
+    <MST>0411275559</MST>
+    <DiaChi>Số 27 Cộng Hòa, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APQ01-PG</MaHang>
+      <TenHang>Áo phản quang cam size L Phú Gia</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>55</SoLuong>
+      <DonGia>54000</DonGia>
+      <ThanhTien>2970000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>APQ02-TA</MaHang>
+      <TenHang>Áo phản quang vàng size L Tân Á</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>60</SoLuong>
+      <DonGia>52000</DonGia>
+      <ThanhTien>3120000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>6090000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>609000</TienThueGTGT>
+  <TongTienThanhToan>6699000</TongTienThanhToan>
+  <BangChu>Sáu triệu sáu trăm chín mươi chín nghìn đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

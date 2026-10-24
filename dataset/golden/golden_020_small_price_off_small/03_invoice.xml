@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTD</KHHDon>
+      <SHDon>00005020</SHDon>
+      <NLap>2026-03-09</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+        <MST>0368573115</MST>
+        <DChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>MIN03-KS</MHHDVu>
+          <THHDVu>Máy in laser A3 đơn năng Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>19150100</DGia>
+          <ThTien>38300200</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>38300200</ThTien>
+            <TThue>3830020</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>38300200</TgTCThue>
+        <TgTThue>3830020</TgTThue>
+        <TgTTTBSo>42130220</TgTTTBSo>
+        <TgTTTBChu>Bốn mươi hai triệu một trăm ba mươi nghìn hai trăm hai mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

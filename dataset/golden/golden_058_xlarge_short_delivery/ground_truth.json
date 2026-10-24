@@ -1,0 +1,62 @@
+{
+  "batch_id": "golden_058_xlarge_short_delivery",
+  "format": "xml",
+  "category": "xlarge",
+  "kind": "short_delivery",
+  "line_count": 165,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0058",
+    "goods_receipt": "PNK-0158",
+    "invoice": "1C26TAP-00005058"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN PHÂN PHỐI VẬT TƯ AN PHÚ",
+  "po_total": 2376951156,
+  "invoice_total": 2376951156,
+  "discrepancies": [
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 56 trên 85 đặt",
+      "sku": "NRC02-PG"
+    },
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 2113 trên 2570 đặt",
+      "sku": "TC301-TA"
+    },
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 52 trên 80 đặt",
+      "sku": "NRC01-TA"
+    },
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 34 trên 40 đặt",
+      "sku": "CHU02-TA"
+    },
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 17 trên 23 đặt",
+      "sku": "BBI01-HL"
+    },
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 131 trên 185 đặt",
+      "sku": "OCM03-HL"
+    },
+    {
+      "type": "short_delivery",
+      "document": "grn",
+      "description": "Kho chỉ nhập 55 trên 80 đặt",
+      "sku": "BLB03-DP"
+    }
+  ]
+}

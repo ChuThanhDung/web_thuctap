@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TNV</KHHDon>
+      <SHDon>00005001</SHDon>
+      <NLap>2026-03-10</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+        <MST>0615395616</MST>
+        <DChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BLB01-HL</MHHDVu>
+          <THHDVu>Bóng đèn LED bulb 9W Hưng Long</THHDVu>
+          <DVTinh>Bóng</DVTinh>
+          <SLuong>35</SLuong>
+          <DGia>25000</DGia>
+          <ThTien>875000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>CAP04-DP</MHHDVu>
+          <THHDVu>Cáp điện 2 lõi 2x6mm2 Đại Phát</THHDVu>
+          <DVTinh>Mét</DVTinh>
+          <SLuong>100</SLuong>
+          <DGia>44000</DGia>
+          <ThTien>4400000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>OLD01-TA</MHHDVu>
+          <THHDVu>Ống luồn dây điện phi 16 Tân Á</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>75</SLuong>
+          <DGia>12500</DGia>
+          <ThTien>937500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>6212500</ThTien>
+            <TThue>621250</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>6212500</TgTCThue>
+        <TgTThue>621250</TgTThue>
+        <TgTTTBSo>6833750</TgTTTBSo>
+        <TgTTTBChu>Sáu triệu tám trăm ba mươi ba nghìn bảy trăm năm mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

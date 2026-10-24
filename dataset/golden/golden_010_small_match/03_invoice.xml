@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TNV</KHHDon>
+      <SHDon>00005010</SHDon>
+      <NLap>2026-02-27</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+        <MST>0615395616</MST>
+        <DChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>OLD02-PG</MHHDVu>
+          <THHDVu>Ống luồn dây điện phi 20 Phú Gia</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>34</SLuong>
+          <DGia>20500</DGia>
+          <ThTien>697000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>697000</ThTien>
+            <TThue>69700</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>697000</TgTCThue>
+        <TgTThue>69700</TgTThue>
+        <TgTTTBSo>766700</TgTTTBSo>
+        <TgTTTBChu>Bảy trăm sáu mươi sáu nghìn bảy trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

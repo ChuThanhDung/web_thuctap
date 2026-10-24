@@ -1,0 +1,62 @@
+{
+  "batch_id": "golden_056_xlarge_price_up_invoice",
+  "format": "xml",
+  "category": "xlarge",
+  "kind": "price_up_invoice",
+  "line_count": 154,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0056",
+    "goods_receipt": "PNK-0156",
+    "invoice": "1C26TAP-00005056"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN PHÂN PHỐI VẬT TƯ AN PHÚ",
+  "po_total": 2049805980,
+  "invoice_total": 2058325020,
+  "discrepancies": [
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 841,000 đ, PO/GRN 676,000 đ",
+      "sku": "WIF01-KS"
+    },
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 447,000 đ, PO/GRN 362,000 đ",
+      "sku": "DAX02-DP"
+    },
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 56,000 đ, PO/GRN 50,500 đ",
+      "sku": "TPE02-PG"
+    },
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 401,000 đ, PO/GRN 351,000 đ",
+      "sku": "DDA01-TA"
+    },
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 430,000 đ, PO/GRN 396,000 đ",
+      "sku": "CHU02-PG"
+    },
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 84,500 đ, PO/GRN 69,500 đ",
+      "sku": "SGC03-KS"
+    },
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 17,500 đ, PO/GRN 14,500 đ",
+      "sku": "BUL04-TA"
+    }
+  ]
+}

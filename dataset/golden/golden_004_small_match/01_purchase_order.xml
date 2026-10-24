@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0004</SoDon>
+  <NgayLap>2026-06-09</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH</Ten>
+    <MST>0174007702</MST>
+    <DiaChi>Số 9 Nguyễn Văn Linh, Quận Long Biên, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>KDG02-HL</MaHang>
+      <TenHang>Keo dán gạch 25kg loại C2 Hưng Long</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuong>38</SoLuong>
+      <DonGia>237000</DonGia>
+      <ThanhTien>9006000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>THP05-TA</MaHang>
+      <TenHang>Thép cây phi 18 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>125</SoLuong>
+      <DonGia>443000</DonGia>
+      <ThanhTien>55375000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>XMG01-HL</MaHang>
+      <TenHang>Xi măng PCB30 50kg Hưng Long</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuong>330</SoLuong>
+      <DonGia>73500</DonGia>
+      <ThanhTien>24255000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>88636000</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>7090880</TienThueGTGT>
+  <TongTienThanhToan>95726880</TongTienThanhToan>
+  <BangChu>Chín mươi lăm triệu bảy trăm hai mươi sáu nghìn tám trăm tám mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

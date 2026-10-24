@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0029</SoDon>
+  <NgayLap>2026-09-10</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+    <MST>0368573115</MST>
+    <DiaChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BBI02-TA</MaHang>
+      <TenHang>Bút bi đỏ 0.5mm Tân Á (hộp 20 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>25</SoLuong>
+      <DonGia>68000</DonGia>
+      <ThanhTien>1700000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BBI03-HL</MaHang>
+      <TenHang>Bút bi đen 0.5mm Hưng Long (hộp 20 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>24</SoLuong>
+      <DonGia>66000</DonGia>
+      <ThanhTien>1584000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>BDQ02-PG</MaHang>
+      <TenHang>Bút dạ quang xanh lá Phú Gia (hộp 10 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>25</SoLuong>
+      <DonGia>89000</DonGia>
+      <ThanhTien>2225000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>BDQ04-PG</MaHang>
+      <TenHang>Bút dạ quang cam Phú Gia (hộp 10 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>25</SoLuong>
+      <DonGia>93000</DonGia>
+      <ThanhTien>2325000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>GA301-PG</MaHang>
+      <TenHang>Giấy in A3 70gsm Phú Gia</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuong>13</SoLuong>
+      <DonGia>150000</DonGia>
+      <ThanhTien>1950000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>GA302-TA</MaHang>
+      <TenHang>Giấy in A3 80gsm Tân Á</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuong>36</SoLuong>
+      <DonGia>186500</DonGia>
+      <ThanhTien>6714000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>KEP01-TA</MaHang>
+      <TenHang>Kẹp giấy số 1 Tân Á</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>11</SoLuong>
+      <DonGia>3900</DonGia>
+      <ThanhTien>42900</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>MIN01-HL</MaHang>
+      <TenHang>Máy in laser A4 đơn năng Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>4</SoLuong>
+      <DonGia>3180000</DonGia>
+      <ThanhTien>12720000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>MIN03-HL</MaHang>
+      <TenHang>Máy in laser A3 đơn năng Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>2</SoLuong>
+      <DonGia>17080000</DonGia>
+      <ThanhTien>34160000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>MUC01-DP</MaHang>
+      <TenHang>Hộp mực in laser mã 12A Đại Phát</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>11</SoLuong>
+      <DonGia>278000</DonGia>
+      <ThanhTien>3058000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>MUC03-TA</MaHang>
+      <TenHang>Hộp mực in laser mã 26A Tân Á</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>10</SoLuong>
+      <DonGia>1041000</DonGia>
+      <ThanhTien>10410000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>SGC03-DP</MaHang>
+      <TenHang>Sổ ghi chép A4 200 trang Đại Phát</TenHang>
+      <DonViTinh>Quyển</DonViTinh>
+      <SoLuong>170</SoLuong>
+      <DonGia>66500</DonGia>
+      <ThanhTien>11305000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>13</STT>
+      <MaHang>TUS01-DP</MaHang>
+      <TenHang>Tủ hồ sơ sắt 2 cánh kính Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>3</SoLuong>
+      <DonGia>2160000</DonGia>
+      <ThanhTien>6480000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>14</STT>
+      <MaHang>TUS03-TA</MaHang>
+      <TenHang>Tủ hồ sơ sắt 4 ngăn kéo Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>4</SoLuong>
+      <DonGia>6650000</DonGia>
+      <ThanhTien>26600000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>121273900</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>12127390</TienThueGTGT>
+  <TongTienThanhToan>133401290</TongTienThanhToan>
+  <BangChu>Một trăm ba mươi ba triệu bốn trăm lẻ một nghìn hai trăm chín mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

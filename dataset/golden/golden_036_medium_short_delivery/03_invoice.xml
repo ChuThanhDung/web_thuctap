@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TMK</KHHDon>
+      <SHDon>00005036</SHDon>
+      <NLap>2026-03-23</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH ĐIỆN MÁY MINH KHANG</Ten>
+        <MST>0830544446</MST>
+        <DChi>Số 45 Lý Thường Kiệt, Phường 7, Quận Tân Bình, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>APT02-HL</MHHDVu>
+          <THHDVu>Aptomat 1 pha 16A Hưng Long</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>60</SLuong>
+          <DGia>128500</DGia>
+          <ThTien>7710000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>APT03-KS</MHHDVu>
+          <THHDVu>Aptomat 1 pha 20A Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>41</SLuong>
+          <DGia>178500</DGia>
+          <ThTien>7318500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>BKD02-TA</MHHDVu>
+          <THHDVu>Băng keo điện đen 20m Tân Á</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>80</SLuong>
+          <DGia>8600</DGia>
+          <ThTien>688000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>BLB02-HL</MHHDVu>
+          <THHDVu>Bóng đèn LED bulb 12W Hưng Long</THHDVu>
+          <DVTinh>Bóng</DVTinh>
+          <SLuong>95</SLuong>
+          <DGia>48000</DGia>
+          <ThTien>4560000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>BLB05-HL</MHHDVu>
+          <THHDVu>Bóng đèn LED bulb 30W Hưng Long</THHDVu>
+          <DVTinh>Bóng</DVTinh>
+          <SLuong>180</SLuong>
+          <DGia>115000</DGia>
+          <ThTien>20700000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>CAP01-HL</MHHDVu>
+          <THHDVu>Cáp điện 2 lõi 2x1.5mm2 Hưng Long</THHDVu>
+          <DVTinh>Mét</DVTinh>
+          <SLuong>750</SLuong>
+          <DGia>9300</DGia>
+          <ThTien>6975000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>CTC02-HL</MHHDVu>
+          <THHDVu>Công tắc 2 chiều Hưng Long</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>70</SLuong>
+          <DGia>43000</DGia>
+          <ThTien>3010000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>DAT03-DP</MHHDVu>
+          <THHDVu>Đèn LED âm trần 12W Đại Phát</THHDVu>
+          <DVTinh>Bộ</DVTinh>
+          <SLuong>55</SLuong>
+          <DGia>174500</DGia>
+          <ThTien>9597500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>OCM01-DP</MHHDVu>
+          <THHDVu>Ổ cắm đơn 3 chấu Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>95</SLuong>
+          <DGia>34500</DGia>
+          <ThTien>3277500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>OCM02-DP</MHHDVu>
+          <THHDVu>Ổ cắm đôi 2 chấu Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>290</SLuong>
+          <DGia>83500</DGia>
+          <ThTien>24215000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>11</STT>
+          <MHHDVu>OLD03-TA</MHHDVu>
+          <THHDVu>Ống luồn dây điện phi 25 Tân Á</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>85</SLuong>
+          <DGia>24000</DGia>
+          <ThTien>2040000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>90091500</ThTien>
+            <TThue>9009150</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>90091500</TgTCThue>
+        <TgTThue>9009150</TgTThue>
+        <TgTTTBSo>99100650</TgTTTBSo>
+        <TgTTTBChu>Chín mươi chín triệu một trăm nghìn sáu trăm năm mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

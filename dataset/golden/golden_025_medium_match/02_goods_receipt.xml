@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0125</SoPhieu>
+  <NgayLap>2026-09-18</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0025 ngày 2026-09-13</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Vũ Đức Hải - CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>CMG02-DP</MaHang>
+      <TenHang>Cáp mạng thùng 305m Cat6 UTP Đại Phát</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>2150000</DonGia>
+      <ThanhTien>6450000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>MAN02-DP</MaHang>
+      <TenHang>Màn hình 24 inch FHD Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>2</SoLuongTheoChungTu>
+      <SoLuongThucNhap>2</SoLuongThucNhap>
+      <DonGia>4330000</DonGia>
+      <ThanhTien>8660000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>RJ402-KS</MaHang>
+      <TenHang>Hạt mạng RJ45 Cat6 Kim Sơn (hộp 100 cái)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>1</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1</SoLuongThucNhap>
+      <DonGia>279000</DonGia>
+      <ThanhTien>279000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>SSD01-KS</MaHang>
+      <TenHang>Ổ cứng SSD 256GB SATA Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>33</SoLuongTheoChungTu>
+      <SoLuongThucNhap>33</SoLuongThucNhap>
+      <DonGia>676000</DonGia>
+      <ThanhTien>22308000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>SSD02-KS</MaHang>
+      <TenHang>Ổ cứng SSD 512GB SATA Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>4</SoLuongTheoChungTu>
+      <SoLuongThucNhap>4</SoLuongThucNhap>
+      <DonGia>1403000</DonGia>
+      <ThanhTien>5612000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>SSD03-PG</MaHang>
+      <TenHang>Ổ cứng SSD 512GB NVMe Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>43</SoLuongTheoChungTu>
+      <SoLuongThucNhap>43</SoLuongThucNhap>
+      <DonGia>2160000</DonGia>
+      <ThanhTien>92880000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>SSD04-HL</MaHang>
+      <TenHang>Ổ cứng SSD 1TB NVMe Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>1</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1</SoLuongThucNhap>
+      <DonGia>2540000</DonGia>
+      <ThanhTien>2540000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>SWI02-TA</MaHang>
+      <TenHang>Switch mạng 16 cổng Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>1940000</DonGia>
+      <ThanhTien>5820000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>USB02-PG</MaHang>
+      <TenHang>USB 64GB Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>46</SoLuongTheoChungTu>
+      <SoLuongThucNhap>46</SoLuongThucNhap>
+      <DonGia>222000</DonGia>
+      <ThanhTien>10212000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>USB03-KS</MaHang>
+      <TenHang>USB 128GB Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>21</SoLuongTheoChungTu>
+      <SoLuongThucNhap>21</SoLuongThucNhap>
+      <DonGia>329000</DonGia>
+      <ThanhTien>6909000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>161670000</TongTien>
+  <BangChu>Một trăm sáu mươi mốt triệu sáu trăm bảy mươi nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0025)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

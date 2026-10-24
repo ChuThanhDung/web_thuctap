@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_009_small_match",
+  "format": "xml",
+  "category": "small",
+  "kind": "match",
+  "line_count": 3,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0009",
+    "goods_receipt": "PNK-0109",
+    "invoice": "1C26TMK-00005009"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH ĐIỆN MÁY MINH KHANG",
+  "po_total": 24516800,
+  "invoice_total": 24516800,
+  "discrepancies": []
+}

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0017</SoDon>
+  <NgayLap>2026-01-19</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH VỆ SINH CÔNG NGHIỆP BÌNH AN</Ten>
+    <MST>0658815752</MST>
+    <DiaChi>Số 61 Phan Đăng Lưu, Phường 3, Quận Bình Thạnh, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>GVS01-PG</MaHang>
+      <TenHang>Giấy vệ sinh cuộn lớn 2 lớp 12 cuộn Phú Gia</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>4</SoLuong>
+      <DonGia>350000</DonGia>
+      <ThanhTien>1400000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>KGL01-DP</MaHang>
+      <TenHang>Khăn giấy lau tay 1 lớp 40 gói Đại Phát</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>22</SoLuong>
+      <DonGia>283000</DonGia>
+      <ThanhTien>6226000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>NLS01-HL</MaHang>
+      <TenHang>Nước lau sàn 5L hương chanh Hưng Long</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuong>46</SoLuong>
+      <DonGia>120500</DonGia>
+      <ThanhTien>5543000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>13169000</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>1053520</TienThueGTGT>
+  <TongTienThanhToan>14222520</TongTienThanhToan>
+  <BangChu>Mười bốn triệu hai trăm hai mươi hai nghìn năm trăm hai mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

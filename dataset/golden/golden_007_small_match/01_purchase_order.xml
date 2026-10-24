@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0007</SoDon>
+  <NgayLap>2026-08-11</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</Ten>
+    <MST>0409084131</MST>
+    <DiaChi>Số 15 Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>RAM02-TA</MaHang>
+      <TenHang>RAM laptop DDR4 16GB Tân Á</TenHang>
+      <DonViTinh>Thanh</DonViTinh>
+      <SoLuong>21</SoLuong>
+      <DonGia>1059000</DonGia>
+      <ThanhTien>22239000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>22239000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>2223900</TienThueGTGT>
+  <TongTienThanhToan>24462900</TongTienThanhToan>
+  <BangChu>Hai mươi bốn triệu bốn trăm sáu mươi hai nghìn chín trăm đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_043_large_match",
+  "format": "xml",
+  "category": "large",
+  "kind": "match",
+  "line_count": 70,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0043",
+    "goods_receipt": "PNK-0143",
+    "invoice": "1C26THT-00005043"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH THƯƠNG MẠI TỔNG HỢP HƯNG THỊNH",
+  "po_total": 1092044250,
+  "invoice_total": 1092044250,
+  "discrepancies": []
+}

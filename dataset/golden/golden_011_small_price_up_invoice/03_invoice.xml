@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTD</KHHDon>
+      <SHDon>00005011</SHDon>
+      <NLap>2026-06-09</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+        <MST>0368573115</MST>
+        <DChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BBI02-PG</MHHDVu>
+          <THHDVu>Bút bi đỏ 0.5mm Phú Gia (hộp 20 cây)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>29</SLuong>
+          <DGia>71000</DGia>
+          <ThTien>2059000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>FHS02-TA</MHHDVu>
+          <THHDVu>File hồ sơ nhựa 20 lá Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>44</SLuong>
+          <DGia>27500</DGia>
+          <ThTien>1210000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>MIN03-KS</MHHDVu>
+          <THHDVu>Máy in laser A3 đơn năng Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>1</SLuong>
+          <DGia>21420000</DGia>
+          <ThTien>21420000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>24689000</ThTien>
+            <TThue>2468900</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>24689000</TgTCThue>
+        <TgTThue>2468900</TgTThue>
+        <TgTTTBSo>27157900</TgTTTBSo>
+        <TgTTTBChu>Hai mươi bảy triệu một trăm năm mươi bảy nghìn chín trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

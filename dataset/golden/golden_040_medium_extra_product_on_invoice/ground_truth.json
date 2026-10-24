@@ -1,0 +1,25 @@
+{
+  "batch_id": "golden_040_medium_extra_product_on_invoice",
+  "format": "xml",
+  "category": "medium",
+  "kind": "extra_product_on_invoice",
+  "line_count": 14,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0040",
+    "goods_receipt": "PNK-0140",
+    "invoice": "1C26THB-00005040"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH",
+  "po_total": 308328900,
+  "invoice_total": 308621500,
+  "discrepancies": [
+    {
+      "type": "extra_product",
+      "document": "invoice",
+      "description": "Hóa đơn có mặt hàng Vít bắn tôn 4x25 Kim Sơn (hộp 100 con) không có trong PO và GRN"
+    }
+  ]
+}

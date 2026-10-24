@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0151</SoPhieu>
+  <NgayLap>2026-05-14</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0051 ngày 2026-05-09</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Dương Thị Mai - CÔNG TY TNHH THƯƠNG MẠI TỔNG HỢP HƯNG THỊNH</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APQ01-KS</MaHang>
+      <TenHang>Áo phản quang cam size L Kim Sơn</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>33</SoLuongTheoChungTu>
+      <SoLuongThucNhap>33</SoLuongThucNhap>
+      <DonGia>52000</DonGia>
+      <ThanhTien>1716000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>APQ02-DP</MaHang>
+      <TenHang>Áo phản quang vàng size L Đại Phát</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>32</SoLuongTheoChungTu>
+      <SoLuongThucNhap>32</SoLuongThucNhap>
+      <DonGia>52000</DonGia>
+      <ThanhTien>1664000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>APQ04-PG</MaHang>
+      <TenHang>Áo phản quang vàng size XL Phú Gia</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>34</SoLuongTheoChungTu>
+      <SoLuongThucNhap>34</SoLuongThucNhap>
+      <DonGia>56000</DonGia>
+      <ThanhTien>1904000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>APT01-PG</MaHang>
+      <TenHang>Aptomat 1 pha 10A Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>7</SoLuongTheoChungTu>
+      <SoLuongThucNhap>7</SoLuongThucNhap>
+      <DonGia>93000</DonGia>
+      <ThanhTien>651000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>APT03-DP</MaHang>
+      <TenHang>Aptomat 1 pha 20A Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>33</SoLuongTheoChungTu>
+      <SoLuongThucNhap>33</SoLuongThucNhap>
+      <DonGia>176000</DonGia>
+      <ThanhTien>5808000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>APT04-TA</MaHang>
+      <TenHang>Aptomat 1 pha 32A Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>23</SoLuongTheoChungTu>
+      <SoLuongThucNhap>23</SoLuongThucNhap>
+      <DonGia>216000</DonGia>
+      <ThanhTien>4968000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>ATD01-HL</MaHang>
+      <TenHang>Áo thun đồng phục size S Hưng Long</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>24</SoLuongTheoChungTu>
+      <SoLuongThucNhap>24</SoLuongThucNhap>
+      <DonGia>111000</DonGia>
+      <ThanhTien>2664000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>ATD05-HL</MaHang>
+      <TenHang>Áo thun đồng phục size XXL Hưng Long</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>370</SoLuongTheoChungTu>
+      <SoLuongThucNhap>370</SoLuongThucNhap>
+      <DonGia>112000</DonGia>
+      <ThanhTien>41440000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>BDQ01-HL</MaHang>
+      <TenHang>Bút dạ quang vàng Hưng Long (hộp 10 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>26</SoLuongTheoChungTu>
+      <SoLuongThucNhap>26</SoLuongThucNhap>
+      <DonGia>82000</DonGia>
+      <ThanhTien>2132000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>BDQ04-DP</MaHang>
+      <TenHang>Bút dạ quang cam Đại Phát (hộp 10 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>83000</DonGia>
+      <ThanhTien>249000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>BKH01-TA</MaHang>
+      <TenHang>Băng keo đóng hàng trong 100 yard Tân Á</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>105</SoLuongTheoChungTu>
+      <SoLuongThucNhap>105</SoLuongThucNhap>
+      <DonGia>14500</DonGia>
+      <ThanhTien>1522500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>BLB04-PG</MaHang>
+      <TenHang>Bóng đèn LED bulb 20W Phú Gia</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuongTheoChungTu>360</SoLuongTheoChungTu>
+      <SoLuongThucNhap>360</SoLuongThucNhap>
+      <DonGia>104000</DonGia>
+      <ThanhTien>37440000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>13</STT>
+      <MaHang>BPH01-TA</MaHang>
+      <TenHang>Bàn phím có dây Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>35</SoLuongTheoChungTu>
+      <SoLuongThucNhap>35</SoLuongThucNhap>
+      <DonGia>156000</DonGia>
+      <ThanhTien>5460000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>14</STT>
+      <MaHang>BUL04-KS</MaHang>
+      <TenHang>Bu lông inox M12x60 Kim Sơn</TenHang>
+      <DonViTinh>Con</DonViTinh>
+      <SoLuongTheoChungTu>1810</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1810</SoLuongThucNhap>
+      <DonGia>14500</DonGia>
+      <ThanhTien>26245000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>15</STT>
+      <MaHang>BUL05-KS</MaHang>
+      <TenHang>Bu lông inox M16x80 Kim Sơn</TenHang>
+      <DonViTinh>Con</DonViTinh>
+      <SoLuongTheoChungTu>120</SoLuongTheoChungTu>
+      <SoLuongThucNhap>120</SoLuongThucNhap>
+      <DonGia>19500</DonGia>
+      <ThanhTien>2340000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>16</STT>
+      <MaHang>CHU02-KS</MaHang>
+      <TenHang>Chuột máy tính không dây Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>23</SoLuongTheoChungTu>
+      <SoLuongThucNhap>23</SoLuongThucNhap>
+      <DonGia>394000</DonGia>
+      <ThanhTien>9062000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>17</STT>
+      <MaHang>CHU03-TA</MaHang>
+      <TenHang>Chuột máy tính không dây công thái học Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>70</SoLuongTheoChungTu>
+      <SoLuongThucNhap>70</SoLuongThucNhap>
+      <DonGia>642000</DonGia>
+      <ThanhTien>44940000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>18</STT>
+      <MaHang>CTC03-PG</MaHang>
+      <TenHang>Công tắc đôi 1 chiều Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>200</SoLuongTheoChungTu>
+      <SoLuongThucNhap>200</SoLuongThucNhap>
+      <DonGia>74500</DonGia>
+      <ThanhTien>14900000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>19</STT>
+      <MaHang>DAT04-KS</MaHang>
+      <TenHang>Đèn LED âm trần 18W Kim Sơn</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuongTheoChungTu>310</SoLuongTheoChungTu>
+      <SoLuongThucNhap>310</SoLuongThucNhap>
+      <DonGia>242000</DonGia>
+      <ThanhTien>75020000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>20</STT>
+      <MaHang>DDN01-KS</MaHang>
+      <TenHang>Dây điện đơn 1x1.5mm2 100m Kim Sơn</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>14</SoLuongTheoChungTu>
+      <SoLuongThucNhap>14</SoLuongThucNhap>
+      <DonGia>427000</DonGia>
+      <ThanhTien>5978000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>21</STT>
+      <MaHang>FHS02-KS</MaHang>
+      <TenHang>File hồ sơ nhựa 20 lá Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>145</SoLuongTheoChungTu>
+      <SoLuongThucNhap>145</SoLuongThucNhap>
+      <DonGia>28000</DonGia>
+      <ThanhTien>4060000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>22</STT>
+      <MaHang>FHS03-TA</MaHang>
+      <TenHang>File hồ sơ còng 5cm Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>75</SoLuongTheoChungTu>
+      <SoLuongThucNhap>75</SoLuongThucNhap>
+      <DonGia>48000</DonGia>
+      <ThanhTien>3600000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>23</STT>
+      <MaHang>FHS04-TA</MaHang>
+      <TenHang>File hồ sơ còng 7cm Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>230</SoLuongTheoChungTu>
+      <SoLuongThucNhap>230</SoLuongThucNhap>
+      <DonGia>66000</DonGia>
+      <ThanhTien>15180000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>24</STT>
+      <MaHang>GA402-KS</MaHang>
+      <TenHang>Giấy in A4 80gsm Kim Sơn</TenHang>
+      <DonViTinh>Ram</DonViTinh>
+      <SoLuongTheoChungTu>33</SoLuongTheoChungTu>
+      <SoLuongThucNhap>33</SoLuongThucNhap>
+      <DonGia>98500</DonGia>
+      <ThanhTien>3250500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>25</STT>
+      <MaHang>GBH03-TA</MaHang>
+      <TenHang>Giày bảo hộ size 41 Tân Á</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>11</SoLuongTheoChungTu>
+      <SoLuongThucNhap>11</SoLuongThucNhap>
+      <DonGia>470000</DonGia>
+      <ThanhTien>5170000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>26</STT>
+      <MaHang>GBH04-HL</MaHang>
+      <TenHang>Giày bảo hộ size 42 Hưng Long</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>10</SoLuongTheoChungTu>
+      <SoLuongThucNhap>10</SoLuongThucNhap>
+      <DonGia>438000</DonGia>
+      <ThanhTien>4380000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>27</STT>
+      <MaHang>GBH05-HL</MaHang>
+      <TenHang>Giày bảo hộ size 43 Hưng Long</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>9</SoLuongTheoChungTu>
+      <SoLuongThucNhap>9</SoLuongThucNhap>
+      <DonGia>441000</DonGia>
+      <ThanhTien>3969000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>28</STT>
+      <MaHang>GOL02-KS</MaHang>
+      <TenHang>Gạch ốp lát 30x60 men bóng Kim Sơn</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>60</SoLuongTheoChungTu>
+      <SoLuongThucNhap>60</SoLuongThucNhap>
+      <DonGia>277000</DonGia>
+      <ThanhTien>16620000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>29</STT>
+      <MaHang>GTB03-PG</MaHang>
+      <TenHang>Găng tay bảo hộ cao su chống hóa chất Phú Gia</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>380</SoLuongTheoChungTu>
+      <SoLuongThucNhap>380</SoLuongThucNhap>
+      <DonGia>64000</DonGia>
+      <ThanhTien>24320000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>30</STT>
+      <MaHang>GTB04-DP</MaHang>
+      <TenHang>Găng tay bảo hộ da hàn Đại Phát</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>90</SoLuongTheoChungTu>
+      <SoLuongThucNhap>90</SoLuongThucNhap>
+      <DonGia>83000</DonGia>
+      <ThanhTien>7470000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>31</STT>
+      <MaHang>GVS02-PG</MaHang>
+      <TenHang>Giấy vệ sinh cuộn lớn 3 lớp 10 cuộn Phú Gia</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>1</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1</SoLuongThucNhap>
+      <DonGia>604000</DonGia>
+      <ThanhTien>604000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>32</STT>
+      <MaHang>KEP01-TA</MaHang>
+      <TenHang>Kẹp giấy số 1 Tân Á</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>16</SoLuongTheoChungTu>
+      <SoLuongThucNhap>16</SoLuongThucNhap>
+      <DonGia>4100</DonGia>
+      <ThanhTien>65600</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>33</STT>
+      <MaHang>KGL02-PG</MaHang>
+      <TenHang>Khăn giấy lau tay 2 lớp 20 gói Phú Gia</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>12</SoLuongTheoChungTu>
+      <SoLuongThucNhap>12</SoLuongThucNhap>
+      <DonGia>566000</DonGia>
+      <ThanhTien>6792000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>34</STT>
+      <MaHang>MAN02-HL</MaHang>
+      <TenHang>Màn hình 24 inch FHD Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>7</SoLuongTheoChungTu>
+      <SoLuongThucNhap>7</SoLuongThucNhap>
+      <DonGia>4190000</DonGia>
+      <ThanhTien>29330000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>35</STT>
+      <MaHang>MIN02-PG</MaHang>
+      <TenHang>Máy in laser A4 đa năng Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>5</SoLuongTheoChungTu>
+      <SoLuongThucNhap>5</SoLuongThucNhap>
+      <DonGia>11430000</DonGia>
+      <ThanhTien>57150000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>36</STT>
+      <MaHang>MIN03-TA</MaHang>
+      <TenHang>Máy in laser A3 đơn năng Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>18960000</DonGia>
+      <ThanhTien>56880000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>37</STT>
+      <MaHang>MPE01-TA</MaHang>
+      <TenHang>Màng PE quấn pallet 50cm x 2.5kg Tân Á</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuongTheoChungTu>95</SoLuongTheoChungTu>
+      <SoLuongThucNhap>95</SoLuongThucNhap>
+      <DonGia>84000</DonGia>
+      <ThanhTien>7980000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>38</STT>
+      <MaHang>MUC04-HL</MaHang>
+      <TenHang>Hộp mực in laser mã 85A Hưng Long</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>25</SoLuongTheoChungTu>
+      <SoLuongThucNhap>25</SoLuongThucNhap>
+      <DonGia>1381000</DonGia>
+      <ThanhTien>34525000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>39</STT>
+      <MaHang>NLS01-HL</MaHang>
+      <TenHang>Nước lau sàn 5L hương chanh Hưng Long</TenHang>
+      <DonViTinh>Can</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>121500</DonGia>
+      <ThanhTien>6682500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>40</STT>
+      <MaHang>NRT01-DP</MaHang>
+      <TenHang>Nước rửa tay 500ml Đại Phát</TenHang>
+      <DonViTinh>Chai</DonViTinh>
+      <SoLuongTheoChungTu>14</SoLuongTheoChungTu>
+      <SoLuongThucNhap>14</SoLuongThucNhap>
+      <DonGia>30500</DonGia>
+      <ThanhTien>427000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>41</STT>
+      <MaHang>NRT02-HL</MaHang>
+      <TenHang>Nước rửa tay 1L Hưng Long</TenHang>
+      <DonViTinh>Chai</DonViTinh>
+      <SoLuongTheoChungTu>110</SoLuongTheoChungTu>
+      <SoLuongThucNhap>110</SoLuongThucNhap>
+      <DonGia>76500</DonGia>
+      <ThanhTien>8415000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>42</STT>
+      <MaHang>OCM01-TA</MaHang>
+      <TenHang>Ổ cắm đơn 3 chấu Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>18</SoLuongTheoChungTu>
+      <SoLuongThucNhap>18</SoLuongThucNhap>
+      <DonGia>35500</DonGia>
+      <ThanhTien>639000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>43</STT>
+      <MaHang>OCM02-PG</MaHang>
+      <TenHang>Ổ cắm đôi 2 chấu Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>20</SoLuongTheoChungTu>
+      <SoLuongThucNhap>20</SoLuongThucNhap>
+      <DonGia>88000</DonGia>
+      <ThanhTien>1760000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>44</STT>
+      <MaHang>OLD01-DP</MaHang>
+      <TenHang>Ống luồn dây điện phi 16 Đại Phát</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>450</SoLuongTheoChungTu>
+      <SoLuongThucNhap>450</SoLuongThucNhap>
+      <DonGia>12500</DonGia>
+      <ThanhTien>5625000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>45</STT>
+      <MaHang>OLD02-KS</MaHang>
+      <TenHang>Ống luồn dây điện phi 20 Kim Sơn</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>135</SoLuongTheoChungTu>
+      <SoLuongThucNhap>135</SoLuongThucNhap>
+      <DonGia>19500</DonGia>
+      <ThanhTien>2632500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>46</STT>
+      <MaHang>PLN01-TA</MaHang>
+      <TenHang>Pallet nhựa 800x1200mm Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>15</SoLuongTheoChungTu>
+      <SoLuongThucNhap>15</SoLuongThucNhap>
+      <DonGia>387000</DonGia>
+      <ThanhTien>5805000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>47</STT>
+      <MaHang>PVC03-HL</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 34 Hưng Long</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>200</SoLuongTheoChungTu>
+      <SoLuongThucNhap>200</SoLuongThucNhap>
+      <DonGia>79000</DonGia>
+      <ThanhTien>15800000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>48</STT>
+      <MaHang>RAM01-DP</MaHang>
+      <TenHang>RAM laptop DDR4 8GB Đại Phát</TenHang>
+      <DonViTinh>Thanh</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>460000</DonGia>
+      <ThanhTien>1380000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>49</STT>
+      <MaHang>RAM03-DP</MaHang>
+      <TenHang>RAM laptop DDR5 16GB Đại Phát</TenHang>
+      <DonViTinh>Thanh</DonViTinh>
+      <SoLuongTheoChungTu>5</SoLuongTheoChungTu>
+      <SoLuongThucNhap>5</SoLuongThucNhap>
+      <DonGia>1592000</DonGia>
+      <ThanhTien>7960000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>50</STT>
+      <MaHang>RJ402-KS</MaHang>
+      <TenHang>Hạt mạng RJ45 Cat6 Kim Sơn (hộp 100 cái)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>4</SoLuongTheoChungTu>
+      <SoLuongThucNhap>4</SoLuongThucNhap>
+      <DonGia>273000</DonGia>
+      <ThanhTien>1092000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>51</STT>
+      <MaHang>SON01-PG</MaHang>
+      <TenHang>Sơn nước nội thất 5L trắng Phú Gia</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>25</SoLuongTheoChungTu>
+      <SoLuongThucNhap>25</SoLuongThucNhap>
+      <DonGia>482000</DonGia>
+      <ThanhTien>12050000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>52</STT>
+      <MaHang>SSD01-DP</MaHang>
+      <TenHang>Ổ cứng SSD 256GB SATA Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>6</SoLuongTheoChungTu>
+      <SoLuongThucNhap>6</SoLuongThucNhap>
+      <DonGia>647000</DonGia>
+      <ThanhTien>3882000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>53</STT>
+      <MaHang>SWI01-KS</MaHang>
+      <TenHang>Switch mạng 8 cổng Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>1</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1</SoLuongThucNhap>
+      <DonGia>357000</DonGia>
+      <ThanhTien>357000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>54</STT>
+      <MaHang>SWI03-KS</MaHang>
+      <TenHang>Switch mạng 24 cổng Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>3</SoLuongTheoChungTu>
+      <SoLuongThucNhap>3</SoLuongThucNhap>
+      <DonGia>3690000</DonGia>
+      <ThanhTien>11070000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>55</STT>
+      <MaHang>TPE02-KS</MaHang>
+      <TenHang>Túi nilon PE 40x60cm Kim Sơn</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuongTheoChungTu>41</SoLuongTheoChungTu>
+      <SoLuongThucNhap>41</SoLuongThucNhap>
+      <DonGia>48500</DonGia>
+      <ThanhTien>1988500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>56</STT>
+      <MaHang>TPE03-KS</MaHang>
+      <TenHang>Túi nilon PE 60x90cm Kim Sơn</TenHang>
+      <DonViTinh>Kg</DonViTinh>
+      <SoLuongTheoChungTu>280</SoLuongTheoChungTu>
+      <SoLuongThucNhap>280</SoLuongThucNhap>
+      <DonGia>58000</DonGia>
+      <ThanhTien>16240000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>57</STT>
+      <MaHang>TUS01-HL</MaHang>
+      <TenHang>Tủ hồ sơ sắt 2 cánh kính Hưng Long</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>4</SoLuongTheoChungTu>
+      <SoLuongThucNhap>4</SoLuongThucNhap>
+      <DonGia>2080000</DonGia>
+      <ThanhTien>8320000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>58</STT>
+      <MaHang>VIT01-DP</MaHang>
+      <TenHang>Vít bắn tôn 4x25 Đại Phát (hộp 100 con)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>65</SoLuongTheoChungTu>
+      <SoLuongThucNhap>65</SoLuongThucNhap>
+      <DonGia>35000</DonGia>
+      <ThanhTien>2275000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>59</STT>
+      <MaHang>WIF01-PG</MaHang>
+      <TenHang>Bộ phát wifi AC1200 Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>7</SoLuongTheoChungTu>
+      <SoLuongThucNhap>7</SoLuongThucNhap>
+      <DonGia>712000</DonGia>
+      <ThanhTien>4984000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>60</STT>
+      <MaHang>WIF02-TA</MaHang>
+      <TenHang>Bộ phát wifi AX1800 Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>2</SoLuongTheoChungTu>
+      <SoLuongThucNhap>2</SoLuongThucNhap>
+      <DonGia>1790000</DonGia>
+      <ThanhTien>3580000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>61</STT>
+      <MaHang>XMG02-KS</MaHang>
+      <TenHang>Xi măng PCB40 50kg Kim Sơn</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>97500</DonGia>
+      <ThanhTien>5362500</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>695776600</TongTien>
+  <BangChu>Sáu trăm chín mươi lăm triệu bảy trăm bảy mươi sáu nghìn sáu trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0051)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

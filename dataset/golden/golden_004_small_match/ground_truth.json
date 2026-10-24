@@ -1,0 +1,19 @@
+{
+  "batch_id": "golden_004_small_match",
+  "format": "xml",
+  "category": "small",
+  "kind": "match",
+  "line_count": 3,
+  "expected_result": "MATCH",
+  "expected_status": "matched",
+  "documents": {
+    "purchase_order": "PO-2026-0004",
+    "goods_receipt": "PNK-0104",
+    "invoice": "1C26THB-00005004"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH",
+  "po_total": 95726880,
+  "invoice_total": 95726880,
+  "discrepancies": []
+}

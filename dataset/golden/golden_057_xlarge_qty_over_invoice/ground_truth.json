@@ -1,0 +1,62 @@
+{
+  "batch_id": "golden_057_xlarge_qty_over_invoice",
+  "format": "xml",
+  "category": "xlarge",
+  "kind": "qty_over_invoice",
+  "line_count": 151,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0057",
+    "goods_receipt": "PNK-0157",
+    "invoice": "1C26THT-00005057"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH THƯƠNG MẠI TỔNG HỢP HƯNG THỊNH",
+  "po_total": 1915007832,
+  "invoice_total": 1931841792,
+  "discrepancies": [
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 326, PO đặt và kho nhập 290",
+      "sku": "DAT01-PG"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 27, PO đặt và kho nhập 21",
+      "sku": "CLN02-PG"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 34, PO đặt và kho nhập 28",
+      "sku": "GA402-KS"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 50, PO đặt và kho nhập 44",
+      "sku": "KEP03-KS"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 63, PO đặt và kho nhập 49",
+      "sku": "KTY02-DP"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 32, PO đặt và kho nhập 26",
+      "sku": "GOL02-PG"
+    },
+    {
+      "type": "qty",
+      "document": "invoice",
+      "description": "Hóa đơn ghi số lượng 257, PO đặt và kho nhập 230",
+      "sku": "DAT04-HL"
+    }
+  ]
+}

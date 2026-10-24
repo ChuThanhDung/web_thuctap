@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0037</SoDon>
+  <NgayLap>2026-01-02</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+    <MST>0615395616</MST>
+    <DiaChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BKD01-DP</MaHang>
+      <TenHang>Băng keo điện đen 10m Đại Phát</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuong>380</SoLuong>
+      <DonGia>4300</DonGia>
+      <ThanhTien>1634000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BLB03-DP</MaHang>
+      <TenHang>Bóng đèn LED bulb 15W Đại Phát</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuong>210</SoLuong>
+      <DonGia>72500</DonGia>
+      <ThanhTien>15225000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>CAP04-TA</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x6mm2 Tân Á</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuong>210</SoLuong>
+      <DonGia>47000</DonGia>
+      <ThanhTien>9870000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>CTC04-DP</MaHang>
+      <TenHang>Công tắc ba 1 chiều Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>110</SoLuong>
+      <DonGia>92000</DonGia>
+      <ThanhTien>10120000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>DAT04-TA</MaHang>
+      <TenHang>Đèn LED âm trần 18W Tân Á</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>15</SoLuong>
+      <DonGia>232000</DonGia>
+      <ThanhTien>3480000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>DDN01-PG</MaHang>
+      <TenHang>Dây điện đơn 1x1.5mm2 100m Phú Gia</TenHang>
+      <DonViTinh>Cuộn</DonViTinh>
+      <SoLuong>55</SoLuong>
+      <DonGia>437000</DonGia>
+      <ThanhTien>24035000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>OCM03-DP</MaHang>
+      <TenHang>Ổ cắm đôi 3 chấu Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>25</SoLuong>
+      <DonGia>133500</DonGia>
+      <ThanhTien>3337500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>OLD03-PG</MaHang>
+      <TenHang>Ống luồn dây điện phi 25 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuong>95</SoLuong>
+      <DonGia>26000</DonGia>
+      <ThanhTien>2470000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>70171500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>5613720</TienThueGTGT>
+  <TongTienThanhToan>75785220</TongTienThanhToan>
+  <BangChu>Bảy mươi lăm triệu bảy trăm tám mươi lăm nghìn hai trăm hai mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0023</SoDon>
+  <NgayLap>2026-04-16</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</Ten>
+    <MST>0411275559</MST>
+    <DiaChi>Số 27 Cộng Hòa, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APQ04-HL</MaHang>
+      <TenHang>Áo phản quang vàng size XL Hưng Long</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>85</SoLuong>
+      <DonGia>48000</DonGia>
+      <ThanhTien>4080000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>ATD01-TA</MaHang>
+      <TenHang>Áo thun đồng phục size S Tân Á</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>32</SoLuong>
+      <DonGia>115000</DonGia>
+      <ThanhTien>3680000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>ATD04-KS</MaHang>
+      <TenHang>Áo thun đồng phục size XL Kim Sơn</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>55</SoLuong>
+      <DonGia>118500</DonGia>
+      <ThanhTien>6517500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>DDA02-KS</MaHang>
+      <TenHang>Dây đai an toàn toàn thân 1 móc Kim Sơn</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuong>20</SoLuong>
+      <DonGia>848000</DonGia>
+      <ThanhTien>16960000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>GBH04-TA</MaHang>
+      <TenHang>Giày bảo hộ size 42 Tân Á</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuong>7</SoLuong>
+      <DonGia>476000</DonGia>
+      <ThanhTien>3332000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>GTB01-DP</MaHang>
+      <TenHang>Găng tay bảo hộ len Đại Phát</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuong>380</SoLuong>
+      <DonGia>8200</DonGia>
+      <ThanhTien>3116000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>KBH01-TA</MaHang>
+      <TenHang>Kính bảo hộ trong suốt Tân Á</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>80</SoLuong>
+      <DonGia>26000</DonGia>
+      <ThanhTien>2080000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>KBH02-PG</MaHang>
+      <TenHang>Kính bảo hộ chống bụi Phú Gia</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>55</SoLuong>
+      <DonGia>77500</DonGia>
+      <ThanhTien>4262500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>KTY02-TA</MaHang>
+      <TenHang>Khẩu trang y tế 4 lớp (50 cái) Tân Á</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuong>19</SoLuong>
+      <DonGia>156500</DonGia>
+      <ThanhTien>2973500</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>47001500</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>3760120</TienThueGTGT>
+  <TongTienThanhToan>50761620</TongTienThanhToan>
+  <BangChu>Năm mươi triệu bảy trăm sáu mươi mốt nghìn sáu trăm hai mươi đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_019_small_short_by_one",
+  "format": "image",
+  "category": "small",
+  "kind": "short_by_one",
+  "line_count": 1,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0019",
+    "goods_receipt": "PNK-0119",
+    "invoice": "1C26TNV-00005019"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT",
+  "po_total": 4284900,
+  "invoice_total": 4284900,
+  "discrepancies": [
+    {
+      "type": "qty",
+      "document": "grn",
+      "description": "Kho nhập 22 trên 23, thiếu 1 đơn vị",
+      "sku": "APT03-DP"
+    }
+  ]
+}

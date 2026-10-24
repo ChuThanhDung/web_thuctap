@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0114</SoPhieu>
+  <NgayLap>2026-03-19</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0014 ngày 2026-03-14</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Dương Thị Mai - CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>GBH03-PG</MaHang>
+      <TenHang>Giày bảo hộ size 41 Phú Gia</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>48</SoLuongTheoChungTu>
+      <SoLuongThucNhap>48</SoLuongThucNhap>
+      <DonGia>499000</DonGia>
+      <ThanhTien>23952000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>KBH03-TA</MaHang>
+      <TenHang>Kính bảo hộ chống tia UV Tân Á</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>13</SoLuongTheoChungTu>
+      <SoLuongThucNhap>13</SoLuongThucNhap>
+      <DonGia>120000</DonGia>
+      <ThanhTien>1560000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>MBH03-PG</MaHang>
+      <TenHang>Mũ bảo hộ xanh Phú Gia</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>15</SoLuongTheoChungTu>
+      <SoLuongThucNhap>15</SoLuongThucNhap>
+      <DonGia>72500</DonGia>
+      <ThanhTien>1087500</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>26599500</TongTien>
+  <BangChu>Hai mươi sáu triệu năm trăm chín mươi chín nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0014)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TNV</KHHDon>
+      <SHDon>00005019</SHDon>
+      <NLap>2026-06-17</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+        <MST>0615395616</MST>
+        <DChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>APT03-DP</MHHDVu>
+          <THHDVu>Aptomat 1 pha 20A Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>23</SLuong>
+          <DGia>172500</DGia>
+          <ThTien>3967500</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>3967500</ThTien>
+            <TThue>317400</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>3967500</TgTCThue>
+        <TgTThue>317400</TgTThue>
+        <TgTTTBSo>4284900</TgTTTBSo>
+        <TgTTTBChu>Bốn triệu hai trăm tám mươi bốn nghìn chín trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

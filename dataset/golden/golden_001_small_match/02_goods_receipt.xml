@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0101</SoPhieu>
+  <NgayLap>2026-03-08</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0001 ngày 2026-03-03</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Lê Minh Châu - CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BLB01-HL</MaHang>
+      <TenHang>Bóng đèn LED bulb 9W Hưng Long</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuongTheoChungTu>35</SoLuongTheoChungTu>
+      <SoLuongThucNhap>35</SoLuongThucNhap>
+      <DonGia>25000</DonGia>
+      <ThanhTien>875000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>CAP04-DP</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x6mm2 Đại Phát</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuongTheoChungTu>100</SoLuongTheoChungTu>
+      <SoLuongThucNhap>100</SoLuongThucNhap>
+      <DonGia>44000</DonGia>
+      <ThanhTien>4400000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>OLD01-TA</MaHang>
+      <TenHang>Ống luồn dây điện phi 16 Tân Á</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>75</SoLuongTheoChungTu>
+      <SoLuongThucNhap>75</SoLuongThucNhap>
+      <DonGia>12500</DonGia>
+      <ThanhTien>937500</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>6212500</TongTien>
+  <BangChu>Sáu triệu hai trăm mười hai nghìn năm trăm đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0001)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

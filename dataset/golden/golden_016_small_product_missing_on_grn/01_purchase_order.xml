@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0016</SoDon>
+  <NgayLap>2026-06-20</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</Ten>
+    <MST>0409084131</MST>
+    <DiaChi>Số 15 Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BPH01-KS</MaHang>
+      <TenHang>Bàn phím có dây Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>44</SoLuong>
+      <DonGia>156500</DonGia>
+      <ThanhTien>6886000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>CHU02-DP</MaHang>
+      <TenHang>Chuột máy tính không dây Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>60</SoLuong>
+      <DonGia>361000</DonGia>
+      <ThanhTien>21660000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>CMG02-DP</MaHang>
+      <TenHang>Cáp mạng thùng 305m Cat6 UTP Đại Phát</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuong>6</SoLuong>
+      <DonGia>2150000</DonGia>
+      <ThanhTien>12900000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>41446000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>4144600</TienThueGTGT>
+  <TongTienThanhToan>45590600</TongTienThanhToan>
+  <BangChu>Bốn mươi lăm triệu năm trăm chín mươi nghìn sáu trăm đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

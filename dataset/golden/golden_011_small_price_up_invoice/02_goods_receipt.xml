@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0111</SoPhieu>
+  <NgayLap>2026-06-07</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0011 ngày 2026-06-02</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Trần Thị Bích - CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BBI02-PG</MaHang>
+      <TenHang>Bút bi đỏ 0.5mm Phú Gia (hộp 20 cây)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>29</SoLuongTheoChungTu>
+      <SoLuongThucNhap>29</SoLuongThucNhap>
+      <DonGia>71000</DonGia>
+      <ThanhTien>2059000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>FHS02-TA</MaHang>
+      <TenHang>File hồ sơ nhựa 20 lá Tân Á</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>44</SoLuongTheoChungTu>
+      <SoLuongThucNhap>44</SoLuongThucNhap>
+      <DonGia>27500</DonGia>
+      <ThanhTien>1210000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>MIN03-KS</MaHang>
+      <TenHang>Máy in laser A3 đơn năng Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>1</SoLuongTheoChungTu>
+      <SoLuongThucNhap>1</SoLuongThucNhap>
+      <DonGia>18640000</DonGia>
+      <ThanhTien>18640000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>21909000</TongTien>
+  <BangChu>Hai mươi mốt triệu chín trăm lẻ chín nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0011)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

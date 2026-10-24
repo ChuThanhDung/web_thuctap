@@ -1,0 +1,150 @@
+{
+  "seed": 20261024,
+  "count": 18,
+  "batches": [
+    {
+      "batch_id": "golden_001_small_match",
+      "format": "pdf",
+      "category": "small",
+      "kind": "match",
+      "line_count": 3,
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_011_small_price_up_invoice",
+      "format": "pdf",
+      "category": "small",
+      "kind": "price_up_invoice",
+      "line_count": 3,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_021_medium_match",
+      "format": "pdf",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 12,
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_035_medium_qty_over_invoice",
+      "format": "pdf",
+      "category": "medium",
+      "kind": "qty_over_invoice",
+      "line_count": 7,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_037_medium_tax_id_mismatch",
+      "format": "pdf",
+      "category": "medium",
+      "kind": "tax_id_mismatch",
+      "line_count": 8,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_038_medium_vat_rate_mismatch",
+      "format": "pdf",
+      "category": "medium",
+      "kind": "vat_rate_mismatch",
+      "line_count": 6,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_033_medium_rounding_line",
+      "format": "pdf",
+      "category": "medium",
+      "kind": "rounding_line",
+      "line_count": 9,
+      "expected_status": "minor_diff"
+    },
+    {
+      "batch_id": "golden_041_large_match",
+      "format": "pdf",
+      "category": "large",
+      "kind": "match",
+      "line_count": 72,
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_013_small_short_delivery",
+      "format": "pdf",
+      "category": "small",
+      "kind": "short_delivery",
+      "line_count": 1,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_049_large_price_off_small",
+      "format": "pdf",
+      "category": "large",
+      "kind": "price_off_small",
+      "line_count": 61,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_053_xlarge_match",
+      "format": "pdf",
+      "category": "xlarge",
+      "kind": "match",
+      "line_count": 285,
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_002_small_match",
+      "format": "image",
+      "category": "small",
+      "kind": "match",
+      "line_count": 3,
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_018_small_total_tampered",
+      "format": "image",
+      "category": "small",
+      "kind": "total_tampered",
+      "line_count": 3,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_031_medium_rounding_vat",
+      "format": "image",
+      "category": "medium",
+      "kind": "rounding_vat",
+      "line_count": 6,
+      "expected_status": "minor_diff"
+    },
+    {
+      "batch_id": "golden_023_medium_match",
+      "format": "image",
+      "category": "medium",
+      "kind": "match",
+      "line_count": 9,
+      "expected_status": "matched"
+    },
+    {
+      "batch_id": "golden_017_small_extra_product_on_invoice",
+      "format": "image",
+      "category": "small",
+      "kind": "extra_product_on_invoice",
+      "line_count": 3,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_019_small_short_by_one",
+      "format": "image",
+      "category": "small",
+      "kind": "short_by_one",
+      "line_count": 1,
+      "expected_status": "major_diff"
+    },
+    {
+      "batch_id": "golden_036_medium_short_delivery",
+      "format": "image",
+      "category": "medium",
+      "kind": "short_delivery",
+      "line_count": 11,
+      "expected_status": "major_diff"
+    }
+  ]
+}

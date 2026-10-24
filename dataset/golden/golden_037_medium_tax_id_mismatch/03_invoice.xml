@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TNV</KHHDon>
+      <SHDon>00005037</SHDon>
+      <NLap>2026-01-09</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ ĐIỆN NAM VIỆT</Ten>
+        <MST>0670789914</MST>
+        <DChi>Lô B2, KCN Quang Minh, Huyện Mê Linh, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BKD01-DP</MHHDVu>
+          <THHDVu>Băng keo điện đen 10m Đại Phát</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>380</SLuong>
+          <DGia>4300</DGia>
+          <ThTien>1634000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>BLB03-DP</MHHDVu>
+          <THHDVu>Bóng đèn LED bulb 15W Đại Phát</THHDVu>
+          <DVTinh>Bóng</DVTinh>
+          <SLuong>210</SLuong>
+          <DGia>72500</DGia>
+          <ThTien>15225000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>CAP04-TA</MHHDVu>
+          <THHDVu>Cáp điện 2 lõi 2x6mm2 Tân Á</THHDVu>
+          <DVTinh>Mét</DVTinh>
+          <SLuong>210</SLuong>
+          <DGia>47000</DGia>
+          <ThTien>9870000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>CTC04-DP</MHHDVu>
+          <THHDVu>Công tắc ba 1 chiều Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>110</SLuong>
+          <DGia>92000</DGia>
+          <ThTien>10120000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>DAT04-TA</MHHDVu>
+          <THHDVu>Đèn LED âm trần 18W Tân Á</THHDVu>
+          <DVTinh>Bộ</DVTinh>
+          <SLuong>15</SLuong>
+          <DGia>232000</DGia>
+          <ThTien>3480000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>DDN01-PG</MHHDVu>
+          <THHDVu>Dây điện đơn 1x1.5mm2 100m Phú Gia</THHDVu>
+          <DVTinh>Cuộn</DVTinh>
+          <SLuong>55</SLuong>
+          <DGia>437000</DGia>
+          <ThTien>24035000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>OCM03-DP</MHHDVu>
+          <THHDVu>Ổ cắm đôi 3 chấu Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>25</SLuong>
+          <DGia>133500</DGia>
+          <ThTien>3337500</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>OLD03-PG</MHHDVu>
+          <THHDVu>Ống luồn dây điện phi 25 Phú Gia</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>95</SLuong>
+          <DGia>26000</DGia>
+          <ThTien>2470000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>70171500</ThTien>
+            <TThue>5613720</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>70171500</TgTCThue>
+        <TgTThue>5613720</TgTThue>
+        <TgTTTBSo>75785220</TgTTTBSo>
+        <TgTTTBChu>Bảy mươi lăm triệu bảy trăm tám mươi lăm nghìn hai trăm hai mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

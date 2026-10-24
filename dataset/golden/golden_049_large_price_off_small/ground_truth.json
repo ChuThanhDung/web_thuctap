@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_049_large_price_off_small",
+  "format": "xml",
+  "category": "large",
+  "kind": "price_off_small",
+  "line_count": 61,
+  "expected_result": "MISMATCH",
+  "expected_status": "major_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0049",
+    "goods_receipt": "PNK-0149",
+    "invoice": "1C26THT-00005049"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY TNHH THƯƠNG MẠI TỔNG HỢP HƯNG THỊNH",
+  "po_total": 960607620,
+  "invoice_total": 960620040,
+  "discrepancies": [
+    {
+      "type": "price",
+      "document": "invoice",
+      "description": "Đơn giá hóa đơn 125,100 đ, PO 125,000 đ",
+      "sku": "BLB05-DP"
+    }
+  ]
+}

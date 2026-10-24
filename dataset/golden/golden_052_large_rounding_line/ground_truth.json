@@ -1,0 +1,26 @@
+{
+  "batch_id": "golden_052_large_rounding_line",
+  "format": "xml",
+  "category": "large",
+  "kind": "rounding_line",
+  "line_count": 38,
+  "expected_result": "MISMATCH",
+  "expected_status": "minor_diff",
+  "documents": {
+    "purchase_order": "PO-2026-0052",
+    "goods_receipt": "PNK-0152",
+    "invoice": "1C26TAP-00005052"
+  },
+  "buyer": "CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM",
+  "seller": "CÔNG TY CỔ PHẦN PHÂN PHỐI VẬT TƯ AN PHÚ",
+  "po_total": 614629950,
+  "invoice_total": 614630189,
+  "discrepancies": [
+    {
+      "type": "rounding",
+      "document": "invoice",
+      "description": "Thành tiền dòng lệch +218 đ do làm tròn",
+      "sku": "XMG01-DP"
+    }
+  ]
+}

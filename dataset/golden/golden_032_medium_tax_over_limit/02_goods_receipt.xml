@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0132</SoPhieu>
+  <NgayLap>2026-04-24</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0032 ngày 2026-04-19</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Cao Văn Vinh - CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APQ04-HL</MaHang>
+      <TenHang>Áo phản quang vàng size XL Hưng Long</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>280</SoLuongTheoChungTu>
+      <SoLuongThucNhap>280</SoLuongThucNhap>
+      <DonGia>49000</DonGia>
+      <ThanhTien>13720000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>ATD02-KS</MaHang>
+      <TenHang>Áo thun đồng phục size M Kim Sơn</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>22</SoLuongTheoChungTu>
+      <SoLuongThucNhap>22</SoLuongThucNhap>
+      <DonGia>120500</DonGia>
+      <ThanhTien>2651000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>ATD04-KS</MaHang>
+      <TenHang>Áo thun đồng phục size XL Kim Sơn</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>36</SoLuongTheoChungTu>
+      <SoLuongThucNhap>36</SoLuongThucNhap>
+      <DonGia>122000</DonGia>
+      <ThanhTien>4392000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>ATD05-TA</MaHang>
+      <TenHang>Áo thun đồng phục size XXL Tân Á</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>29</SoLuongTheoChungTu>
+      <SoLuongThucNhap>29</SoLuongThucNhap>
+      <DonGia>117000</DonGia>
+      <ThanhTien>3393000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>DDA02-TA</MaHang>
+      <TenHang>Dây đai an toàn toàn thân 1 móc Tân Á</TenHang>
+      <DonViTinh>Bộ</DonViTinh>
+      <SoLuongTheoChungTu>24</SoLuongTheoChungTu>
+      <SoLuongThucNhap>24</SoLuongThucNhap>
+      <DonGia>805000</DonGia>
+      <ThanhTien>19320000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>GBH01-DP</MaHang>
+      <TenHang>Giày bảo hộ size 39 Đại Phát</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>29</SoLuongTheoChungTu>
+      <SoLuongThucNhap>29</SoLuongThucNhap>
+      <DonGia>450000</DonGia>
+      <ThanhTien>13050000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>GBH02-PG</MaHang>
+      <TenHang>Giày bảo hộ size 40 Phú Gia</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>9</SoLuongTheoChungTu>
+      <SoLuongThucNhap>9</SoLuongThucNhap>
+      <DonGia>487000</DonGia>
+      <ThanhTien>4383000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>GBH04-HL</MaHang>
+      <TenHang>Giày bảo hộ size 42 Hưng Long</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>13</SoLuongTheoChungTu>
+      <SoLuongThucNhap>13</SoLuongThucNhap>
+      <DonGia>444000</DonGia>
+      <ThanhTien>5772000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>GBH05-TA</MaHang>
+      <TenHang>Giày bảo hộ size 43 Tân Á</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>5</SoLuongTheoChungTu>
+      <SoLuongThucNhap>5</SoLuongThucNhap>
+      <DonGia>472000</DonGia>
+      <ThanhTien>2360000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>GTB01-HL</MaHang>
+      <TenHang>Găng tay bảo hộ len Hưng Long</TenHang>
+      <DonViTinh>Đôi</DonViTinh>
+      <SoLuongTheoChungTu>240</SoLuongTheoChungTu>
+      <SoLuongThucNhap>240</SoLuongThucNhap>
+      <DonGia>8300</DonGia>
+      <ThanhTien>1992000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>KBH01-TA</MaHang>
+      <TenHang>Kính bảo hộ trong suốt Tân Á</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>125</SoLuongTheoChungTu>
+      <SoLuongThucNhap>125</SoLuongThucNhap>
+      <DonGia>26000</DonGia>
+      <ThanhTien>3250000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>KBH02-DP</MaHang>
+      <TenHang>Kính bảo hộ chống bụi Đại Phát</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>165</SoLuongTheoChungTu>
+      <SoLuongThucNhap>165</SoLuongThucNhap>
+      <DonGia>73000</DonGia>
+      <ThanhTien>12045000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>13</STT>
+      <MaHang>KTY01-DP</MaHang>
+      <TenHang>Khẩu trang y tế 3 lớp (50 cái) Đại Phát</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>19</SoLuongTheoChungTu>
+      <SoLuongThucNhap>19</SoLuongThucNhap>
+      <DonGia>36000</DonGia>
+      <ThanhTien>684000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>14</STT>
+      <MaHang>KTY02-KS</MaHang>
+      <TenHang>Khẩu trang y tế 4 lớp (50 cái) Kim Sơn</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>38</SoLuongTheoChungTu>
+      <SoLuongThucNhap>38</SoLuongThucNhap>
+      <DonGia>170000</DonGia>
+      <ThanhTien>6460000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>15</STT>
+      <MaHang>MBH02-PG</MaHang>
+      <TenHang>Mũ bảo hộ vàng Phú Gia</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>71000</DonGia>
+      <ThanhTien>3905000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>97377000</TongTien>
+  <BangChu>Chín mươi bảy triệu ba trăm bảy mươi bảy nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0032)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

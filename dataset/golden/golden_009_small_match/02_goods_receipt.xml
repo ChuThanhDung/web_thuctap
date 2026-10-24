@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0109</SoPhieu>
+  <NgayLap>2026-03-11</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0009 ngày 2026-03-06</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Vũ Đức Hải - CÔNG TY TNHH ĐIỆN MÁY MINH KHANG</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APT04-PG</MaHang>
+      <TenHang>Aptomat 1 pha 32A Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>8</SoLuongTheoChungTu>
+      <SoLuongThucNhap>8</SoLuongThucNhap>
+      <DonGia>236000</DonGia>
+      <ThanhTien>1888000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BLB02-KS</MaHang>
+      <TenHang>Bóng đèn LED bulb 12W Kim Sơn</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuongTheoChungTu>260</SoLuongTheoChungTu>
+      <SoLuongThucNhap>260</SoLuongThucNhap>
+      <DonGia>52500</DonGia>
+      <ThanhTien>13650000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>CAP02-KS</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x2.5mm2 Kim Sơn</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuongTheoChungTu>300</SoLuongTheoChungTu>
+      <SoLuongThucNhap>300</SoLuongThucNhap>
+      <DonGia>22500</DonGia>
+      <ThanhTien>6750000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>22288000</TongTien>
+  <BangChu>Hai mươi hai triệu hai trăm tám mươi tám nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0009)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0116</SoPhieu>
+  <NgayLap>2026-06-25</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0016 ngày 2026-06-20</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Đặng Thị Hồng - CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BPH01-KS</MaHang>
+      <TenHang>Bàn phím có dây Kim Sơn</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>44</SoLuongTheoChungTu>
+      <SoLuongThucNhap>44</SoLuongThucNhap>
+      <DonGia>156500</DonGia>
+      <ThanhTien>6886000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>CHU02-DP</MaHang>
+      <TenHang>Chuột máy tính không dây Đại Phát</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuongTheoChungTu>60</SoLuongTheoChungTu>
+      <SoLuongThucNhap>60</SoLuongThucNhap>
+      <DonGia>361000</DonGia>
+      <ThanhTien>21660000</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>28546000</TongTien>
+  <BangChu>Hai mươi tám triệu năm trăm bốn mươi sáu nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0016)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

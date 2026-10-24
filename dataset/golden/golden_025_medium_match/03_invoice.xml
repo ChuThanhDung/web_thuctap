@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TDV</KHHDon>
+      <SHDon>00005025</SHDon>
+      <NLap>2026-09-20</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ TIN HỌC ĐẠI VIỆT</Ten>
+        <MST>0409084131</MST>
+        <DChi>Số 15 Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>CMG02-DP</MHHDVu>
+          <THHDVu>Cáp mạng thùng 305m Cat6 UTP Đại Phát</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>3</SLuong>
+          <DGia>2150000</DGia>
+          <ThTien>6450000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>MAN02-DP</MHHDVu>
+          <THHDVu>Màn hình 24 inch FHD Đại Phát</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>2</SLuong>
+          <DGia>4330000</DGia>
+          <ThTien>8660000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>RJ402-KS</MHHDVu>
+          <THHDVu>Hạt mạng RJ45 Cat6 Kim Sơn (hộp 100 cái)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>1</SLuong>
+          <DGia>279000</DGia>
+          <ThTien>279000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>SSD01-KS</MHHDVu>
+          <THHDVu>Ổ cứng SSD 256GB SATA Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>33</SLuong>
+          <DGia>676000</DGia>
+          <ThTien>22308000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>SSD02-KS</MHHDVu>
+          <THHDVu>Ổ cứng SSD 512GB SATA Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>4</SLuong>
+          <DGia>1403000</DGia>
+          <ThTien>5612000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>SSD03-PG</MHHDVu>
+          <THHDVu>Ổ cứng SSD 512GB NVMe Phú Gia</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>43</SLuong>
+          <DGia>2160000</DGia>
+          <ThTien>92880000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>SSD04-HL</MHHDVu>
+          <THHDVu>Ổ cứng SSD 1TB NVMe Hưng Long</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>1</SLuong>
+          <DGia>2540000</DGia>
+          <ThTien>2540000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>SWI02-TA</MHHDVu>
+          <THHDVu>Switch mạng 16 cổng Tân Á</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>3</SLuong>
+          <DGia>1940000</DGia>
+          <ThTien>5820000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>USB02-PG</MHHDVu>
+          <THHDVu>USB 64GB Phú Gia</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>46</SLuong>
+          <DGia>222000</DGia>
+          <ThTien>10212000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>USB03-KS</MHHDVu>
+          <THHDVu>USB 128GB Kim Sơn</THHDVu>
+          <DVTinh>Cái</DVTinh>
+          <SLuong>21</SLuong>
+          <DGia>329000</DGia>
+          <ThTien>6909000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>161670000</ThTien>
+            <TThue>16167000</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>161670000</TgTCThue>
+        <TgTThue>16167000</TgTThue>
+        <TgTTTBSo>177837000</TgTTTBSo>
+        <TgTTTBChu>Một trăm bảy mươi bảy triệu tám trăm ba mươi bảy nghìn đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

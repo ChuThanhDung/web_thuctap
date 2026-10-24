@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0009</SoDon>
+  <NgayLap>2026-03-06</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <DiaChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DiaChi>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH ĐIỆN MÁY MINH KHANG</Ten>
+    <MST>0830544446</MST>
+    <DiaChi>Số 45 Lý Thường Kiệt, Phường 7, Quận Tân Bình, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>APT04-PG</MaHang>
+      <TenHang>Aptomat 1 pha 32A Phú Gia</TenHang>
+      <DonViTinh>Cái</DonViTinh>
+      <SoLuong>8</SoLuong>
+      <DonGia>236000</DonGia>
+      <ThanhTien>1888000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>BLB02-KS</MaHang>
+      <TenHang>Bóng đèn LED bulb 12W Kim Sơn</TenHang>
+      <DonViTinh>Bóng</DonViTinh>
+      <SoLuong>260</SoLuong>
+      <DonGia>52500</DonGia>
+      <ThanhTien>13650000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>CAP02-KS</MaHang>
+      <TenHang>Cáp điện 2 lõi 2x2.5mm2 Kim Sơn</TenHang>
+      <DonViTinh>Mét</DonViTinh>
+      <SoLuong>300</SoLuong>
+      <DonGia>22500</DonGia>
+      <ThanhTien>6750000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>22288000</TongTienHang>
+  <ThueSuatGTGT>10%</ThueSuatGTGT>
+  <TienThueGTGT>2228800</TienThueGTGT>
+  <TongTienThanhToan>24516800</TongTienThanhToan>
+  <BangChu>Hai mươi bốn triệu năm trăm mười sáu nghìn tám trăm đồng chẵn.</BangChu>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

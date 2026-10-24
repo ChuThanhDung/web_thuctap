@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTD</KHHDon>
+      <SHDon>00005002</SHDon>
+      <NLap>2026-04-09</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY CỔ PHẦN THIẾT BỊ VĂN PHÒNG TÂN ĐÔ</Ten>
+        <MST>0368573115</MST>
+        <DChi>Số 88 Láng Hạ, Phường Láng Hạ, Quận Đống Đa, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BDQ03-DP</MHHDVu>
+          <THHDVu>Bút dạ quang hồng Đại Phát (hộp 10 cây)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>20</SLuong>
+          <DGia>83500</DGia>
+          <ThTien>1670000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>GA401-TA</MHHDVu>
+          <THHDVu>Giấy in A4 70gsm Tân Á</THHDVu>
+          <DVTinh>Ram</DVTinh>
+          <SLuong>45</SLuong>
+          <DGia>68500</DGia>
+          <ThTien>3082500</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>GA402-HL</MHHDVu>
+          <THHDVu>Giấy in A4 80gsm Hưng Long</THHDVu>
+          <DVTinh>Ram</DVTinh>
+          <SLuong>60</SLuong>
+          <DGia>90500</DGia>
+          <ThTien>5430000</ThTien>
+          <TSuat>8%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>8%</TSuat>
+            <ThTien>10182500</ThTien>
+            <TThue>814600</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>10182500</TgTCThue>
+        <TgTThue>814600</TgTThue>
+        <TgTTTBSo>10997100</TgTTTBSo>
+        <TgTTTBChu>Mười triệu chín trăm chín mươi bảy nghìn một trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

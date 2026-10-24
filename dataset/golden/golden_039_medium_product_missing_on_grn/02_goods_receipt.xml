@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PhieuNhapKho>
+  <MauSo>01-VT</MauSo>
+  <SoPhieu>PNK-0139</SoPhieu>
+  <NgayLap>2026-05-22</NgayLap>
+  <CanCu>Đơn đặt hàng số PO-2026-0039 ngày 2026-05-17</CanCu>
+  <DonVi>
+    <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+    <MST>0316784251</MST>
+    <BoPhan>Kho vận</BoPhan>
+  </DonVi>
+  <NguoiGiaoHang>Lê Minh Châu - CÔNG TY CỔ PHẦN XÂY DỰNG PHÚC LỘC</NguoiGiaoHang>
+  <NhapTaiKho>Kho GoNow, 18 Phạm Hùng, Nam Từ Liêm, Hà Nội</NhapTaiKho>
+  <ChiTiet>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>BUL05-PG</MaHang>
+      <TenHang>Bu lông inox M16x80 Phú Gia</TenHang>
+      <DonViTinh>Con</DonViTinh>
+      <SoLuongTheoChungTu>185</SoLuongTheoChungTu>
+      <SoLuongThucNhap>185</SoLuongThucNhap>
+      <DonGia>19500</DonGia>
+      <ThanhTien>3607500</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>DAX02-HL</MaHang>
+      <TenHang>Đá xây dựng 1x2 Hưng Long</TenHang>
+      <DonViTinh>Khối</DonViTinh>
+      <SoLuongTheoChungTu>5</SoLuongTheoChungTu>
+      <SoLuongThucNhap>5</SoLuongThucNhap>
+      <DonGia>357000</DonGia>
+      <ThanhTien>1785000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>DAX03-KS</MaHang>
+      <TenHang>Đá xây dựng 0x4 Kim Sơn</TenHang>
+      <DonViTinh>Khối</DonViTinh>
+      <SoLuongTheoChungTu>15</SoLuongTheoChungTu>
+      <SoLuongThucNhap>15</SoLuongThucNhap>
+      <DonGia>466000</DonGia>
+      <ThanhTien>6990000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>4</STT>
+      <MaHang>GOL01-KS</MaHang>
+      <TenHang>Gạch ốp lát 30x30 chống trơn Kim Sơn</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>16</SoLuongTheoChungTu>
+      <SoLuongThucNhap>16</SoLuongThucNhap>
+      <DonGia>169500</DonGia>
+      <ThanhTien>2712000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>5</STT>
+      <MaHang>GOL03-HL</MaHang>
+      <TenHang>Gạch ốp lát 60x60 men mờ Hưng Long</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>240</SoLuongTheoChungTu>
+      <SoLuongThucNhap>240</SoLuongThucNhap>
+      <DonGia>361000</DonGia>
+      <ThanhTien>86640000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>6</STT>
+      <MaHang>GOL04-PG</MaHang>
+      <TenHang>Gạch ốp lát 80x80 bóng kính Phú Gia</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>18</SoLuongTheoChungTu>
+      <SoLuongThucNhap>18</SoLuongThucNhap>
+      <DonGia>509000</DonGia>
+      <ThanhTien>9162000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>7</STT>
+      <MaHang>KDG03-TA</MaHang>
+      <TenHang>Keo dán gạch 25kg loại C2TE Tân Á</TenHang>
+      <DonViTinh>Bao</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>319000</DonGia>
+      <ThanhTien>17545000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>8</STT>
+      <MaHang>PVC02-KS</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 27 Kim Sơn</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>70</SoLuongTheoChungTu>
+      <SoLuongThucNhap>70</SoLuongThucNhap>
+      <DonGia>52000</DonGia>
+      <ThanhTien>3640000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>9</STT>
+      <MaHang>PVC04-PG</MaHang>
+      <TenHang>Ống nhựa PVC 4m phi 42 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>150</SoLuongTheoChungTu>
+      <SoLuongThucNhap>150</SoLuongThucNhap>
+      <DonGia>122500</DonGia>
+      <ThanhTien>18375000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>10</STT>
+      <MaHang>SON04-HL</MaHang>
+      <TenHang>Sơn nước nội thất 18L trắng Hưng Long</TenHang>
+      <DonViTinh>Thùng</DonViTinh>
+      <SoLuongTheoChungTu>16</SoLuongTheoChungTu>
+      <SoLuongThucNhap>16</SoLuongThucNhap>
+      <DonGia>2680000</DonGia>
+      <ThanhTien>42880000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>11</STT>
+      <MaHang>THP02-PG</MaHang>
+      <TenHang>Thép cây phi 12 Phú Gia</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>32</SoLuongTheoChungTu>
+      <SoLuongThucNhap>32</SoLuongThucNhap>
+      <DonGia>187000</DonGia>
+      <ThanhTien>5984000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>12</STT>
+      <MaHang>THP06-KS</MaHang>
+      <TenHang>Thép cây phi 20 Kim Sơn</TenHang>
+      <DonViTinh>Cây</DonViTinh>
+      <SoLuongTheoChungTu>42</SoLuongTheoChungTu>
+      <SoLuongThucNhap>42</SoLuongThucNhap>
+      <DonGia>556000</DonGia>
+      <ThanhTien>23352000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>13</STT>
+      <MaHang>VIT02-KS</MaHang>
+      <TenHang>Vít bắn tôn 5x35 Kim Sơn (hộp 100 con)</TenHang>
+      <DonViTinh>Hộp</DonViTinh>
+      <SoLuongTheoChungTu>55</SoLuongTheoChungTu>
+      <SoLuongThucNhap>55</SoLuongThucNhap>
+      <DonGia>80500</DonGia>
+      <ThanhTien>4427500</ThanhTien>
+    </DongHang>
+  </ChiTiet>
+  <TongTien>227100000</TongTien>
+  <BangChu>Hai trăm hai mươi bảy triệu một trăm nghìn đồng chẵn.</BangChu>
+  <SoChungTuGocKemTheo>01 (Đơn đặt hàng PO-2026-0039)</SoChungTuGocKemTheo>
+</PhieuNhapKho>

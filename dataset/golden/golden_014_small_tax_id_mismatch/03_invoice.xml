@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26TTP</KHHDon>
+      <SHDon>00005014</SHDon>
+      <NLap>2026-03-21</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH BẢO HỘ LAO ĐỘNG THIÊN PHÚ</Ten>
+        <MST>0704323307</MST>
+        <DChi>Số 27 Cộng Hòa, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>GBH03-PG</MHHDVu>
+          <THHDVu>Giày bảo hộ size 41 Phú Gia</THHDVu>
+          <DVTinh>Đôi</DVTinh>
+          <SLuong>48</SLuong>
+          <DGia>499000</DGia>
+          <ThTien>23952000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>KBH03-TA</MHHDVu>
+          <THHDVu>Kính bảo hộ chống tia UV Tân Á</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>13</SLuong>
+          <DGia>120000</DGia>
+          <ThTien>1560000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>MBH03-PG</MHHDVu>
+          <THHDVu>Mũ bảo hộ xanh Phú Gia</THHDVu>
+          <DVTinh>Chiếc</DVTinh>
+          <SLuong>15</SLuong>
+          <DGia>72500</DGia>
+          <ThTien>1087500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>26599500</ThTien>
+            <TThue>2659950</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>26599500</TgTCThue>
+        <TgTThue>2659950</TgTThue>
+        <TgTTTBSo>29259450</TgTTTBSo>
+        <TgTTTBChu>Hai mươi chín triệu hai trăm năm mươi chín nghìn bốn trăm năm mươi đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>

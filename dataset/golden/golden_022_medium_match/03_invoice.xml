@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HDon>
+  <DLHDon Id="data">
+    <TTChung>
+      <PBan>2.0.0</PBan>
+      <THDon>Hóa đơn giá trị gia tăng</THDon>
+      <KHMSHDon>1</KHMSHDon>
+      <KHHDon>1C26THB</KHHDon>
+      <SHDon>00005022</SHDon>
+      <NLap>2026-06-15</NLap>
+      <DVTTe>VND</DVTTe>
+      <TGia>1</TGia>
+      <HTTToan>TM/CK</HTTToan>
+    </TTChung>
+    <NDHDon>
+      <NBan>
+        <Ten>CÔNG TY TNHH VẬT LIỆU XÂY DỰNG HÒA BÌNH</Ten>
+        <MST>0174007702</MST>
+        <DChi>Số 9 Nguyễn Văn Linh, Quận Long Biên, Hà Nội</DChi>
+      </NBan>
+      <NMua>
+        <Ten>CÔNG TY CỔ PHẦN CÔNG NGHỆ GONOW VIỆT NAM</Ten>
+        <MST>0316784251</MST>
+        <DChi>Tầng 5, Tòa nhà Sông Đà, 18 Phạm Hùng, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội</DChi>
+      </NMua>
+      <DSHHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>1</STT>
+          <MHHDVu>BUL01-KS</MHHDVu>
+          <THHDVu>Bu lông inox M6x30 Kim Sơn</THHDVu>
+          <DVTinh>Con</DVTinh>
+          <SLuong>660</SLuong>
+          <DGia>1600</DGia>
+          <ThTien>1056000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>2</STT>
+          <MHHDVu>BUL05-PG</MHHDVu>
+          <THHDVu>Bu lông inox M16x80 Phú Gia</THHDVu>
+          <DVTinh>Con</DVTinh>
+          <SLuong>1610</SLuong>
+          <DGia>19500</DGia>
+          <ThTien>31395000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>3</STT>
+          <MHHDVu>DAX01-HL</MHHDVu>
+          <THHDVu>Đá xây dựng 4x6 Hưng Long</THHDVu>
+          <DVTinh>Khối</DVTinh>
+          <SLuong>39</SLuong>
+          <DGia>288000</DGia>
+          <ThTien>11232000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>4</STT>
+          <MHHDVu>DAX02-KS</MHHDVu>
+          <THHDVu>Đá xây dựng 1x2 Kim Sơn</THHDVu>
+          <DVTinh>Khối</DVTinh>
+          <SLuong>8</SLuong>
+          <DGia>380000</DGia>
+          <ThTien>3040000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>5</STT>
+          <MHHDVu>DAX03-KS</MHHDVu>
+          <THHDVu>Đá xây dựng 0x4 Kim Sơn</THHDVu>
+          <DVTinh>Khối</DVTinh>
+          <SLuong>24</SLuong>
+          <DGia>468000</DGia>
+          <ThTien>11232000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>6</STT>
+          <MHHDVu>GOL01-PG</MHHDVu>
+          <THHDVu>Gạch ốp lát 30x30 chống trơn Phú Gia</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>33</SLuong>
+          <DGia>175500</DGia>
+          <ThTien>5791500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>7</STT>
+          <MHHDVu>KDG01-PG</MHHDVu>
+          <THHDVu>Keo dán gạch 25kg loại C1 Phú Gia</THHDVu>
+          <DVTinh>Bao</DVTinh>
+          <SLuong>10</SLuong>
+          <DGia>177500</DGia>
+          <ThTien>1775000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>8</STT>
+          <MHHDVu>PVC06-KS</MHHDVu>
+          <THHDVu>Ống nhựa PVC 4m phi 90 Kim Sơn</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>15</SLuong>
+          <DGia>191000</DGia>
+          <ThTien>2865000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>9</STT>
+          <MHHDVu>SON01-PG</MHHDVu>
+          <THHDVu>Sơn nước nội thất 5L trắng Phú Gia</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>9</SLuong>
+          <DGia>474000</DGia>
+          <ThTien>4266000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>10</STT>
+          <MHHDVu>SON03-PG</MHHDVu>
+          <THHDVu>Sơn nước nội thất 18L kem Phú Gia</THHDVu>
+          <DVTinh>Thùng</DVTinh>
+          <SLuong>39</SLuong>
+          <DGia>2160000</DGia>
+          <ThTien>84240000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>11</STT>
+          <MHHDVu>THP02-KS</MHHDVu>
+          <THHDVu>Thép cây phi 12 Kim Sơn</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>120</SLuong>
+          <DGia>182000</DGia>
+          <ThTien>21840000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>12</STT>
+          <MHHDVu>THP04-HL</MHHDVu>
+          <THHDVu>Thép cây phi 16 Hưng Long</THHDVu>
+          <DVTinh>Cây</DVTinh>
+          <SLuong>90</SLuong>
+          <DGia>338000</DGia>
+          <ThTien>30420000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>13</STT>
+          <MHHDVu>VIT03-PG</MHHDVu>
+          <THHDVu>Vít bắn tôn 6x50 Phú Gia (hộp 100 con)</THHDVu>
+          <DVTinh>Hộp</DVTinh>
+          <SLuong>33</SLuong>
+          <DGia>130500</DGia>
+          <ThTien>4306500</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+        <HHDVu>
+          <TChat>1</TChat>
+          <STT>14</STT>
+          <MHHDVu>XMG02-HL</MHHDVu>
+          <THHDVu>Xi măng PCB40 50kg Hưng Long</THHDVu>
+          <DVTinh>Bao</DVTinh>
+          <SLuong>55</SLuong>
+          <DGia>89000</DGia>
+          <ThTien>4895000</ThTien>
+          <TSuat>10%</TSuat>
+        </HHDVu>
+      </DSHHDVu>
+      <TToan>
+        <THTTLTSuat>
+          <LTSuat>
+            <TSuat>10%</TSuat>
+            <ThTien>218354000</ThTien>
+            <TThue>21835400</TThue>
+          </LTSuat>
+        </THTTLTSuat>
+        <TgTCThue>218354000</TgTCThue>
+        <TgTThue>21835400</TgTThue>
+        <TgTTTBSo>240189400</TgTTTBSo>
+        <TgTTTBChu>Hai trăm bốn mươi triệu một trăm tám mươi chín nghìn bốn trăm đồng chẵn.</TgTTTBChu>
+      </TToan>
+    </NDHDon>
+  </DLHDon>
+</HDon>
