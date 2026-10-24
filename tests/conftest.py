@@ -21,6 +21,10 @@ def _use_isolated_test_database() -> str:
     thông báo; chạy chúng trên DB đang dùng sẽ làm mất các bộ chứng từ đã duyệt.
     """
     url = make_url(os.environ.get("DATABASE_URL") or Settings().database_url)
+    if url.host == "localhost":
+        # Trên Windows + Docker Desktop, "localhost" thử IPv6 (::1) trước và mỗi kết nối mới chờ hết timeout
+        # (hàng chục giây đến hàng phút), làm test chậm và có vẻ như bị treo. Dùng thẳng 127.0.0.1.
+        url = url.set(host="127.0.0.1")
     test_name = url.database if url.database.endswith("_test") else f"{url.database}_test"
 
     admin_engine = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")

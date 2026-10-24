@@ -1,3 +1,4 @@
+import { batchDetail } from '../routes.js';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -36,6 +37,7 @@ const DOC_TYPES = [
   { value: 'invoice', label: 'Hóa đơn (Invoice)', icon: FileText },
   { value: 'grn', label: 'Phiếu nhập kho (GRN)', icon: PackageCheck },
 ];
+const MAX_PARALLEL_UPLOADS = 3;
 const AUTO_DOC_TYPE = 'auto';
 const AUTO_UPLOAD_ERROR_MESSAGE =
   'Chưa nhận diện được file chứng từ. Vui lòng kiểm tra lại và kéo thả đúng file PO/Invoice hoặc GRN.';
@@ -628,10 +630,11 @@ export default function UploadQueue({ token }) {
 
     setInFlightFiles((prev) => [...prev, ...newTrackingItems]);
 
-    // Tiến hành upload từng file lên BE
-    for (let i = 0; i < filesArray.length; i++) {
-      const fileObj = filesArray[i];
-      const trackingItem = newTrackingItems[i];
+    // Tải song song (tối đa MAX_PARALLEL_UPLOADS file cùng lúc): thời gian cả bộ gần bằng file chậm nhất thay vì tổng.
+    // Backend ghi từng file theo thứ tự và tự tính lại trạng thái bộ, nên thứ tự hoàn thành không ảnh hưởng kết quả.
+    const uploadOne = async (index) => {
+      const fileObj = filesArray[index];
+      const trackingItem = newTrackingItems[index];
 
       try {
         const uploadedFile = await uploadDocument(token, fileObj, docType, targetBatchId);
@@ -648,9 +651,6 @@ export default function UploadQueue({ token }) {
 
         // Cập nhật ngay vào batch
         upsertUploadedFileIntoBatch(uploadedFile);
-        
-        // Đồng bộ lại với backend
-        await fetchBatches(false, true);
       } catch (err) {
         // Đánh dấu lỗi trên tracking item
         setInFlightFiles((prev) =>
@@ -661,7 +661,20 @@ export default function UploadQueue({ token }) {
           )
         );
       }
-    }
+    };
+
+    let nextIndex = 0;
+    const workers = Array.from({ length: Math.min(MAX_PARALLEL_UPLOADS, filesArray.length) }, async () => {
+      while (nextIndex < filesArray.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        await uploadOne(index);
+      }
+    });
+    await Promise.all(workers);
+
+    // Đồng bộ lại với backend một lần sau khi cả đợt xong (trước đây gọi sau từng file).
+    await fetchBatches(false, true);
   };
 
   const handleDismissInFlightError = (tempId) => {
@@ -786,7 +799,7 @@ export default function UploadQueue({ token }) {
   const handleViewReconciliation = (batch) => {
     if (!batch?.id) return;
     setViewedBatchIds((prev) => new Set([...prev, batch.id]));
-    navigate(`/audit-trail?batchId=${batch.id}`);
+    navigate(batchDetail(batch.id));
   };
 
   const autoUploadFiles = selectedBatchInFlight.filter((inf) => inf.docType === AUTO_DOC_TYPE);

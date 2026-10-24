@@ -6,6 +6,7 @@ import re
 import zipfile
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
@@ -357,54 +358,60 @@ def _analyze_image_quality(content: bytes, filename: str, content_type: str | No
     return ImageQualityAnalysis(is_low_quality=sum(low_quality_signals) >= 2, metrics=metrics)
 
 
+@lru_cache(maxsize=4)
+def _get_openai_client(api_key: str, timeout: float) -> OpenAI:
+    """Dùng lại một client (giữ kết nối) thay vì tạo mới cho mỗi file."""
+    return OpenAI(api_key=api_key, timeout=timeout, max_retries=1)
+
+
+def _responses_kwargs(settings) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "model": settings.openai_document_model,
+        "text": {"format": {"type": "json_schema", **_json_schema()}},
+    }
+    if settings.openai_reasoning_effort:
+        kwargs["reasoning"] = {"effort": settings.openai_reasoning_effort}
+    return kwargs
+
+
 def _run_openai_analysis(
     content: bytes, filename: str, content_type: str | None, expected_doc_type: str
 ) -> dict[str, Any]:
+    import base64
+
     settings = get_settings()
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = _get_openai_client(settings.openai_api_key, settings.openai_timeout_seconds)
     prompt = _build_prompt(expected_doc_type, filename)
     mime_type = _content_type(filename, content_type)
     suffix = Path(filename).suffix.lower()
+    base64_file = base64.b64encode(content).decode("utf-8")
+    uploaded_file_id: str | None = None
 
     if suffix in IMAGE_EXTENSIONS:
-        import base64
-
-        base64_file = base64.b64encode(content).decode("utf-8")
-        response = client.responses.create(
-            model=settings.openai_document_model,
-            input=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "input_text", "text": prompt},
-                        {
-                            "type": "input_image",
-                            "image_url": f"data:{mime_type};base64,{base64_file}",
-                            "detail": "high",
-                        },
-                    ],
-                }
-            ],
-            text={"format": {"type": "json_schema", **_json_schema()}},
-        )
+        file_part = {
+            "type": "input_image",
+            "image_url": f"data:{mime_type};base64,{base64_file}",
+            "detail": settings.openai_image_detail,
+        }
+    elif suffix in PDF_EXTENSIONS:
+        # Gửi PDF trực tiếp trong request: bớt một vòng gọi tải file lên và không để file thừa trên OpenAI.
+        file_part = {"type": "input_file", "filename": filename, "file_data": f"data:application/pdf;base64,{base64_file}"}
     else:
-        uploaded_file = client.files.create(
-            file=(filename, io.BytesIO(content), mime_type),
-            purpose="user_data",
-        )
+        uploaded_file = client.files.create(file=(filename, io.BytesIO(content), mime_type), purpose="user_data")
+        uploaded_file_id = uploaded_file.id
+        file_part = {"type": "input_file", "file_id": uploaded_file_id}
+
+    try:
         response = client.responses.create(
-            model=settings.openai_document_model,
-            input=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "input_text", "text": prompt},
-                        {"type": "input_file", "file_id": uploaded_file.id},
-                    ],
-                }
-            ],
-            text={"format": {"type": "json_schema", **_json_schema()}},
+            input=[{"role": "user", "content": [{"type": "input_text", "text": prompt}, file_part]}],
+            **_responses_kwargs(settings),
         )
+    finally:
+        if uploaded_file_id:
+            try:
+                client.files.delete(uploaded_file_id)
+            except Exception:  # dọn dẹp là cố gắng tối đa, không làm hỏng kết quả
+                logger.warning("Không xóa được file tạm %s trên OpenAI", uploaded_file_id)
 
     return _parse_json_text(_extract_response_text(response))
 

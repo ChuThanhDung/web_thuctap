@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, Response
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -1438,25 +1439,22 @@ async def upload_document(
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
     ensure_batch_unlocked(batch)
-    is_supplemental_rejected_upload = batch.status == "rejected" or bool(batch.rejection_note)
-    if is_supplemental_rejected_upload and batch.status == "rejected":
-        snapshot_batch_history(db, batch, rejection_note=batch.rejection_note, rejected_by=None)
-        batch.version = (batch.version or 1) + 1
-        batch.status = "incomplete"
-        batch.approved_by_id = None
-        batch.chief_approved_by_id = None
 
     content_type = file.content_type or "application/octet-stream"
     content_hash = calculate_content_hash(content)
-    duplicate_upload = find_duplicate_upload_by_content(batch, content_hash)
-    if duplicate_upload is not None:
+    # Kiểm tra trùng sớm để không tốn một lần gọi AI cho file đã có; kiểm tra lại sau khi khóa batch (bên dưới).
+    if find_duplicate_upload_by_content(batch, content_hash) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=DUPLICATE_UPLOAD_MESSAGE,
         )
 
     try:
-        ai_analysis = analyze_uploaded_document(content, filename, content_type, requested_doc_type)
+        # Trích xuất có thể mất vài chục giây (gọi AI). Chạy trong luồng riêng để không chặn event loop:
+        # các request khác (và các file tải song song của cùng một bộ) vẫn được phục vụ trong lúc chờ.
+        ai_analysis = await run_in_threadpool(
+            analyze_uploaded_document, content, filename, content_type, requested_doc_type
+        )
     except UnreadableDocumentError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -1484,6 +1482,25 @@ async def upload_document(
         )
     else:
         selected_doc_type = requested_doc_type
+
+    # Từ đây đến commit không có `await`, nên trong một tiến trình các file tải song song được ghi lần lượt.
+    # Khóa dòng batch để vẫn an toàn khi chạy nhiều worker, rồi nạp lại trạng thái mới nhất: các file khác của cùng
+    # bộ có thể vừa được lưu trong lúc chờ AI, và cách tính trạng thái bộ phải thấy chúng.
+    db.expire(batch)
+    db.refresh(batch, with_for_update=True)
+    ensure_batch_unlocked(batch)
+    if find_duplicate_upload_by_content(batch, content_hash) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_UPLOAD_MESSAGE,
+        )
+    is_supplemental_rejected_upload = batch.status == "rejected" or bool(batch.rejection_note)
+    if is_supplemental_rejected_upload and batch.status == "rejected":
+        snapshot_batch_history(db, batch, rejection_note=batch.rejection_note, rejected_by=None)
+        batch.version = (batch.version or 1) + 1
+        batch.status = "incomplete"
+        batch.approved_by_id = None
+        batch.chief_approved_by_id = None
 
     try:
         storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type)

@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     model_name: str = "gpt-4o-mini"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     openai_document_model: str = "gpt-5.6-sol"
+    # Giới hạn thời gian một lần đọc chứng từ bằng AI; quá hạn thì rơi về chế độ offline thay vì treo upload.
+    openai_timeout_seconds: float = Field(default=90.0, gt=0)
+    # Mức suy luận của model đọc chứng từ. Giá trị hợp lệ tùy model (gpt-5.6-sol: none/low/medium/high/xhigh/max,
+    # KHÔNG nhận "minimal"). Để trống = mặc định của model. Đo thực tế: "low" không nhanh hơn mặc định.
+    openai_reasoning_effort: str = ""
+    # Độ chi tiết khi đọc ảnh: "high" chính xác hơn nhưng chậm hơn; "low"/"auto" nhanh hơn.
+    openai_image_detail: str = "high"
     document_ai_validation_required: bool = False
 
     # Database
