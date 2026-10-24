@@ -1,0 +1,43 @@
+name: Deploy
+
+# Tự deploy lên máy ảo GCP sau khi CI trên nhánh main chạy thành công. CI lỗi thì không deploy, web giữ bản cũ.
+# Cần 3 secret (Settings → Secrets and variables → Actions): DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY.
+# Xem deploy/gcp/README.md, mục "Tự động deploy khi push".
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: # bấm tay trong tab Actions khi cần deploy lại
+
+permissions:
+  contents: read
+
+# Không chạy hai lượt deploy cùng lúc; lượt mới chờ lượt cũ xong.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Set up SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run update script on the VM
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: ssh -i ~/.ssh/deploy "$DEPLOY_USER@$DEPLOY_HOST" "/opt/docusyncai/deploy/gcp/update.sh $COMMIT"

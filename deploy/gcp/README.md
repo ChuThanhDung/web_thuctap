@@ -157,6 +157,26 @@ gcloud compute ssh docusyncai -- /opt/docusyncai/deploy/gcp/update.sh <mã commi
 Migration chỉ nên thêm (thêm cột/bảng), không xóa ngay, để bản cũ vẫn chạy được khi quay lại. Nếu migration đã đổi dữ
 liệu thì khôi phục bản sao lưu vừa tạo.
 
+### Tự động deploy khi push
+
+Workflow `.github/workflows/deploy.yml` chạy sau khi CI trên `main` thành công: SSH vào máy ảo và chạy `update.sh`
+với đúng commit vừa qua CI. CI lỗi thì không deploy. Cài một lần:
+
+1. Trên máy ảo, tạo khóa SSH chỉ dùng cho deploy và cho phép nó đăng nhập:
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/github_deploy -N "" -C github-deploy
+   cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
+   whoami                     # tên user, dùng cho DEPLOY_USER
+   cat ~/.ssh/github_deploy   # khóa bí mật, dán vào DEPLOY_SSH_KEY (cả dòng BEGIN/END)
+   ```
+2. GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**, tạo 3 secret:
+   `DEPLOY_HOST` = IP tĩnh, `DEPLOY_USER` = kết quả `whoami`, `DEPLOY_SSH_KEY` = nội dung khóa bí mật.
+3. Xóa file khóa bí mật trên máy ảo sau khi đã dán: `rm ~/.ssh/github_deploy`.
+4. Thử: tab **Actions → Deploy → Run workflow**.
+
+Workflow dùng environment `production`; có thể bật **Required reviewers** cho environment này (Settings →
+Environments) nếu muốn bấm duyệt trước mỗi lần deploy.
+
 ## 8. Theo dõi
 
 - **Uptime**: UptimeRobot (miễn phí) kiểm tra `https://app.tenmien.vn` mỗi 5 phút. Endpoint `/health/ready` của backend
