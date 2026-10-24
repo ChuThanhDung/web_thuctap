@@ -167,7 +167,7 @@ với đúng commit vừa qua CI. CI lỗi thì không deploy. Cài một lần:
    ssh-keygen -t ed25519 -f ~/.ssh/github_deploy -N "" -C github-deploy
    cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
    whoami                     # tên user, dùng cho DEPLOY_USER
-   cat ~/.ssh/github_deploy   # khóa bí mật, dán vào DEPLOY_SSH_KEY (cả dòng BEGIN/END)
+   base64 -w0 ~/.ssh/github_deploy; echo   # khóa bí mật dạng một dòng, dán vào DEPLOY_SSH_KEY
    ```
 2. GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**, tạo 3 secret:
    `DEPLOY_HOST` = IP tĩnh, `DEPLOY_USER` = kết quả `whoami`, `DEPLOY_SSH_KEY` = nội dung khóa bí mật.

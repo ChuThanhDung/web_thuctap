@@ -31,8 +31,14 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          # Nhận khóa dạng PEM nhiều dòng hoặc base64 một dòng (dễ copy từ terminal trên trình duyệt).
+          if printf '%s' "$DEPLOY_SSH_KEY" | grep -q "BEGIN OPENSSH PRIVATE KEY"; then
+            printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy
+          else
+            printf '%s' "$DEPLOY_SSH_KEY" | tr -d ' \r\n' | base64 -d > ~/.ssh/deploy
+          fi
           chmod 600 ~/.ssh/deploy
+          ssh-keygen -y -f ~/.ssh/deploy > /dev/null || { echo "DEPLOY_SSH_KEY không phải khóa hợp lệ"; exit 1; }
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
       - name: Run update script on the VM
