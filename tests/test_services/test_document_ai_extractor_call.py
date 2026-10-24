@@ -145,3 +145,21 @@ def test_shortfall_compares_lines_with_document_total(lines_sum, total, short):
     items = [{"amount": lines_sum}] if lines_sum else []
     result = extractor._line_items_shortfall({"total_amount": total, "vat_rate_pct": 10, "line_items": items})
     assert (result is not None) == short
+
+
+def test_misread_line_amount_is_replaced_by_qty_times_price_but_rounding_is_kept():
+    result = {
+        "extracted_data": {
+            "line_items": [
+                {"row_index": 55, "qty": 34, "price": 2_680_000, "amount": 91_220_000},  # AI đọc nhầm 1 chữ số
+                {"row_index": 56, "qty": 3, "price": 33_333, "amount": 100_000},  # làm tròn 1 đ, giữ nguyên
+                {"row_index": 57, "qty": None, "price": 5_000, "amount": 50_000},  # thiếu số lượng, không đoán
+            ]
+        }
+    }
+    extractor._correct_misread_line_amounts(result)
+    items = result["extracted_data"]["line_items"]
+    assert items[0]["amount"] == 91_120_000
+    assert items[1]["amount"] == 100_000
+    assert items[2]["amount"] == 50_000
+    assert result["corrected_line_amounts"] == [{"row_index": 55, "read": 91_220_000, "used": 91_120_000}]

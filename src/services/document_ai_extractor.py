@@ -464,6 +464,32 @@ def _line_items_shortfall(extracted: Any) -> str | None:
     return f"chi trich {len(items)} dong, tong cac dong {lines_sum:,.0f} nho hon tong chung tu {total:,.0f}"
 
 
+LINE_AMOUNT_ROUNDING_TOLERANCE = 1000  # VND, khớp ngưỡng làm tròn tiền mặc định của engine
+
+
+def _correct_misread_line_amounts(result: dict[str, Any]) -> None:
+    """Thành tiền lệch số lượng x đơn giá quá mức làm tròn gần như chắc là AI đọc nhầm chữ số: lấy số lượng x đơn giá.
+
+    Không che gian lận: tổng tiền chứng từ được đọc riêng, nên thành tiền ghi sai thật vẫn làm tổng lệch và bị báo.
+    """
+    extracted = result.get("extracted_data")
+    if not isinstance(extracted, dict):
+        return
+    corrected = []
+    for item in extracted.get("line_items") or []:
+        if not isinstance(item, dict):
+            continue
+        qty, price, amount = (_to_number(item.get(key)) for key in ("qty", "price", "amount"))
+        if not qty or not price or amount is None:
+            continue
+        expected = qty * price
+        if abs(amount - expected) > LINE_AMOUNT_ROUNDING_TOLERANCE:
+            corrected.append({"row_index": item.get("row_index"), "read": amount, "used": expected})
+            item["amount"] = expected
+    if corrected:
+        result["corrected_line_amounts"] = corrected
+
+
 def _to_number(value: Any) -> float | None:
     try:
         return float(value) if value not in (None, "") else None
@@ -568,6 +594,7 @@ def analyze_uploaded_document(
     elif _should_use_openai_document_analysis(settings):
         try:
             raw_response = _run_openai_analysis(content, filename, content_type, expected_doc_type)
+            _correct_misread_line_amounts(raw_response)
         except Exception as exc:
             logger.exception("OpenAI document analysis failed for %s", filename)
             if settings.document_ai_validation_required:
