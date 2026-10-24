@@ -5,6 +5,9 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
+# Chạy tay và GitHub Actions có thể trùng lúc: chờ lượt kia xong thay vì cùng tạo lại container (lỗi trùng tên).
+exec 9>/tmp/docusyncai-deploy.lock
+flock 9
 COMPOSE=(docker compose -f docker-compose.yml --profile https)
 
 BACKUP_DIR=/var/backups/docusyncai bash scripts/backup_db.sh
