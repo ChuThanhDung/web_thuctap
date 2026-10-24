@@ -13,6 +13,8 @@ Có hai cách chạy: **dev** (nhanh, có dữ liệu demo) và **production** (
 
 > Luôn chỉ định `-f docker-compose.yml` khi chạy production, vì Compose tự nạp `docker-compose.override.yml` nếu không có `-f`.
 
+Hướng dẫn từng bước cho Google Cloud (máy ảo e2-medium, HTTPS, backup lên Cloud Storage): [deploy/gcp/README.md](deploy/gcp/README.md).
+
 ## 1. Chuẩn bị môi trường
 
 ```bash
