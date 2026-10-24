@@ -169,6 +169,8 @@ Nhiem vu:
    - Nha cung cap, ma so thue, don vi mua neu co.
    - Tong tien, thue VAT neu co.
    - Danh sach hang hoa: SKU/ma hang, ten hang, don vi tinh, so luong, don gia, thue, thanh tien.
+   - BAT BUOC trich DAY DU TAT CA cac dong hang tren MOI TRANG, dung thu tu, khong bo dong, khong tom tat, khong dung
+     giua chung du bang dai hang tram dong. row_index la so thu tu (STT) ghi tren chung tu.
 4. Khong tu bia du lieu. Truong khong thay thi de null hoac mang rong.
 5. validation_message phai ngan gon bang tieng Viet, noi ro dung loai hay upload nham loai nao.
 """.strip()
@@ -395,17 +397,37 @@ def _run_openai_analysis(
         }
     elif suffix in PDF_EXTENSIONS:
         # Gửi PDF trực tiếp trong request: bớt một vòng gọi tải file lên và không để file thừa trên OpenAI.
-        file_part = {"type": "input_file", "filename": filename, "file_data": f"data:application/pdf;base64,{base64_file}"}
+        file_part = {
+            "type": "input_file",
+            "filename": filename,
+            "file_data": f"data:application/pdf;base64,{base64_file}",
+        }
     else:
         uploaded_file = client.files.create(file=(filename, io.BytesIO(content), mime_type), purpose="user_data")
         uploaded_file_id = uploaded_file.id
         file_part = {"type": "input_file", "file_id": uploaded_file_id}
 
-    try:
+    def ask(text: str) -> dict[str, Any]:
         response = client.responses.create(
-            input=[{"role": "user", "content": [{"type": "input_text", "text": prompt}, file_part]}],
+            input=[{"role": "user", "content": [{"type": "input_text", "text": text}, file_part]}],
             **_responses_kwargs(settings),
         )
+        return _parse_json_text(_extract_response_text(response))
+
+    try:
+        result = ask(prompt)
+        shortfall = _line_items_shortfall(result.get("extracted_data"))
+        if shortfall:
+            # Model nhỏ hay dừng giữa bảng dài: gọi lại một lần, nói rõ lần trước thiếu, giữ kết quả nhiều dòng hơn.
+            logger.warning("Trích thiếu dòng hàng ở %s (%s), gọi lại AI", filename, shortfall)
+            retry = ask(f"{prompt}\n\nLAN TRUOC TRICH THIEU: {shortfall}. Hay trich lai DAY DU moi dong hang.")
+            if len((retry.get("extracted_data") or {}).get("line_items") or []) > len(
+                (result.get("extracted_data") or {}).get("line_items") or []
+            ):
+                result = retry
+            shortfall = _line_items_shortfall(result.get("extracted_data"))
+            if shortfall:
+                result["completeness_warning"] = shortfall
     finally:
         if uploaded_file_id:
             try:
@@ -413,12 +435,47 @@ def _run_openai_analysis(
             except Exception:  # dọn dẹp là cố gắng tối đa, không làm hỏng kết quả
                 logger.warning("Không xóa được file tạm %s trên OpenAI", uploaded_file_id)
 
-    return _parse_json_text(_extract_response_text(response))
+    return result
+
+
+def _line_items_shortfall(extracted: Any) -> str | None:
+    """So tổng các dòng hàng với tổng chứng từ (trước hoặc sau VAT); trả mô tả thiếu, None nếu đủ hoặc không đo được."""
+    if not isinstance(extracted, dict):
+        return None
+    total = _to_number(extracted.get("total_amount"))
+    if not total or total <= 0:
+        return None
+    items = extracted.get("line_items") or []
+    lines_sum = 0.0
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        amount = _to_number(item.get("amount"))
+        if not amount:
+            amount = (_to_number(item.get("qty")) or 0) * (_to_number(item.get("price")) or 0)
+        lines_sum += amount
+    vat = _to_number(extracted.get("vat_rate_pct")) or 0
+    # Chấp nhận tổng dòng khớp tổng chứng từ chưa VAT hoặc đã VAT (phiếu nhập kho thường không có thuế), lệch tới 2%.
+    for expected in (total, total / (1 + vat / 100) if vat > 0 else total, total / 1.08, total / 1.1):
+        if abs(lines_sum - expected) <= expected * 0.02:
+            return None
+    if lines_sum >= total * 0.9:
+        return None  # không thiếu rõ ràng (có thể khác cách tính thuế); để engine đối soát báo lệch nếu có
+    return f"chi trich {len(items)} dong, tong cac dong {lines_sum:,.0f} nho hon tong chung tu {total:,.0f}"
+
+
+def _to_number(value: Any) -> float | None:
+    try:
+        return float(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _infer_doc_type_offline(content: bytes, filename: str) -> str:
     sample = content[:8192].decode("utf-8", errors="ignore").lower()
-    text = f"{filename.lower()} {sample}"
+    # "01_purchase_order.pdf", "goods-receipt.pdf": coi gạch dưới/gạch ngang trong tên file như khoảng trắng.
+    name = re.sub(r"[_\-.]+", " ", filename.lower())
+    text = f"{name} {sample}"
     if any(keyword in text for keyword in ["grn", "goods receipt", "phieu nhap", "phiếu nhập", "receipt"]):
         return "grn"
     if any(keyword in text for keyword in ["invoice", "hoa don", "hóa đơn", "invoicenumber"]):
@@ -501,7 +558,9 @@ def analyze_uploaded_document(
     validate_readable_upload(content, filename, content_type)
     image_quality = _analyze_image_quality(content, filename, content_type)
 
-    xml_response = _xml_analysis(content, filename, expected_doc_type) if _is_xml_upload(filename, content_type) else None
+    xml_response = (
+        _xml_analysis(content, filename, expected_doc_type) if _is_xml_upload(filename, content_type) else None
+    )
 
     if xml_response is not None:
         raw_response = xml_response
@@ -545,6 +604,13 @@ def analyze_uploaded_document(
         expected_label = DOC_TYPE_LABELS.get(expected_doc_type, expected_doc_type.upper())
         detected_label = DOC_TYPE_LABELS.get(detected_doc_type or "unknown", "Khong xac dinh")
         validation_message = f"File nay co ve la {detected_label}, khong phai {expected_label}."
+
+    if raw_response.get("completeness_warning") and is_correct_type:
+        status = "low_quality"
+        validation_message = (
+            "AI có thể đã đọc thiếu dòng hàng (tổng các dòng nhỏ hơn tổng chứng từ). "
+            "Vui lòng kiểm tra lại hoặc tải bản rõ hơn/XML."
+        )
 
     if image_quality:
         raw_response["image_quality"] = image_quality.metrics

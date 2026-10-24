@@ -93,3 +93,55 @@ def test_openai_client_is_reused_and_has_a_timeout():
     second = extractor._get_openai_client("sk-test", 45.0)
     assert first is second
     assert first.timeout == 45.0
+
+
+def extraction(n_lines, total):
+    import json
+
+    items = [{"amount": 100_000, "qty": 1, "price": 100_000} for _ in range(n_lines)]
+    data = {"total_amount": total, "vat_rate_pct": 10, "line_items": items}
+    return json.dumps({"detected_doc_type": "po", "is_correct_type": True, "confidence": 0.9, "extracted_data": data})
+
+
+def test_incomplete_line_items_trigger_one_retry_and_keep_the_fuller_result(fake_client, monkeypatch):
+    use_settings(monkeypatch)
+    replies = iter([extraction(5, 72 * 110_000), extraction(72, 72 * 110_000)])
+    fake_client.responses = SimpleNamespace(
+        create=lambda **kwargs: (
+            fake_client.calls.append(("responses.create", kwargs)) or SimpleNamespace(output_text=next(replies))
+        )
+    )
+    result = extractor._run_openai_analysis(b"%PDF-1.4", "po.pdf", "application/pdf", "po")
+
+    assert fake_client.names() == ["responses.create", "responses.create"]
+    assert "LAN TRUOC TRICH THIEU" in fake_client.calls[1][1]["input"][0]["content"][0]["text"]
+    assert len(result["extracted_data"]["line_items"]) == 72
+    assert "completeness_warning" not in result
+
+
+def test_still_incomplete_after_retry_is_flagged(fake_client, monkeypatch):
+    use_settings(monkeypatch)
+    fake_client.responses = SimpleNamespace(
+        create=lambda **kwargs: (
+            fake_client.calls.append(("responses.create", kwargs))
+            or SimpleNamespace(output_text=extraction(5, 72 * 110_000))
+        )
+    )
+    result = extractor._run_openai_analysis(b"%PDF-1.4", "po.pdf", "application/pdf", "po")
+    assert len(fake_client.names()) == 2
+    assert "chi trich 5 dong" in result["completeness_warning"]
+
+
+@pytest.mark.parametrize(
+    ("lines_sum", "total", "short"),
+    [
+        (1_000_000, 1_100_000, False),  # tổng có VAT 10%
+        (1_000_000, 1_000_000, False),  # phiếu nhập kho không thuế
+        (500_000, 1_100_000, True),
+        (0, 1_100_000, True),
+    ],
+)
+def test_shortfall_compares_lines_with_document_total(lines_sum, total, short):
+    items = [{"amount": lines_sum}] if lines_sum else []
+    result = extractor._line_items_shortfall({"total_amount": total, "vat_rate_pct": 10, "line_items": items})
+    assert (result is not None) == short
