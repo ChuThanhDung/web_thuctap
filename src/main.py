@@ -88,13 +88,13 @@ def seed_initial_data_if_needed() -> None:
             default_thresholds = [
                 {
                     "category": "Đơn giá & Tổng tiền",
-                    "percent_threshold": "1.0",
-                    "absolute_threshold": "100000",
+                    "percent_threshold": "0",
+                    "absolute_threshold": "1000",
                 },
                 {
                     "category": "Số lượng",
-                    "percent_threshold": "2.0",
-                    "absolute_threshold": "5",
+                    "percent_threshold": "0",
+                    "absolute_threshold": "0",
                 },
             ]
 

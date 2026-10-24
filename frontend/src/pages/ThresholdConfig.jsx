@@ -3,22 +3,23 @@ import {
   ChevronDown,
   Check,
   CircleDollarSign,
-  Info,
   PackageCheck,
   Save,
 } from 'lucide-react';
-import { formatDate, formatVND, repairVietnameseText } from '../text.js';
+import { formatDateTime, formatVND } from '../lib/format.js';
+import { Badge, PageHeader } from '../ui/index.js';
+import { repairVietnameseText } from '../text.js';
 import { getCachedThresholds, getThresholds, updateThreshold } from '../services/thresholds.js';
 
 const RULE_META = [
   {
     key: 'amount',
     aliases: ['amount', 'price', 'money', 'default', 'khác', 'mặc định', 'đơn giá', 'tổng tiền', 'số tiền'],
-    title: 'Ngưỡng chênh lệch Số tiền / Đơn giá',
-    shortTitle: 'Số tiền / Đơn giá',
-    subtitle: 'Dùng khi hóa đơn lệch đơn giá, tổng tiền, tiền hàng hoặc làm tròn số.',
+    title: 'Ngưỡng chênh lệch Số tiền',
+    shortTitle: 'Số tiền',
+    subtitle: 'Áp cho thành tiền, tiền thuế, tổng tiền (lệch do làm tròn). Đơn giá luôn phải khớp tuyệt đối.',
     icon: CircleDollarSign,
-    percentLabel: 'Ngưỡng % tối đa',
+    percentLabel: 'Ngưỡng % tối đa (0 = không xét)',
     absoluteLabel: 'Ngưỡng tuyệt đối tối đa',
     absoluteSuffix: 'VND',
     percentStep: '0.1',
@@ -32,7 +33,7 @@ const RULE_META = [
     shortTitle: 'Số lượng',
     subtitle: 'Dùng khi số lượng trên PO, hóa đơn và phiếu nhận hàng bị thiếu hoặc thừa.',
     icon: PackageCheck,
-    percentLabel: 'Tỷ lệ thiếu/thừa cho phép',
+    percentLabel: 'Tỷ lệ thiếu/thừa cho phép (0 = không xét)',
     absoluteLabel: 'Số lượng tuyệt đối cho phép',
     absoluteSuffix: 'đơn vị',
     percentStep: '0.1',
@@ -236,7 +237,7 @@ function RuleCard({
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Cập nhật: {formatDate(item.updated_at) || 'Chưa có'}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Cập nhật: {formatDateTime(item.updated_at) || 'Chưa có'}</p>
             <div className="flex gap-2">
               <button type="button" onClick={onSave} disabled={saving} className="btn-primary w-full sm:min-w-32 sm:w-auto">
                 {saving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Save size={16} />}
@@ -387,25 +388,17 @@ export default function ThresholdConfig({ token }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase text-brand-600 dark:text-brand-300">Rule kế toán trưởng</p>
-          <h1 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">Cấu hình ngưỡng đối soát</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-            Tập trung vào hai nhóm quan trọng nhất: số tiền/đơn giá và số lượng. Mỗi nhóm chỉ cần chỉnh hai giá trị, hệ thống sẽ dùng để phân loại xanh, vàng hoặc đỏ.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          {saved && (
-            <span className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900">
-              <Check size={14} /> Đã lưu cấu hình
-            </span>
-          )}
-          <span className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-            <Info size={14} /> OR Rule
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="Ngưỡng sai số"
+        description="Chọn mức chênh lệch được chấp nhận về số tiền, đơn giá và số lượng. Hệ thống dùng các ngưỡng này để phân loại bộ đối soát thành xanh, vàng hoặc đỏ."
+        actions={
+          saved && (
+            <Badge tone="success" icon={Check}>
+              Đã lưu cấu hình
+            </Badge>
+          )
+        }
+      />
 
       <div className="space-y-4">
         {groupedConfigs.focus.length === 0 && (

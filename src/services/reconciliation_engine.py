@@ -22,6 +22,11 @@ def get_threshold_by_category(
     return Decimal(default[0]), Decimal(default[1])
 
 
+def exceeds_threshold(diff: Decimal, diff_pct: Decimal, pct_limit: Decimal, abs_limit: Decimal) -> bool:
+    """Vượt ngưỡng khi lớn hơn ngưỡng tuyệt đối, hoặc lớn hơn ngưỡng % nếu ngưỡng % > 0 (0 = không xét theo %)."""
+    return diff > abs_limit or (pct_limit > 0 and diff_pct > pct_limit)
+
+
 def percent_diff(diff: Decimal, base: Decimal) -> Decimal:
     if base <= 0:
         return Decimal("0.0")
@@ -68,15 +73,23 @@ def find_matching_item(source_item: dict[str, Any] | str, candidates: list[dict[
     if not source_name:
         return None
 
+    # Khớp theo tên: ưu tiên tên giống hệt; nếu không có thì chấp nhận tên chứa nhau nhưng chọn cái gần nhất
+    # (chênh lệch độ dài nhỏ nhất). Trước đây lấy dòng đầu tiên chứa nhau nên "Gói 10" có thể bị ghép nhầm với "Gói 100".
+    best: dict[str, Any] | None = None
+    best_gap: int | None = None
     for candidate in candidates:
         candidate_name = normalize_item_text(
             candidate.get("item_name") or candidate.get("name") or candidate.get("description")
         )
-        if candidate_name and (
-            candidate_name == source_name or candidate_name in source_name or source_name in candidate_name
-        ):
+        if not candidate_name:
+            continue
+        if candidate_name == source_name:
             return candidate
-    return None
+        if candidate_name in source_name or source_name in candidate_name:
+            gap = abs(len(candidate_name) - len(source_name))
+            if best_gap is None or gap < best_gap:
+                best, best_gap = candidate, gap
+    return best
 
 
 def normalize_tax_id(value: Any) -> str:
@@ -157,8 +170,8 @@ def calculate_grn_subtotal(
 
     total = Decimal("0")
     for grn_item in grn_data.get("line_items", []):
-        grn_name = grn_item.get("item_name", "")
-        source_item = find_matching_item(grn_name, po_items) or find_matching_item(grn_name, invoice_items)
+        # Truyền cả dòng (có SKU) để ghép theo mã hàng trước, không chỉ theo tên.
+        source_item = find_matching_item(grn_item, po_items) or find_matching_item(grn_item, invoice_items)
         if not source_item:
             continue
         total += to_decimal(grn_item.get("qty")) * to_decimal(source_item.get("price"))
@@ -218,7 +231,7 @@ def get_threshold_for_item(db: Session, item_name: str) -> tuple[Decimal, Decima
         pass
 
     # Giá trị mặc định nếu DB trống hoặc lỗi
-    return Decimal("3.0"), Decimal("100000.0")  # 3% hoặc 100,000 VND
+    return Decimal("0"), Decimal("1000")  # chỉ chấp nhận lệch làm tròn tới 1.000 VND
 
 
 def convert_po_db_to_dict(po_db) -> dict[str, Any]:
@@ -284,12 +297,12 @@ def reconcile_documents(
     amount_pct_limit, amount_abs_limit = get_threshold_by_category(
         db,
         ("đơn giá", "tổng tiền", "số tiền", "amount", "price", "mặc định", "khác"),
-        ("1.0", "100000.0"),
+        ("0", "1000"),  # chỉ chấp nhận lệch do làm tròn tiền
     )
     qty_pct_limit, qty_abs_limit = get_threshold_by_category(
         db,
         ("số lượng", "quantity", "qty"),
-        ("2.0", "5.0"),
+        ("0", "0"),  # số lượng phải khớp tuyệt đối
     )
 
     invoice_tax_id = normalize_tax_id(invoice_data.get("supplier_tax_id"))
@@ -362,16 +375,16 @@ def reconcile_documents(
         max_amount_diff = calculate_total_diff(inv_amount, po_amount, grn_amount)
         amount_base = max(inv_amount, po_amount, grn_amount, Decimal("1"))
         amount_diff_pct = percent_diff(max_amount_diff, amount_base)
-        amount_exceeded = (max_amount_diff > amount_abs_limit) or (amount_diff_pct > amount_pct_limit)
+        amount_exceeded = exceeds_threshold(max_amount_diff, amount_diff_pct, amount_pct_limit, amount_abs_limit)
         amount_diff = max_amount_diff > 0
         max_qty_diff = max(abs(inv_qty - po_qty), abs(inv_qty - grn_qty), abs(po_qty - grn_qty))
         qty_base = max(inv_qty, po_qty, grn_qty, Decimal("1"))
         qty_diff_pct = percent_diff(max_qty_diff, qty_base)
-        qty_exceeded = (max_qty_diff > qty_abs_limit) or (qty_diff_pct > qty_pct_limit)
+        qty_exceeded = exceeds_threshold(max_qty_diff, qty_diff_pct, qty_pct_limit, qty_abs_limit)
 
+        # Đơn giá là số thỏa thuận, không có làm tròn: lệch bao nhiêu cũng là vượt ngưỡng.
         unit_price_diff = abs(inv_price - po_price)
-        unit_price_pct = percent_diff(unit_price_diff, po_price)
-        price_exceeded = (unit_price_diff > amount_abs_limit) or (unit_price_pct > amount_pct_limit)
+        price_exceeded = unit_price_diff > 0
 
         diff_type = "MATCH"
         diff_notes = []
@@ -481,7 +494,7 @@ def reconcile_documents(
             pct_diff = (diff_amount / diff_base) * 100
 
         # Kiểm tra vượt ngưỡng
-        is_amount_exceeded = (pct_diff > amount_pct_limit) or (diff_amount > amount_abs_limit)
+        is_amount_exceeded = exceeds_threshold(diff_amount, pct_diff, amount_pct_limit, amount_abs_limit)
         is_exceeded = is_amount_exceeded or threshold_exceeded
 
         if is_exceeded:
