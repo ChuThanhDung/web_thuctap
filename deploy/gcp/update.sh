@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 COMPOSE=(docker compose -f docker-compose.yml --profile https)
 
-BACKUP_DIR=/var/backups/docusyncai scripts/backup_db.sh
+BACKUP_DIR=/var/backups/docusyncai bash scripts/backup_db.sh
 
 git fetch --prune origin
 git checkout --detach "${1:-origin/main}"

@@ -8,7 +8,7 @@ set -euo pipefail
 
 : "${GCS_BUCKET:?Đặt GCS_BUCKET, ví dụ gs://docusyncai-backup}"
 cd "$(dirname "$0")/../.."
-BACKUP_DIR=/var/backups/docusyncai KEEP_DAYS=7 scripts/backup_db.sh
+BACKUP_DIR=/var/backups/docusyncai KEEP_DAYS=7 bash scripts/backup_db.sh
 
 latest_db=$(ls -t /var/backups/docusyncai/db_*.dump | head -1)
 latest_files=$(ls -t /var/backups/docusyncai/storage_*.tar.gz | head -1)
