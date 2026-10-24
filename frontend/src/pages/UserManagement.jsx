@@ -22,6 +22,7 @@ import {
   updateUserAccount,
 } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { Button, PageHeader } from '../ui/index.js';
 import { repairVietnameseText } from '../text.js';
 import { getPasswordPolicyError } from '../passwordPolicy.js';
 
@@ -301,26 +302,15 @@ export default function UserManagement({ token, currentUser }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-row items-start justify-between gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">Quản lý tài khoản</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Quản lý Kế toán trưởng và Kế toán viên trong hệ thống.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden"
-        >
-          <Plus size={16} />
-          Tạo
-        </button>
-        <button type="button" onClick={openCreateModal} className="btn-primary hidden lg:inline-flex lg:self-auto">
-          <Plus size={16} />
-          Tạo tài khoản
-        </button>
-      </div>
+      <PageHeader
+        title="Quản lý tài khoản"
+        description="Quản lý Kế toán trưởng và Kế toán viên trong hệ thống."
+        actions={
+          <Button variant="primary" leadingIcon={Plus} onClick={openCreateModal}>
+            Tạo tài khoản
+          </Button>
+        }
+      />
 
       {(message || error) && (
         <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${

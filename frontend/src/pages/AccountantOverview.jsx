@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
-  ArrowRight,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
@@ -22,9 +21,9 @@ import {
   YAxis,
 } from 'recharts';
 import { calculateMatchSummary } from '../reconciliationCompare.js';
-import NotificationBell from '../components/NotificationBell.jsx';
 import { fetchDocumentBatchesWithCache, getCachedBatches, subscribeBatchCache } from '../services/batchCache.js';
 import { repairTextDeep } from '../text.js';
+import { ROUTES } from '../routes.js';
 
 const DOC_TYPES = ['po', 'invoice', 'grn'];
 const DATE_FILTER_OPTIONS = [
@@ -206,34 +205,6 @@ function MetricCard({ icon: Icon, label, value, detail, tone, onClick }) {
   );
 }
 
-function ChiefActionCard({ icon: Icon, label, value, detail, tone, onClick }) {
-  const tones = {
-    brand: 'bg-brand-50 text-brand-700 ring-brand-100 dark:bg-brand-950/50 dark:text-brand-300 dark:ring-brand-900',
-    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900',
-    rose: 'bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-950/50 dark:text-rose-300 dark:ring-rose-900',
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex min-h-[128px] w-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,55,112,0.08)] transition-all hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_12px_28px_rgba(0,55,112,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-800"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-1 ${tones[tone]}`}>
-          <Icon size={18} />
-        </div>
-        <ArrowRight size={16} className="mt-1 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500 dark:text-slate-600" />
-      </div>
-      <div>
-        <p className="text-3xl font-bold tabular-nums text-slate-950 dark:text-slate-100">{value}</p>
-        <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">{label}</p>
-        <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{detail}</p>
-      </div>
-    </button>
-  );
-}
-
 export default function AccountantOverview({ token, role }) {
   const navigate = useNavigate();
   const cached = getCachedBatches();
@@ -297,25 +268,6 @@ export default function AccountantOverview({ token, role }) {
   const activeRangeLabel = useMemo(() => formatRangeLabel(activeDateRange), [activeDateRange]);
 
   const summary = useMemo(() => {
-    const isChiefAccountant = role === 'chief_accountant';
-    
-    if (isChiefAccountant) {
-      // Kế toán trưởng: matched + approved (chờ duyệt), final_approved (đã duyệt), rejected (từ chối)
-      const matched = filteredBatches.filter((batch) => batch.status === 'matched').length;
-      const approved = filteredBatches.filter((batch) => batch.status === 'approved').length;
-      const finalApproved = filteredBatches.filter((batch) => batch.status === 'final_approved').length;
-      const rejected = filteredBatches.filter((batch) => batch.status === 'rejected').length;
-      
-      return {
-        total: matched + approved + finalApproved + rejected,
-        approved: matched + approved,  // Tổng hồ sơ chờ duyệt (cả matched và approved)
-        finalApproved,                  // Đã duyệt bởi kế toán trưởng
-        rejected,                       // Đã từ chối bởi kế toán trưởng
-        readyBatches: [],
-        avgMatchRate: 100,
-      };
-    }
-    
     // Kế toán viên: giữ trạng thái nghiệp vụ để các nhóm không chồng lấn nhau.
     const readyBatches = filteredBatches.filter(isBatchReady).map(analyzeBatch);
     const matchedStatuses = ['matched', 'approved', 'final_approved'];
@@ -357,12 +309,7 @@ export default function AccountantOverview({ token, role }) {
   const navigateToBatchFilter = (overviewFilter) => {
     const params = new URLSearchParams({ overviewFilter });
     appendDateRangeParams(params, activeDateRange);
-    navigate(`/audit-trail?${params.toString()}`);
-  };
-
-  const navigateToChiefBatchFilter = (status) => {
-    const params = new URLSearchParams({ status });
-    navigate(`/audit-trail?${params.toString()}`);
+    navigate(`${ROUTES.batches}?${params.toString()}`);
   };
 
   if (loading) {
@@ -383,44 +330,12 @@ export default function AccountantOverview({ token, role }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <div className="flex w-full flex-col items-end gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-          <NotificationBell token={token} />
-          {role !== 'chief_accountant' && (
-            <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-600 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-              Tỉ lệ khớp trung bình: {summary.avgMatchRate}%
-            </div>
-          )}
+      {role !== 'chief_accountant' && (
+        <div className="flex justify-end">
+          <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-600 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+            Tỉ lệ khớp trung bình: {summary.avgMatchRate}%
+          </div>
         </div>
-      </div>
-
-      {role === 'chief_accountant' && (
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <ChiefActionCard
-            icon={ClipboardList}
-            label="Chờ duyệt"
-            value={formatDisplayNumber(summary.approved)}
-            detail="Batch kế toán viên đã duyệt, đang chờ quyết định cuối."
-            tone="brand"
-            onClick={() => navigateToChiefBatchFilter('unapproved')}
-          />
-          <ChiefActionCard
-            icon={CheckCircle2}
-            label="Đã duyệt"
-            value={formatDisplayNumber(summary.finalApproved)}
-            detail="Batch đã được kế toán trưởng duyệt cuối cùng."
-            tone="emerald"
-            onClick={() => navigateToChiefBatchFilter('approved')}
-          />
-          <ChiefActionCard
-            icon={AlertTriangle}
-            label="Từ chối"
-            value={formatDisplayNumber(summary.rejected)}
-            detail="Batch đã bị từ chối và có thể cần kế toán viên bổ sung."
-            tone="rose"
-            onClick={() => navigateToChiefBatchFilter('rejected')}
-          />
-        </section>
       )}
 
       {role !== 'chief_accountant' && (
@@ -486,7 +401,7 @@ export default function AccountantOverview({ token, role }) {
         <MetricCard icon={CheckCircle2} label="Đã khớp" value={formatDisplayNumber(summary.matched)} detail="Batch đã khớp hoặc đã được duyệt, không gồm batch bị từ chối" tone="emerald" onClick={() => navigateToBatchFilter('matched')} />
         <MetricCard icon={AlertTriangle} label="Cần xem" value={formatDisplayNumber(summary.review)} detail="Batch có chênh lệch hoặc thiếu dữ liệu" tone="amber" onClick={() => navigateToBatchFilter('review')} />
         <MetricCard icon={XCircle} label="Từ chối" value={formatDisplayNumber(summary.rejected)} detail="Batch đã bị kế toán trưởng từ chối" tone="rose" onClick={() => navigateToBatchFilter('rejected')} />
-        <MetricCard icon={FileSearch} label="Batch chưa có hồ sơ" value={formatDisplayNumber(summary.incomplete)} detail="Batch còn thiếu PO, Invoice hoặc GRN trong khoảng lọc" tone="brand" onClick={() => navigate('/upload')} />
+        <MetricCard icon={FileSearch} label="Batch chưa có hồ sơ" value={formatDisplayNumber(summary.incomplete)} detail="Batch còn thiếu PO, Invoice hoặc GRN trong khoảng lọc" tone="brand" onClick={() => navigate(ROUTES.upload)} />
       </section>
       )}
 

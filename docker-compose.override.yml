@@ -16,3 +16,9 @@ services:
       - ./src:/app/src
       - ./storage:/app/storage
       - ./invoice:/app/invoice
+
+  frontend:
+    build:
+      args:
+        # Bật trang mẫu giao diện /styleguide ở môi trường dev.
+        VITE_STYLEGUIDE: "true"

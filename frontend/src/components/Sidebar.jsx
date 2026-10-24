@@ -1,218 +1,295 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Dialog, DialogPanel } from '@headlessui/react';
 import {
   Bot,
-  ChevronLeft,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ClipboardList,
-  FileCheck,
   LayoutDashboard,
   LogOut,
   Moon,
+  SlidersHorizontal,
   Sun,
   Upload,
   Users,
   X,
 } from 'lucide-react';
 import { getAvatarViewUrl } from '../api.js';
-import { repairVietnameseText } from '../text.js';
+import { vi } from '../i18n/vi.js';
+import { getNavItems } from '../lib/nav.js';
+import { getDisplayName, getRoleLabel } from '../lib/people.js';
+import { Avatar, Tooltip, cn } from '../ui/index.js';
+import NotificationBell from './NotificationBell.jsx';
 import UserProfileModal from './UserProfileModal.jsx';
 
-const navItemsAccountant = [
-  { to: '/accountant', icon: LayoutDashboard, label: 'Tổng Quan' },
-  { to: '/upload', icon: Upload, label: 'Tải lên' },
-  { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
-];
+const NAV_ICONS = {
+  overview: LayoutDashboard,
+  upload: Upload,
+  batches: ClipboardList,
+  users: Users,
+  settings: SlidersHorizontal,
+};
 
-const navItemsManager = [
-  { to: '/accountant', icon: LayoutDashboard, label: 'Tổng quan' },
-  { to: '/users', icon: Users, label: 'Quản lý tài khoản' },
-  { to: '/audit-trail', icon: ClipboardList, label: 'Batch đối soát' },
-];
+// Thanh bên luôn tối (cả giao diện sáng) nên có bộ màu và ring focus riêng, tương phản trên nền navy.
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-accent focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar';
+const itemBase = 'flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors';
+const itemIdle = 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg';
+const itemActive =
+  'relative bg-sidebar-active text-sidebar-fg before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-sidebar-accent';
 
-function getInitials(fullName) {
-  return fullName
-    .split(' ')
-    .filter(Boolean)
-    .slice(-2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
+/** Nhãn hiện khi thanh bên mở rộng; khi thu gọn, tên nằm trong tooltip và aria-label của nút. */
+function withTooltip(compact, label, element) {
+  return compact ? (
+    <Tooltip content={label} side="right">
+      {element}
+    </Tooltip>
+  ) : (
+    element
+  );
 }
 
-function SidebarAvatar({ user, fullName }) {
-  const [imageError, setImageError] = useState(false);
-  const avatarUrl = getAvatarViewUrl(user);
+function ThemeToggle({ theme, onToggle, compact }) {
+  const isDark = theme === 'dark';
 
-  React.useEffect(() => setImageError(false), [avatarUrl]);
-
-  if (avatarUrl && !imageError) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={fullName}
-        onError={() => setImageError(true)}
-        className="h-8 w-8 shrink-0 rounded-full bg-brand-50 object-cover ring-1 ring-brand-200"
-      />
+  if (compact) {
+    const label = isDark ? vi.shell.switchToLight : vi.shell.switchToDark;
+    return withTooltip(
+      true,
+      label,
+      <button type="button" onClick={onToggle} aria-label={label} className={cn(itemBase, itemIdle, 'justify-center px-0', focusRing)}>
+        {isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+      </button>,
     );
   }
 
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-      {getInitials(fullName)}
+    <div role="group" aria-label={vi.shell.theme} className="px-3 py-1">
+      <span className="inline-flex rounded-control bg-sidebar-hover p-0.5">
+        {[
+          ['light', vi.shell.themeLight, Sun],
+          ['dark', vi.shell.themeDark, Moon],
+        ].map(([value, label, Icon]) => {
+          const active = theme === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={active}
+              aria-label={label}
+              title={label}
+              onClick={() => !active && onToggle()}
+              className={cn(
+                'inline-flex h-8 w-10 items-center justify-center rounded-md transition-colors',
+                active ? 'bg-sidebar-active text-sidebar-fg' : 'text-sidebar-muted hover:text-sidebar-fg',
+                focusRing,
+              )}
+            >
+              <Icon size={16} aria-hidden="true" />
+            </button>
+          );
+        })}
+      </span>
     </div>
   );
 }
 
-export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, token, user, onLogout, onUserUpdate, theme = 'light', onToggleTheme }) {
-  const [showProfile, setShowProfile] = useState(false);
-  const isManager = user.role === 'chief_accountant';
-  const navItems = isManager ? navItemsManager : navItemsAccountant;
-  const fullName = repairVietnameseText(user.full_name);
-  const roleName = repairVietnameseText(user.role_name);
+function SidebarContent({
+  compact,
+  drawer,
+  onNavigate,
+  onClose,
+  canToggle,
+  onToggleCompact,
+  token,
+  user,
+  onOpenProfile,
+  onLogout,
+  theme,
+  onToggleTheme,
+}) {
+  const items = getNavItems(user.role);
+  const displayName = getDisplayName(user.full_name);
+  const roleLabel = getRoleLabel(user.role);
+  const avatarSrc = getAvatarViewUrl(user);
+
+  const profileButton = (
+    <button
+      type="button"
+      onClick={onOpenProfile}
+      aria-label={compact ? `${vi.shell.profile}: ${displayName}` : vi.shell.profile}
+      className={cn('flex min-h-14 w-full items-center gap-3 rounded-control px-2 text-left transition-colors hover:bg-sidebar-hover', compact && 'justify-center px-0', focusRing)}
+    >
+      <Avatar name={user.full_name} src={avatarSrc} />
+      {!compact && (
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-sidebar-fg">{displayName}</span>
+          <span className="block truncate text-xs text-sidebar-muted">{roleLabel}</span>
+        </span>
+      )}
+    </button>
+  );
+
+  const logoutButton = (
+    <button
+      type="button"
+      onClick={onLogout}
+      aria-label={compact ? vi.shell.logout : undefined}
+      className={cn(itemBase, itemIdle, compact && 'justify-center px-0', focusRing)}
+    >
+      <LogOut size={18} aria-hidden="true" className="shrink-0" />
+      {!compact && vi.shell.logout}
+    </button>
+  );
 
   return (
     <>
-    {mobileOpen && (
-      <button
-        type="button"
-        className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[1px] sm:hidden"
-        onClick={onMobileClose}
-        aria-label="Đóng menu điều hướng"
-      />
-    )}
-    <aside
-      className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(82vw,260px)] flex-col border-r border-slate-200 bg-white transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 sm:z-40 sm:w-[68px] sm:translate-x-0 ${
-        mobileOpen ? 'translate-x-0' : '-translate-x-full'
-      } ${
-        collapsed ? 'lg:w-[68px]' : 'lg:w-[260px]'
-      }`}
-    >
-      <div className="flex min-h-20 items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white dark:bg-brand-500">
-          <Bot size={20} />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0 flex-1 sm:hidden lg:block">
-            <h1 className="text-[13px] font-bold leading-snug text-slate-900 dark:text-slate-100">Docusyncai - AI Đối soát</h1>
-            <p className="mt-0.5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">Hóa đơn & Chứng từ</p>
-          </div>
+      <div className={cn('flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-line px-4', compact && 'justify-center px-0')}>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-sidebar-accent text-sidebar">
+          <Bot size={20} aria-hidden="true" />
+        </span>
+        {!compact && (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-sidebar-fg">{vi.brand.name}</span>
+            <span className="block truncate text-xs text-sidebar-muted">{vi.brand.tagline}</span>
+          </span>
         )}
-        <button
-          type="button"
-          onClick={onMobileClose}
-          className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 sm:hidden"
-          aria-label="Đóng menu điều hướng"
-        >
-          <X size={22} />
-        </button>
+        {!drawer && !compact && <NotificationBell token={token} variant="sidebar" />}
+        {drawer && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={vi.shell.closeMenu}
+            className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-sidebar-muted hover:bg-sidebar-hover', focusRing)}
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
-      {!collapsed && (
-        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800 sm:hidden lg:block">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Vai trò</p>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/60">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{roleName}</p>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              {isManager ? 'Không gian kế toán trưởng' : 'Không gian kế toán viên'}
-            </p>
-          </div>
+      {!drawer && compact && (
+        <div className="flex shrink-0 justify-center border-b border-sidebar-line py-2">
+          <NotificationBell token={token} variant="sidebar" />
         </div>
       )}
 
-      <nav className="flex-1 overflow-y-auto px-4 py-4">
-        <ul className="space-y-1.5">
-          {navItems.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                onClick={onMobileClose}
-                className={({ isActive }) =>
-                  `flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-100 ${
-                    isActive
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
-                  } ${collapsed ? 'justify-center px-2' : 'sm:justify-center sm:px-2 lg:justify-start lg:px-3'}`
-                }
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon size={20} className="shrink-0" />
-                {!collapsed && <span className="min-w-0 flex-1 sm:hidden lg:block">{item.label}</span>}
-              </NavLink>
-            </li>
-          ))}
+      <nav aria-label={vi.shell.mainNavigation} className="flex-1 overflow-y-auto px-3 py-4">
+        <ul className="space-y-1">
+          {items.map((item) => {
+            const Icon = NAV_ICONS[item.icon];
+            return (
+              <li key={item.to}>
+                {withTooltip(
+                  compact,
+                  item.label,
+                  <NavLink
+                    to={item.to}
+                    onClick={onNavigate}
+                    aria-label={compact ? item.label : undefined}
+                    className={({ isActive }) =>
+                      cn(itemBase, isActive ? itemActive : itemIdle, compact && 'justify-center px-0', focusRing)
+                    }
+                  >
+                    <Icon size={20} aria-hidden="true" className="shrink-0" />
+                    {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                  </NavLink>,
+                )}
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
-      <div className="border-t border-slate-200 p-4 dark:border-slate-800 space-y-1">
-        {/* Dark Mode Toggle Button */}
-        <button
-          type="button"
-          onClick={onToggleTheme}
-          className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100 ${
-            collapsed ? 'justify-center' : 'sm:justify-center lg:justify-start'
-          }`}
-          title={theme === 'dark' ? 'Chuyển sang Chế độ Sáng' : 'Chuyển sang Chế độ Tối'}
-        >
-          {theme === 'dark' ? (
-            <Sun size={18} className="text-amber-400" />
-          ) : (
-            <Moon size={18} className="text-slate-600" />
+      <div className="shrink-0 space-y-1 border-t border-sidebar-line p-3">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} compact={compact} />
+        {withTooltip(compact, `${vi.shell.profile}: ${displayName}`, profileButton)}
+        {withTooltip(compact, vi.shell.logout, logoutButton)}
+        {canToggle &&
+          withTooltip(
+            compact,
+            vi.shell.expandSidebar,
+            <button
+              type="button"
+              onClick={onToggleCompact}
+              aria-label={compact ? vi.shell.expandSidebar : vi.shell.collapseSidebar}
+              className={cn(itemBase, itemIdle, compact && 'justify-center px-0', focusRing)}
+            >
+              {compact ? <ChevronsRight size={18} aria-hidden="true" /> : <ChevronsLeft size={18} aria-hidden="true" />}
+              {!compact && vi.shell.collapseSidebar}
+            </button>,
           )}
-          {!collapsed && (
-            <span className="text-xs font-medium sm:hidden lg:inline">
-              {theme === 'dark' ? 'Giao diện Tối' : 'Giao diện Sáng'}
-            </span>
-          )}
-        </button>
-
-        {!collapsed && (
-          <button
-            type="button"
-            onClick={() => setShowProfile(true)}
-            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:justify-center lg:justify-start"
-            title="Thông tin cá nhân"
-          >
-            <SidebarAvatar user={user} fullName={fullName} />
-            <div className="min-w-0 flex-1 sm:hidden lg:block">
-              <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 truncate">{fullName}</p>
-            </div>
-          </button>
-        )}
-
-        <button
-          onClick={onLogout}
-          className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 ${
-            collapsed ? 'justify-center' : 'sm:justify-center lg:justify-start'
-          }`}
-          title="Đăng xuất"
-        >
-          <LogOut size={18} />
-          {!collapsed && <span className="text-xs sm:hidden lg:inline">Đăng xuất</span>}
-        </button>
-
-        <button
-          onClick={onToggle}
-          className={`hidden min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 lg:flex ${
-            collapsed ? 'justify-center' : 'justify-start'
-          }`}
-          title={collapsed ? 'Mở rộng' : 'Thu gọn'}
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          {!collapsed && <span className="text-xs">Thu gọn</span>}
-        </button>
       </div>
-
-      {showProfile && (
-        <UserProfileModal
-          token={token}
-          user={user}
-          onClose={() => setShowProfile(false)}
-          onUserUpdate={onUserUpdate}
-        />
-      )}
-    </aside>
     </>
   );
 }
 
+/**
+ * Thanh bên điều hướng. Ba chế độ do App quyết định theo kích thước màn hình:
+ * - drawer (< 768px): menu trượt ra từ trái, có khóa focus và Esc để đóng;
+ * - compact (768–1023px, hoặc người dùng thu gọn): chỉ icon, tên hiện trong tooltip;
+ * - mở rộng (≥ 1024px): đủ nhãn.
+ * Vai trò hiện ngay dưới tên người dùng, không còn thẻ "Vai trò" riêng.
+ */
+export default function Sidebar({
+  drawer = false,
+  open = false,
+  onClose,
+  compact = false,
+  canToggle = false,
+  onToggleCompact,
+  token,
+  user,
+  onLogout,
+  onUserUpdate,
+  theme = 'light',
+  onToggleTheme,
+}) {
+  const [showProfile, setShowProfile] = useState(false);
+
+  const content = (
+    <SidebarContent
+      compact={compact && !drawer}
+      drawer={drawer}
+      onNavigate={drawer ? onClose : undefined}
+      onClose={onClose}
+      canToggle={canToggle}
+      onToggleCompact={onToggleCompact}
+      token={token}
+      user={user}
+      onOpenProfile={() => {
+        setShowProfile(true);
+        if (drawer) onClose?.();
+      }}
+      onLogout={onLogout}
+      theme={theme}
+      onToggleTheme={onToggleTheme}
+    />
+  );
+
+  return (
+    <>
+      {drawer ? (
+        <Dialog open={open} onClose={onClose} className="relative z-50">
+          <div aria-hidden="true" className="fixed inset-0 bg-fg/40" />
+          <DialogPanel className="fixed inset-y-0 left-0 flex w-[min(86vw,288px)] flex-col border-r border-sidebar-line bg-sidebar shadow-pop">
+            {content}
+          </DialogPanel>
+        </Dialog>
+      ) : (
+        <aside
+          className={cn(
+            'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-line bg-sidebar transition-[width] duration-200',
+            compact ? 'w-[68px]' : 'w-[260px]',
+          )}
+        >
+          {content}
+        </aside>
+      )}
+
+      {showProfile && (
+        <UserProfileModal token={token} user={user} onClose={() => setShowProfile(false)} onUserUpdate={onUserUpdate} />
+      )}
+    </>
+  );
+}

@@ -1009,16 +1009,14 @@ export default function ChiefAccountantBatches({ token }) {
   };
 
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] flex-col bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100 sm:h-screen">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#0b0f19] dark:text-slate-100">
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:px-6 sm:py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 sm:text-2xl">
-              Batch đối soát
-            </h1>
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 sm:text-2xl">Bộ đối soát</h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Danh sách batch đã được kế toán viên duyệt
+              Các bộ kế toán viên đã duyệt, đang chờ kế toán trưởng quyết định.
             </p>
           </div>
         </div>
@@ -1188,7 +1186,7 @@ export default function ChiefAccountantBatches({ token }) {
       </div>
 
       {/* Batch List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+      <div className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="animate-spin text-emerald-600" size={32} />

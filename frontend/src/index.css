@@ -2,6 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ──
+   Nguồn sự thật cho màu giao diện. Giá trị là kênh RGB để Tailwind hỗ trợ độ trong suốt (`bg-surface/60`).
+   Mọi cặp chữ/nền được kiểm tra tương phản WCAG AA trong src/__tests__/tokens.test.js; sửa màu ở đây là phải chạy test. */
+@layer base {
+  :root {
+
+  --c-canvas: 248 250 252; /* #f8fafc */
+  --c-surface: 255 255 255; /* #ffffff */
+  --c-surface-muted: 241 245 249; /* #f1f5f9 */
+  --c-surface-sunken: 232 238 245; /* #e8eef5 */
+  --c-line: 226 232 240; /* #e2e8f0 */
+  --c-line-input: 132 147 168; /* #8493a8 */
+  --c-fg: 15 23 42; /* #0f172a */
+  --c-fg-muted: 71 85 105; /* #475569 */
+  --c-fg-subtle: 90 106 128; /* #5a6a80 */
+  --c-primary: 30 90 168; /* #1e5aa8 */
+  --c-primary-hover: 22 70 135; /* #164687 */
+  --c-primary-fg: 255 255 255; /* #ffffff */
+  --c-accent: 30 90 168; /* #1e5aa8 */
+  --c-accent-soft: 235 243 252; /* #ebf3fc */
+  --c-focus: 30 90 168; /* #1e5aa8 */
+  --c-tone-success-bg: 236 253 245; /* #ecfdf5 */
+  --c-tone-success-fg: 4 120 87; /* #047857 */
+  --c-tone-success-line: 167 243 208; /* #a7f3d0 */
+  --c-tone-warning-bg: 255 251 235; /* #fffbeb */
+  --c-tone-warning-fg: 146 64 14; /* #92400e */
+  --c-tone-warning-line: 253 230 138; /* #fde68a */
+  --c-tone-danger-bg: 255 241 242; /* #fff1f2 */
+  --c-tone-danger-fg: 190 18 60; /* #be123c */
+  --c-tone-danger-line: 254 205 211; /* #fecdd3 */
+  --c-tone-info-bg: 239 246 255; /* #eff6ff */
+  --c-tone-info-fg: 29 78 216; /* #1d4ed8 */
+  --c-tone-info-line: 191 219 254; /* #bfdbfe */
+  --c-tone-neutral-bg: 241 245 249; /* #f1f5f9 */
+  --c-tone-neutral-fg: 51 65 85; /* #334155 */
+  --c-tone-neutral-line: 203 213 225; /* #cbd5e1 */
+  --c-tone-brand-bg: 235 243 252; /* #ebf3fc */
+  --c-tone-brand-fg: 22 70 135; /* #164687 */
+  --c-tone-brand-line: 179 208 241; /* #b3d0f1 */
+  --c-sidebar: 255 255 255; /* #ffffff */
+  --c-sidebar-hover: 241 245 249; /* #f1f5f9 */
+  --c-sidebar-active: 235 243 252; /* #ebf3fc */
+  --c-sidebar-line: 226 232 240; /* #e2e8f0 */
+  --c-sidebar-fg: 15 23 42; /* #0f172a */
+  --c-sidebar-muted: 71 85 105; /* #475569 */
+  --c-sidebar-accent: 30 90 168; /* #1e5aa8 */
+  --c-chart-success: 5 150 105; /* #059669 */
+  --c-chart-danger: 225 29 72; /* #e11d48 */
+  --c-chart-warning: 217 119 6; /* #d97706 */
+  --c-chart-neutral: 100 116 139; /* #64748b */
+
+    --radius-control: 0.5rem;
+    --radius-card: 0.75rem;
+    --radius-modal: 1rem;
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.06);
+    --shadow-pop: 0 10px 30px -6px rgb(15 23 42 / 0.18), 0 2px 6px rgb(15 23 42 / 0.08);
+  }
+
+  .dark {
+
+  --c-canvas: 11 15 25; /* #0b0f19 */
+  --c-surface: 17 24 39; /* #111827 */
+  --c-surface-muted: 26 35 51; /* #1a2333 */
+  --c-surface-sunken: 14 21 34; /* #0e1522 */
+  --c-line: 38 50 71; /* #263247 */
+  --c-line-input: 111 126 148; /* #6f7e94 */
+  --c-fg: 241 245 249; /* #f1f5f9 */
+  --c-fg-muted: 170 182 201; /* #aab6c9 */
+  --c-fg-subtle: 143 157 179; /* #8f9db3 */
+  --c-primary: 125 175 240; /* #7daff0 */
+  --c-primary-hover: 163 200 248; /* #a3c8f8 */
+  --c-primary-fg: 11 15 25; /* #0b0f19 */
+  --c-accent: 147 190 245; /* #93bef5 */
+  --c-accent-soft: 22 38 66; /* #162642 */
+  --c-focus: 147 190 245; /* #93bef5 */
+  --c-tone-success-bg: 13 43 34; /* #0d2b22 */
+  --c-tone-success-fg: 110 231 183; /* #6ee7b7 */
+  --c-tone-success-line: 20 81 63; /* #14513f */
+  --c-tone-warning-bg: 51 38 12; /* #33260c */
+  --c-tone-warning-fg: 252 211 77; /* #fcd34d */
+  --c-tone-warning-line: 107 78 18; /* #6b4e12 */
+  --c-tone-danger-bg: 58 19 32; /* #3a1320 */
+  --c-tone-danger-fg: 253 164 175; /* #fda4af */
+  --c-tone-danger-line: 122 35 57; /* #7a2339 */
+  --c-tone-info-bg: 18 37 74; /* #12254a */
+  --c-tone-info-fg: 147 197 253; /* #93c5fd */
+  --c-tone-info-line: 37 74 138; /* #254a8a */
+  --c-tone-neutral-bg: 26 35 51; /* #1a2333 */
+  --c-tone-neutral-fg: 203 213 225; /* #cbd5e1 */
+  --c-tone-neutral-line: 51 65 85; /* #334155 */
+  --c-tone-brand-bg: 21 36 64; /* #152440 */
+  --c-tone-brand-fg: 175 208 248; /* #afd0f8 */
+  --c-tone-brand-line: 40 66 112; /* #284270 */
+  --c-sidebar: 9 14 24; /* #090e18 */
+  --c-sidebar-hover: 19 28 44; /* #131c2c */
+  --c-sidebar-active: 25 38 60; /* #19263c */
+  --c-sidebar-line: 28 40 60; /* #1c283c */
+  --c-sidebar-fg: 241 245 249; /* #f1f5f9 */
+  --c-sidebar-muted: 163 177 198; /* #a3b1c6 */
+  --c-sidebar-accent: 125 175 240; /* #7daff0 */
+  --c-chart-success: 52 211 153; /* #34d399 */
+  --c-chart-danger: 251 113 133; /* #fb7185 */
+  --c-chart-warning: 251 191 36; /* #fbbf24 */
+  --c-chart-neutral: 148 163 184; /* #94a3b8 */
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-pop: 0 14px 34px -8px rgb(0 0 0 / 0.65), 0 2px 6px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
 /* ── Base Styles ── */
 * {
   box-sizing: border-box;
@@ -19,9 +130,8 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #0d253d;
   font-feature-settings: "ss01";
-  @apply bg-slate-50 transition-colors duration-200 dark:bg-[#0b0f19] dark:text-slate-100;
+  @apply bg-canvas text-fg transition-colors duration-200;
 }
 
 img,

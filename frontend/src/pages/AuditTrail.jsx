@@ -39,6 +39,7 @@ import {
   toNumber,
 } from '../reconciliationCompare.js';
 import { repairTextDeep } from '../text.js';
+import { Button, PageHeader } from '../ui/index.js';
 
 const STATUS_META = {
   missing: {
@@ -1404,11 +1405,7 @@ export default function AuditTrail({ token, role, currentUser }) {
   if (batches.length === 0) {
     return (
       <div className="space-y-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Batch đối soát</h1>
-          </div>
-        </div>
+        <PageHeader title="Bộ đối soát" description="Các bộ đã đủ PO, Hóa đơn và GRN để đối soát và duyệt." />
         <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           Chưa có batch nào đã đủ PO, Invoice và GRN. Các batch còn thiếu chứng từ vẫn nằm ở Hàng đợi xử lý.
         </div>
@@ -1418,25 +1415,23 @@ export default function AuditTrail({ token, role, currentUser }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Batch đối soát</h1>
-          {overviewFilterLabel && (
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Đang xem nhóm: <span className="font-semibold text-slate-700 dark:text-slate-200">{overviewFilterLabel}</span>
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsReportModalOpen(true)}
-          className="btn-primary self-start lg:self-auto"
-          title="Xuất báo cáo đối soát dạng PDF / In"
-        >
-          <FileSearch size={16} />
-          Xuất báo cáo
-        </button>
-      </div>
+      <PageHeader
+        title="Bộ đối soát"
+        description={
+          overviewFilterLabel ? (
+            <>
+              Đang xem nhóm: <span className="font-semibold text-fg">{overviewFilterLabel}</span>
+            </>
+          ) : (
+            'Các bộ đã đủ PO, Hóa đơn và GRN để đối soát và duyệt.'
+          )
+        }
+        actions={
+          <Button variant="primary" leadingIcon={FileSearch} onClick={() => setIsReportModalOpen(true)} title="Xuất báo cáo đối soát dạng PDF / In">
+            Xuất báo cáo
+          </Button>
+        }
+      />
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">

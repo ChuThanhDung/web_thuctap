@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { Bell, BellRing, CheckCheck, CircleAlert, Inbox, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,39 +8,31 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../api.js';
+import { vi } from '../i18n/vi.js';
+import { formatDateTime } from '../lib/format.js';
 import { invalidateBatchCache } from '../services/batchCache.js';
+import { cn, focusRing } from '../ui/index.js';
 
 const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000];
-
-function formatNotificationTime(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
 
 function NotificationIcon({ kind }) {
   const isRejected = kind === 'batch_rejected';
   const Icon = isRejected ? XCircle : Inbox;
   return (
-    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-      isRejected
-        ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300'
-        : 'bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300'
-    }`}>
-      <Icon size={17} />
+    <span
+      className={cn(
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+        isRejected ? 'bg-tone-danger-bg text-tone-danger-fg' : 'bg-tone-brand-bg text-tone-brand-fg',
+      )}
+    >
+      <Icon size={17} aria-hidden="true" />
     </span>
   );
 }
 
-export default function NotificationBell({ token }) {
+export default function NotificationBell({ token, variant = 'default' }) {
+  const onSidebar = variant === 'sidebar';
   const navigate = useNavigate();
-  const containerRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const pingTimerRef = useRef(null);
   const ringTimerRef = useRef(null);
@@ -49,7 +42,6 @@ export default function NotificationBell({ token }) {
   const mountedRef = useRef(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRinging, setIsRinging] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +58,7 @@ export default function NotificationBell({ token }) {
       setError('');
     } catch (err) {
       if (mountedRef.current && requestId === loadRequestRef.current) {
-        setError(err.message || 'Không thể tải thông báo.');
+        setError(err.message || vi.notifications.loadFailed);
       }
     } finally {
       if (mountedRef.current && requestId === loadRequestRef.current) setIsLoading(false);
@@ -169,26 +161,7 @@ export default function NotificationBell({ token }) {
     };
   }, [loadNotifications, token]);
 
-  useEffect(() => {
-    function handlePointerDown(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') setIsOpen(false);
-    }
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  async function handleNotificationClick(notification) {
+  async function handleNotificationClick(notification, close) {
     if (!notification.is_read) {
       try {
         await markNotificationRead(token, notification.id);
@@ -197,10 +170,10 @@ export default function NotificationBell({ token }) {
         )));
         setUnreadCount((count) => Math.max(0, count - 1));
       } catch (err) {
-        setError(err.message || 'Không thể cập nhật thông báo.');
+        setError(err.message || vi.notifications.updateFailed);
       }
     }
-    setIsOpen(false);
+    close();
     invalidateBatchCache();
     if (notification.action_url) navigate(notification.action_url);
   }
@@ -212,7 +185,7 @@ export default function NotificationBell({ token }) {
       setUnreadCount(0);
       setError('');
     } catch (err) {
-      setError(err.message || 'Không thể cập nhật thông báo.');
+      setError(err.message || vi.notifications.updateFailed);
     }
   }
 
@@ -220,94 +193,116 @@ export default function NotificationBell({ token }) {
   const badgeLabel = unreadCount > 99 ? '99+' : String(unreadCount);
 
   return (
-    <div ref={containerRef} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className={`relative flex h-11 w-11 items-center justify-center rounded-full border bg-white text-slate-600 shadow-[0_1px_3px_rgba(0,55,112,0.08)] transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand-700 dark:hover:bg-brand-950/40 dark:hover:text-brand-300 ${
-          unreadCount > 0 ? 'border-rose-200 dark:border-rose-900' : 'border-slate-200 dark:border-slate-800'
-        }`}
-        aria-label={`Thông báo${unreadCount > 0 ? `, ${unreadCount} chưa đọc` : ''}`}
-        aria-expanded={isOpen}
-        title="Thông báo"
+    <Popover className="relative shrink-0">
+      <PopoverButton
+        aria-label={vi.notifications.ariaLabel(unreadCount)}
+        className={cn(
+          'relative flex h-10 w-10 items-center justify-center rounded-full transition-colors',
+          onSidebar
+            ? 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-accent'
+            : cn(
+                'border bg-surface text-fg-muted shadow-card hover:bg-surface-muted hover:text-fg',
+                unreadCount > 0 ? 'border-tone-danger-line' : 'border-line',
+                focusRing,
+              ),
+        )}
       >
-        <BellIcon size={20} className={isRinging ? 'animate-bell-ring text-rose-600' : ''} />
+        <BellIcon size={20} aria-hidden="true" className={isRinging ? 'animate-bell-ring text-tone-danger-fg motion-reduce:animate-none' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-slate-50 dark:ring-slate-950">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-tone-danger-fg px-1 text-[10px] font-bold leading-none text-canvas ring-2',
+              onSidebar ? 'ring-sidebar' : 'ring-canvas',
+            )}
+          >
             {badgeLabel}
           </span>
         )}
-      </button>
+      </PopoverButton>
 
-      {isOpen && (
-        <div className="absolute right-0 z-40 mt-2 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Thông báo</p>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{unreadCount} thông báo chưa đọc</p>
-            </div>
-            {unreadCount > 0 && (
+      <PopoverPanel
+        anchor={{ to: onSidebar ? 'right start' : 'bottom end', gap: 8 }}
+        className="z-50 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-card border border-line bg-surface shadow-pop focus:outline-none"
+      >
+        {({ close }) => (
+          <>
+            <div className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-fg">{vi.notifications.title}</p>
+                <p className="mt-0.5 text-xs text-fg-muted" aria-live="polite">
+                  {vi.notifications.unreadCount(unreadCount)}
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={handleMarkAllRead}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-brand-700 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-950/50"
-                title="Đánh dấu tất cả đã đọc"
-                aria-label="Đánh dấu tất cả thông báo là đã đọc"
+                onClick={unreadCount > 0 ? handleMarkAllRead : undefined}
+                aria-disabled={unreadCount === 0}
+                className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-accent hover:bg-accent-soft aria-disabled:cursor-not-allowed aria-disabled:text-fg-subtle aria-disabled:hover:bg-transparent',
+                  focusRing,
+                )}
+                title={vi.notifications.markAllRead}
+                aria-label={vi.notifications.markAllRead}
               >
-                <CheckCheck size={18} />
+                <CheckCheck size={18} aria-hidden="true" />
               </button>
-            )}
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 border-b border-rose-100 bg-rose-50 px-4 py-2.5 text-xs font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
-              <CircleAlert size={15} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
             </div>
-          )}
 
-          <div className="max-h-[min(420px,60vh)] overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2 px-4 py-10 text-sm text-slate-500">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
-                Đang tải thông báo...
+            {error && (
+              <div role="alert" className="flex items-start gap-2 border-b border-tone-danger-line bg-tone-danger-bg px-4 py-2.5 text-xs font-medium text-tone-danger-fg">
+                <CircleAlert size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+                <span>{error}</span>
               </div>
-            ) : notifications.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <Bell size={24} className="mx-auto text-slate-300 dark:text-slate-600" />
-                <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Chưa có thông báo</p>
-              </div>
-            ) : (
-              notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  type="button"
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60 ${
-                    notification.is_read ? 'bg-white dark:bg-slate-900' : 'bg-brand-50/60 dark:bg-brand-950/20'
-                  }`}
-                >
-                  <NotificationIcon kind={notification.kind} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-start gap-2">
-                      <span className="min-w-0 flex-1 text-sm font-bold leading-5 text-slate-900 dark:text-slate-100">
-                        {notification.title}
-                      </span>
-                      {!notification.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600" />}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-5 text-slate-600 dark:text-slate-300">
-                      {notification.message}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-medium text-slate-400">
-                      {formatNotificationTime(notification.created_at)}
-                    </span>
-                  </span>
-                </button>
-              ))
             )}
-          </div>
-        </div>
-      )}
-    </div>
+
+            <div className="max-h-[min(420px,60vh)] overflow-y-auto">
+              {isLoading ? (
+                <div role="status" className="flex items-center justify-center gap-2 px-4 py-10 text-sm text-fg-muted">
+                  <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-primary motion-reduce:animate-none" />
+                  {vi.notifications.loading}
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <Bell size={24} aria-hidden="true" className="mx-auto text-fg-subtle" />
+                  <p className="mt-2 text-sm font-medium text-fg-muted">{vi.notifications.empty}</p>
+                </div>
+              ) : (
+                <ul>
+                  {notifications.map((notification) => (
+                    <li key={notification.id} className="border-b border-line last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => handleNotificationClick(notification, close)}
+                        className={cn(
+                          'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-muted',
+                          notification.is_read ? 'bg-surface' : 'bg-accent-soft',
+                          focusRing,
+                        )}
+                      >
+                        <NotificationIcon kind={notification.kind} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-start gap-2">
+                            <span className="min-w-0 flex-1 text-sm font-semibold leading-5 text-fg">{notification.title}</span>
+                            {!notification.is_read && (
+                              <>
+                                <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                                <span className="sr-only">{vi.notifications.unread}</span>
+                              </>
+                            )}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-5 text-fg-muted">{notification.message}</span>
+                          <span className="mt-1 block text-xs text-fg-subtle">{formatDateTime(notification.created_at)}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+      </PopoverPanel>
+    </Popover>
   );
 }
