@@ -852,6 +852,9 @@ def find_batch_reconciliation_case(db: Session, batch: DocumentBatch) -> Reconci
     )
 
 
+APPROVABLE_RECONCILIATION_STATUSES = ("matched", "minor_diff")
+
+
 def build_reconciliation_not_matched_message(reconciliation_case: ReconciliationCase) -> str:
     detail = reconciliation_case.ai_summary or reconciliation_case.ai_note
     if not detail:
@@ -910,6 +913,12 @@ def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> Do
         )
     history_list.sort(key=lambda item: item.version, reverse=True)
 
+    # Kết quả đối soát của engine (matched / minor_diff / major_diff) là nguồn sự thật cho giao diện.
+    # Chỉ tra khi bộ đã đủ chứng từ và trích xuất xong; bộ chưa đủ thì để trống.
+    reconciliation_case = None
+    if db is not None and not missing_doc_types and not pending_extraction_doc_types:
+        reconciliation_case = find_batch_reconciliation_case(db, batch)
+
     return DocumentBatchOut(
         id=batch.id,
         batch_number=batch.batch_number,
@@ -929,6 +938,11 @@ def to_document_batch_out(batch: DocumentBatch, db: Session | None = None) -> Do
         uploaded_doc_types=uploaded_doc_types,
         extracted_doc_types=extracted_doc_types,
         pending_extraction_doc_types=pending_extraction_doc_types,
+        reconciliation_status=reconciliation_case.status if reconciliation_case else None,
+        reconciliation_diff_type=reconciliation_case.diff_type if reconciliation_case else None,
+        reconciliation_diff_amount=reconciliation_case.diff_amount if reconciliation_case else None,
+        reconciliation_ai_note=reconciliation_case.ai_note if reconciliation_case else None,
+        reconciliation_ai_summary=reconciliation_case.ai_summary if reconciliation_case else None,
         created_at=batch.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         updated_at=batch.updated_at.strftime("%Y-%m-%d %H:%M:%S") if batch.updated_at else None,
     )
@@ -1050,7 +1064,8 @@ async def approve_upload_batch(
             status_code=status.HTTP_409_CONFLICT,
             detail="Chưa tìm thấy kết quả đối soát của batch này.",
         )
-    if reconciliation_case.status != "matched":
+    # Lệch nhỏ là chênh lệch tiền trong ngưỡng làm tròn (quy tắc 1.000 đ): kế toán viên được duyệt, có ghi vào audit log.
+    if reconciliation_case.status not in APPROVABLE_RECONCILIATION_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=build_reconciliation_not_matched_message(reconciliation_case),
@@ -1080,7 +1095,12 @@ async def approve_upload_batch(
             "batch_number": batch.batch_number,
             "case_id": str(reconciliation_case.id),
             "case_number": reconciliation_case.case_number,
-            "note": "Matched document batch approved by accountant.",
+            "reconciliation_status": reconciliation_case.status,
+            "note": (
+                "Document batch with a rounding-level (minor) difference approved by accountant."
+                if reconciliation_case.status == "minor_diff"
+                else "Matched document batch approved by accountant."
+            ),
         },
         ip_address=None,
         user_agent=None,

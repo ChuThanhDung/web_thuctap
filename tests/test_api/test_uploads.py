@@ -971,6 +971,72 @@ async def test_accountant_cannot_approve_batch_that_is_not_fully_matched(client,
     assert db_session.get(DocumentBatch, batch["id"]).status == "ready"
 
 
+@pytest.mark.asyncio
+async def test_accountant_can_approve_batch_with_rounding_level_difference(client, db_session, monkeypatch):
+    """Tổng tiền lệch 600 đ (trong ngưỡng làm tròn 1.000 đ) là minor_diff: kế toán viên được duyệt cấp 1."""
+    line = {"row_index": 1, "item_name": "Service", "qty": 10, "price": 100000, "amount": 1000000}
+
+    def fake_analyze_uploaded_document(content, filename, content_type, expected_doc_type):
+        extracted_by_type = {
+            "invoice": {
+                "type": "invoice",
+                "invoice_number": "INV-APPROVE-MINOR",
+                "supplier_name": "Minor Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 1000600,
+                "line_items": [line],
+            },
+            "po": {
+                "type": "po",
+                "po_number": "PO-APPROVE-MINOR",
+                "supplier_name": "Minor Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 1000000,
+                "line_items": [line],
+            },
+            "grn": {
+                "type": "grn",
+                "grn_number": "GRN-APPROVE-MINOR",
+                "po_number": "PO-APPROVE-MINOR",
+                "supplier_name": "Minor Supplier",
+                "supplier_tax_id": "0101234567",
+                "total_amount": 1000000,
+                "line_items": [line],
+            },
+        }
+        return DocumentAiAnalysis(
+            expected_doc_type=expected_doc_type,
+            detected_doc_type=expected_doc_type,
+            is_correct_type=True,
+            confidence=Decimal("1.0000"),
+            status="validated",
+            validation_message="OK",
+            model_name="test-model",
+            extracted_data=extracted_by_type[expected_doc_type],
+            raw_response={"detected_doc_type": expected_doc_type},
+        )
+
+    monkeypatch.setattr("src.api.uploads.analyze_uploaded_document", fake_analyze_uploaded_document)
+    batch = (await client.post("/api/v1/uploads/batches")).json()
+
+    for doc_type in ["po", "invoice", "grn"]:
+        response = await client.post(
+            "/api/v1/uploads",
+            data={"doc_type": doc_type, "batch_id": str(batch["id"])},
+            files={"file": (f"{doc_type}.pdf", valid_pdf_bytes(f"approve minor {doc_type}"), "application/pdf")},
+        )
+        assert response.status_code == 200
+
+    approve_response = await client.post(f"/api/v1/uploads/batches/{batch['id']}/approve")
+
+    assert approve_response.status_code == 200, approve_response.json()
+    body = approve_response.json()
+    assert body["status"] == "approved"
+    assert body["reconciliation_status"] == "minor_diff"
+    db_session.expire_all()
+    assert db_session.get(DocumentBatch, batch["id"]).status == "approved"
+
+
 def test_build_cloud_storage_key_uses_sequential_filename(monkeypatch):
     today = datetime.now()
     date_part = today.strftime("%d_%m_%Y")
