@@ -73,3 +73,11 @@ src/crash.txt
 
 # Ghi chép cá nhân, báo cáo thực tập, tài liệu khóa học (không đưa lên repo)
 hidden/
+
+# Impeccable: file chạy tạm và ảnh chụp kiểm tra (chỉ commit config, design.json, surfaces, critique)
+.impeccable/hook.cache.json
+.impeccable/hook.pending.json
+.impeccable/config.local.json
+.impeccable/live/
+.impeccable/review/
+frontend/.impeccable/

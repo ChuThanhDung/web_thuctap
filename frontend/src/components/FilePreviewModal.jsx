@@ -217,8 +217,8 @@ function parseInvoiceXml(xmlText) {
 
 function XmlSourceView({ xmlText }) {
   return (
-    <div className="h-full overflow-auto bg-slate-50 p-4 dark:bg-slate-950">
-      <pre className="min-h-full rounded-lg border border-slate-200 bg-white p-4 font-mono text-sm leading-7 text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
+    <div className="h-full overflow-auto bg-surface-muted p-4">
+      <pre className="min-h-full rounded-control border border-line bg-surface p-4 font-mono text-sm leading-7 text-fg shadow-card">
         {xmlText}
       </pre>
     </div>
@@ -229,16 +229,16 @@ function XmlVisualView({ xmlText }) {
   const data = parseInvoiceXml(xmlText);
   if (data.error) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-center text-sm font-semibold text-rose-700">
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm font-semibold text-tone-danger-fg">
         {data.error}
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-auto bg-slate-100 p-4 dark:bg-slate-950">
-      <div className="mx-auto max-w-5xl rounded-sm bg-white p-8 text-slate-950 shadow-[0_18px_60px_rgba(15,23,42,0.18)]">
-        <div className="grid gap-5 border-b-2 border-slate-900 pb-5 md:grid-cols-[minmax(0,1fr)_260px]">
+    <div className="h-full overflow-auto bg-surface-muted p-4">
+      <div className="mx-auto max-w-5xl rounded-sm bg-surface p-8 text-fg shadow-card">
+        <div className="grid gap-5 border-b-2 border-tone-neutral-line pb-5 md:grid-cols-[minmax(0,1fr)_260px]">
           <div>
             <p className="text-sm font-bold uppercase">{data.seller.name || 'Đơn vị bán hàng'}</p>
             <p className="mt-1 text-xs">Mã số thuế: {data.seller.taxId || '-'}</p>
@@ -260,7 +260,7 @@ function XmlVisualView({ xmlText }) {
           <p className="mt-2 text-sm">Ngày {formatDate(data.date)}</p>
         </div>
 
-        <div className="grid gap-2 border-y border-slate-300 py-4 text-sm">
+        <div className="grid gap-2 border-y border-tone-neutral-line py-4 text-sm">
           <p><span className="font-semibold">Tên người mua hàng:</span> {data.buyer.name || '-'}</p>
           <p><span className="font-semibold">Mã số thuế:</span> {data.buyer.taxId || '-'}</p>
           <p><span className="font-semibold">Địa chỉ:</span> {data.buyer.address || '-'}</p>
@@ -273,33 +273,33 @@ function XmlVisualView({ xmlText }) {
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse text-sm">
             <thead>
-              <tr className="bg-slate-100">
-                <th className="border border-slate-900 px-2 py-2">STT</th>
-                <th className="border border-slate-900 px-2 py-2">Tên hàng hóa, dịch vụ</th>
-                <th className="border border-slate-900 px-2 py-2">Đơn vị</th>
-                <th className="border border-slate-900 px-2 py-2">{data.quantityLabel || 'Số lượng'}</th>
-                <th className="border border-slate-900 px-2 py-2">Đơn giá</th>
-                <th className="border border-slate-900 px-2 py-2">Thành tiền</th>
-                <th className="border border-slate-900 px-2 py-2">Thuế</th>
+              <tr className="bg-surface-muted">
+                <th className="border border-tone-neutral-line px-2 py-2">STT</th>
+                <th className="border border-tone-neutral-line px-2 py-2">Tên hàng hóa, dịch vụ</th>
+                <th className="border border-tone-neutral-line px-2 py-2">Đơn vị</th>
+                <th className="border border-tone-neutral-line px-2 py-2">{data.quantityLabel || 'Số lượng'}</th>
+                <th className="border border-tone-neutral-line px-2 py-2">Đơn giá</th>
+                <th className="border border-tone-neutral-line px-2 py-2">Thành tiền</th>
+                <th className="border border-tone-neutral-line px-2 py-2">Thuế</th>
               </tr>
             </thead>
             <tbody>
               {data.items.length > 0 ? data.items.map((item) => (
                 <tr key={`${item.index}-${item.name}`}>
-                  <td className="border border-slate-900 px-2 py-2 text-center">{item.index}</td>
-                  <td className="border border-slate-900 px-2 py-2">
+                  <td className="border border-tone-neutral-line px-2 py-2 text-center">{item.index}</td>
+                  <td className="border border-tone-neutral-line px-2 py-2">
                     <p className="font-semibold">{item.name || '-'}</p>
-                    {item.code && <p className="mt-0.5 text-xs text-slate-500">{item.code}</p>}
+                    {item.code && <p className="mt-0.5 text-xs text-fg-subtle">{item.code}</p>}
                   </td>
-                  <td className="border border-slate-900 px-2 py-2 text-center">{item.unit || '-'}</td>
-                  <td className="border border-slate-900 px-2 py-2 text-right">{formatMaybeNumber(item.quantity)}</td>
-                  <td className="border border-slate-900 px-2 py-2 text-right">{formatNumber(item.price)}</td>
-                  <td className="border border-slate-900 px-2 py-2 text-right">{formatNumber(item.amount)}</td>
-                  <td className="border border-slate-900 px-2 py-2 text-center">{item.taxRate || '-'}</td>
+                  <td className="border border-tone-neutral-line px-2 py-2 text-center">{item.unit || '-'}</td>
+                  <td className="border border-tone-neutral-line px-2 py-2 text-right">{formatMaybeNumber(item.quantity)}</td>
+                  <td className="border border-tone-neutral-line px-2 py-2 text-right">{formatNumber(item.price)}</td>
+                  <td className="border border-tone-neutral-line px-2 py-2 text-right">{formatNumber(item.amount)}</td>
+                  <td className="border border-tone-neutral-line px-2 py-2 text-center">{item.taxRate || '-'}</td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={7} className="border border-slate-900 px-2 py-8 text-center text-slate-500">Không có dòng hàng hóa.</td>
+                  <td colSpan={7} className="border border-tone-neutral-line px-2 py-8 text-center text-fg-subtle">Không có dòng hàng hóa.</td>
                 </tr>
               )}
             </tbody>
@@ -309,10 +309,10 @@ function XmlVisualView({ xmlText }) {
         <div className="ml-auto mt-5 max-w-md space-y-2 text-sm">
           <div className="flex justify-between gap-4"><span>Cộng tiền hàng:</span><span className="font-bold">{formatNumber(data.totals.beforeTax)}</span></div>
           <div className="flex justify-between gap-4"><span>Tiền thuế:</span><span className="font-bold">{formatNumber(data.totals.tax)}</span></div>
-          <div className="flex justify-between gap-4 border-t border-slate-300 pt-2 text-base"><span>Tổng thanh toán:</span><span className="font-bold">{formatNumber(data.totals.total)}</span></div>
+          <div className="flex justify-between gap-4 border-t border-tone-neutral-line pt-2 text-base"><span>Tổng thanh toán:</span><span className="font-bold">{formatNumber(data.totals.total)}</span></div>
         </div>
         {data.totals.totalText && (
-          <p className="mt-5 border-t border-slate-300 pt-3 text-sm"><span className="font-semibold">Số tiền bằng chữ:</span> {data.totals.totalText}</p>
+          <p className="mt-5 border-t border-tone-neutral-line pt-3 text-sm"><span className="font-semibold">Số tiền bằng chữ:</span> {data.totals.totalText}</p>
         )}
       </div>
     </div>
@@ -333,25 +333,25 @@ export default function FilePreviewModal({ filePreview, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-stretch justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[80] flex items-stretch justify-center bg-scrim/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="file-preview-title"
       onClick={onClose}
     >
       <div
-        className="flex h-dvh w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-950 sm:h-[92vh] sm:rounded-xl sm:border sm:border-slate-200 sm:dark:border-slate-800"
+        className="flex h-dvh w-full max-w-6xl flex-col overflow-hidden bg-surface shadow-pop sm:h-[92vh] sm:rounded-card sm:border sm:border-line"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-slate-200 px-3 py-1.5 dark:border-slate-800 sm:px-4">
+        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-line px-3 py-1.5 sm:px-4">
           <div className="min-w-0">
-            <h2 id="file-preview-title" className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">
+            <h2 id="file-preview-title" className="truncate text-sm font-bold text-fg">
               {filePreview.filename}
             </h2>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {kind === 'xml' && (
-              <div className="flex items-center rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center rounded-control border border-line bg-surface p-1 shadow-card">
                 {[
                   ['source', 'Mã nguồn'],
                   ['view', 'View'],
@@ -360,10 +360,10 @@ export default function FilePreviewModal({ filePreview, onClose }) {
                     key={value}
                     type="button"
                     onClick={() => setXmlMode(value)}
-                    className={`h-7 rounded-full px-3 text-xs font-semibold transition-colors ${
+                    className={`h-7 rounded-control px-3 text-xs font-semibold transition-colors ${
                       xmlMode === value
-                        ? 'bg-brand-600 text-white'
-                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                        ? 'bg-primary text-primary-fg'
+                        : 'text-fg-subtle hover:bg-surface-muted hover:text-fg'
                     }`}
                   >
                     {label}
@@ -372,23 +372,23 @@ export default function FilePreviewModal({ filePreview, onClose }) {
               </div>
             )}
             {kind === 'image' && (
-              <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-1 py-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center gap-1 rounded-control border border-line bg-surface px-1 py-1 shadow-card">
                 <button
                   type="button"
                   onClick={() => setImageZoom((zoom) => Math.max(0.5, Number((zoom - 0.25).toFixed(2))))}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   title="Thu nhỏ"
                   aria-label="Thu nhỏ ảnh"
                 >
                   <Minus size={15} />
                 </button>
-                <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-slate-600 dark:text-slate-300">
+                <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-fg-muted">
                   {Math.round(imageZoom * 100)}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setImageZoom((zoom) => Math.min(3, Number((zoom + 0.25).toFixed(2))))}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   title="Phóng to"
                   aria-label="Phóng to ảnh"
                 >
@@ -397,7 +397,7 @@ export default function FilePreviewModal({ filePreview, onClose }) {
                 <button
                   type="button"
                   onClick={() => setImageZoom(1)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   title="Về 100%"
                   aria-label="Đưa ảnh về 100%"
                 >
@@ -408,7 +408,7 @@ export default function FilePreviewModal({ filePreview, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-line bg-surface text-fg-subtle shadow-card transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               aria-label="Đóng xem file"
             >
               <X size={18} />
@@ -416,14 +416,14 @@ export default function FilePreviewModal({ filePreview, onClose }) {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 bg-white dark:bg-slate-950">
+        <div className="min-h-0 flex-1 bg-surface">
           {kind === 'image' && (
-            <div className="h-full overflow-auto bg-slate-950 p-4">
+            <div className="h-full overflow-auto bg-surface-sunken p-4">
               <div className="flex min-h-full items-center justify-center">
                 <img
                   src={filePreview.previewUrl}
                   alt={filePreview.filename}
-                  className="max-w-none object-contain shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
+                  className="max-w-none object-contain shadow-card"
                   style={{
                     width: `${imageZoom * 100}%`,
                     maxHeight: imageZoom <= 1 ? '100%' : 'none',
@@ -441,15 +441,15 @@ export default function FilePreviewModal({ filePreview, onClose }) {
             <iframe
               src={filePreview.previewUrl}
               title={filePreview.filename}
-              className="h-full w-full border-0 bg-white"
+              className="h-full w-full border-0 bg-surface"
             />
           )}
           {kind === 'unsupported' && (
             <div className="flex h-full items-center justify-center p-6 text-center">
-              <div className="max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <FileText size={32} className="mx-auto text-slate-400" />
-                <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">Không thể xem trước định dạng này</p>
-                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+              <div className="max-w-md rounded-card border border-line bg-surface p-6 shadow-card">
+                <FileText size={32} className="mx-auto text-fg-subtle" />
+                <p className="mt-3 text-sm font-bold text-fg">Không thể xem trước định dạng này</p>
+                <p className="mt-1 text-sm leading-6 text-fg-subtle">
                   Trình duyệt không hỗ trợ xem trực tiếp file này trong popup. Bạn vẫn có thể tải file gốc để kiểm tra.
                 </p>
               </div>

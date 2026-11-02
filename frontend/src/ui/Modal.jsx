@@ -19,7 +19,7 @@ const SIZES = {
 export default function Modal({ open, onClose, title, description, children, footer, size = 'md', className }) {
   return (
     <Dialog open={open} onClose={onClose} className="relative z-50">
-      <DialogBackdrop className="fixed inset-0 bg-fg/40 backdrop-blur-[1px] transition-opacity data-[closed]:opacity-0" />
+      <DialogBackdrop className="fixed inset-0 bg-scrim/50 backdrop-blur-[1px] transition-opacity data-[closed]:opacity-0" />
 
       <div className="fixed inset-0 flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-6">
         <DialogPanel

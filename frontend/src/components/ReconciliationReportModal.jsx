@@ -10,6 +10,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { repairVietnameseText } from '../text.js';
+import { EXPORT_FONT_STACK } from '../lib/exportStyles.js';
 
 const PERIOD_OPTIONS = [
   { value: 'current', label: 'Dữ liệu đang lọc' },
@@ -268,18 +269,18 @@ function cleanPersonName(name) {
 function getStatusBadgeText(status) {
   switch (status) {
     case 'matched':
-      return { label: 'Khớp hoàn toàn', color: 'text-emerald-700 bg-emerald-50 border-emerald-300' };
+      return { label: 'Khớp hoàn toàn', color: 'text-tone-success-fg bg-tone-success-bg border-tone-success-line' };
     case 'approved':
     case 'final_approved':
-      return { label: 'Đã duyệt', color: 'text-blue-700 bg-blue-50 border-blue-300' };
+      return { label: 'Đã duyệt', color: 'text-tone-info-fg bg-tone-info-bg border-tone-info-line' };
     case 'rejected':
-      return { label: 'Đã từ chối', color: 'text-rose-700 bg-rose-50 border-rose-300' };
+      return { label: 'Đã từ chối', color: 'text-tone-danger-fg bg-tone-danger-bg border-tone-danger-line' };
     case 'mismatch':
-      return { label: 'Lệch dữ liệu', color: 'text-rose-700 bg-rose-50 border-rose-300' };
+      return { label: 'Lệch dữ liệu', color: 'text-tone-danger-fg bg-tone-danger-bg border-tone-danger-line' };
     case 'missing':
-      return { label: 'Thiếu chứng từ', color: 'text-amber-700 bg-amber-50 border-amber-300' };
+      return { label: 'Thiếu chứng từ', color: 'text-tone-warning-fg bg-tone-warning-bg border-tone-warning-line' };
     default:
-      return { label: 'Đang xử lý', color: 'text-slate-700 bg-slate-50 border-slate-300' };
+      return { label: 'Đang xử lý', color: 'text-fg-muted bg-surface-muted border-tone-neutral-line' };
   }
 }
 
@@ -364,7 +365,7 @@ function generatePrintHTML({
       padding: 0;
     }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: ${EXPORT_FONT_STACK};
       color: #000;
       background: #fff;
       font-size: 11px;
@@ -803,22 +804,22 @@ export default function ReconciliationReportModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-start bg-slate-950/75 p-0 backdrop-blur-sm print:hidden"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-start bg-scrim/60 p-0 backdrop-blur-sm print:hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-modal-title"
     >
       {/* Top Fixed Toolbar */}
-      <header className="sticky top-0 z-20 flex w-full items-center justify-between border-b border-slate-800 bg-slate-900/95 px-4 py-3 shadow-md backdrop-blur sm:px-6">
+      <header className="sticky top-0 z-20 flex w-full items-center justify-between border-b border-tone-neutral-line bg-surface px-4 py-3 shadow-card backdrop-blur sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow">
+          <div className="flex h-9 w-9 items-center justify-center rounded-control bg-primary text-primary-fg">
             <FileCheck2 size={19} />
           </div>
           <div>
-            <h2 id="report-modal-title" className="text-sm font-bold text-white sm:text-base">
+            <h2 id="report-modal-title" className="text-sm font-bold text-fg sm:text-base">
               Báo Cáo Tổng Hợp Đối Soát
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-fg-subtle">
               {periodLabel} · {totalBatches} batch
             </p>
           </div>
@@ -826,11 +827,11 @@ export default function ReconciliationReportModal({
 
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Zoom controls for preview */}
-          <div className="hidden items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2 py-1 text-slate-300 md:flex">
+          <div className="hidden items-center gap-1 rounded-control border border-tone-neutral-line bg-surface px-2 py-1 text-fg-subtle md:flex">
             <button
               type="button"
               onClick={() => setZoomScale((s) => Math.max(0.6, s - 0.1))}
-              className="p-1 hover:text-white"
+              className="p-1 hover:text-fg"
               title="Thu nhỏ"
             >
               <ZoomOut size={14} />
@@ -841,7 +842,7 @@ export default function ReconciliationReportModal({
             <button
               type="button"
               onClick={() => setZoomScale((s) => Math.min(1.4, s + 0.1))}
-              className="p-1 hover:text-white"
+              className="p-1 hover:text-fg"
               title="Phóng to"
             >
               <ZoomIn size={14} />
@@ -849,7 +850,7 @@ export default function ReconciliationReportModal({
             <button
               type="button"
               onClick={() => setZoomScale(1)}
-              className="p-1 hover:text-white ml-1 border-l border-slate-700 pl-1.5"
+              className="p-1 hover:text-fg ml-1 border-l border-tone-neutral-line pl-1.5"
               title="Đặt lại 100%"
             >
               <RotateCcw size={12} />
@@ -860,10 +861,10 @@ export default function ReconciliationReportModal({
           <button
             type="button"
             onClick={handleExportCSV}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-200 shadow-sm transition-colors hover:bg-slate-700 hover:text-white"
+            className="inline-flex h-9 items-center gap-1.5 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle shadow-card transition-colors hover:bg-surface-muted hover:text-fg"
             title="Tải file Excel / CSV"
           >
-            <Table size={14} className="text-emerald-400" />
+            <Table size={14} className="text-tone-success-fg" />
             <span className="hidden sm:inline">Xuất Excel / CSV</span>
             <span className="sm:hidden">Excel</span>
           </button>
@@ -872,7 +873,7 @@ export default function ReconciliationReportModal({
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-500 active:scale-95"
+            className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3.5 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary-hover active:scale-95"
             title="In ra giấy hoặc Lưu dưới dạng file PDF"
           >
             <Printer size={15} />
@@ -883,7 +884,7 @@ export default function ReconciliationReportModal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-control border border-tone-neutral-line text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg"
             title="Đóng"
             aria-label="Đóng cửa sổ xem trước"
           >
@@ -892,13 +893,13 @@ export default function ReconciliationReportModal({
         </div>
       </header>
 
-      <section className="w-full border-b border-slate-800 bg-slate-900/95 px-4 py-3 sm:px-6">
+      <section className="w-full border-b border-tone-neutral-line bg-surface px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-2 text-slate-300">
-            <CalendarDays size={16} className="text-brand-300" />
+          <div className="flex min-w-0 items-center gap-2 text-fg-subtle">
+            <CalendarDays size={16} className="text-tone-brand-line" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white">Kỳ báo cáo</p>
-              <p className="truncate text-xs text-slate-400">
+              <p className="text-xs font-semibold text-fg">Kỳ báo cáo</p>
+              <p className="truncate text-xs text-fg-subtle">
                 {overviewFilterLabel ? `${overviewFilterLabel} · ` : ''}{periodLabel}
               </p>
             </div>
@@ -908,7 +909,7 @@ export default function ReconciliationReportModal({
             <select
               value={periodType}
               onChange={(event) => setPeriodType(event.target.value)}
-              className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+              className="h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle outline-none transition-colors focus:border-primary"
             >
               {PERIOD_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -922,7 +923,7 @@ export default function ReconciliationReportModal({
                 type="month"
                 value={periodValues.month}
                 onChange={(event) => setPeriodValues((values) => ({ ...values, month: event.target.value }))}
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                className="h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle outline-none transition-colors focus:border-primary"
               />
             )}
 
@@ -930,7 +931,7 @@ export default function ReconciliationReportModal({
               <select
                 value={periodValues.quarter}
                 onChange={(event) => setPeriodValues((values) => ({ ...values, quarter: event.target.value }))}
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                className="h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle outline-none transition-colors focus:border-primary"
               >
                 {yearOptions.map((year) => (
                   [1, 2, 3, 4].map((quarter) => (
@@ -946,7 +947,7 @@ export default function ReconciliationReportModal({
               <select
                 value={periodValues.year}
                 onChange={(event) => setPeriodValues((values) => ({ ...values, year: event.target.value }))}
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                className="h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle outline-none transition-colors focus:border-primary"
               >
                 {yearOptions.map((year) => (
                   <option key={year} value={year}>
@@ -963,7 +964,7 @@ export default function ReconciliationReportModal({
                   value={periodValues.customStart}
                   onChange={(event) => setPeriodValues((values) => ({ ...values, customStart: event.target.value }))}
                   max={periodValues.customEnd || undefined}
-                  className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                  className="h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle outline-none transition-colors focus:border-primary"
                   aria-label="Từ ngày"
                 />
                 <input
@@ -971,14 +972,14 @@ export default function ReconciliationReportModal({
                   value={periodValues.customEnd}
                   onChange={(event) => setPeriodValues((values) => ({ ...values, customEnd: event.target.value }))}
                   min={periodValues.customStart || undefined}
-                  className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-100 outline-none transition-colors focus:border-brand-400"
+                  className="h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle outline-none transition-colors focus:border-primary"
                   aria-label="Đến ngày"
                 />
               </>
             )}
 
             {periodType !== 'custom' && (
-              <div className="hidden h-9 rounded-lg border border-slate-800 bg-slate-950/40 px-3 text-xs font-semibold text-slate-400 sm:flex sm:items-center">
+              <div className="hidden h-9 rounded-control border border-tone-neutral-line bg-surface px-3 text-xs font-semibold text-fg-subtle sm:flex sm:items-center">
                 {reportBatches.length}/{batches.length} batch
               </div>
             )}
@@ -987,25 +988,25 @@ export default function ReconciliationReportModal({
       </section>
 
       {/* Main Preview Container with A4 Sheet Display */}
-      <div className="flex-1 w-full overflow-y-auto bg-slate-300/80 p-3 sm:p-8 dark:bg-slate-950/80">
+      <div className="flex-1 w-full overflow-y-auto bg-surface-sunken p-3 sm:p-8">
         
         {/* Physical A4 Sheet Container */}
         <div
           id="preview-sheet"
           style={{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }}
-          className="mx-auto min-h-[297mm] w-full max-w-[210mm] rounded-sm bg-white p-[15mm] text-black shadow-2xl transition-transform duration-150"
+          className="mx-auto min-h-[297mm] w-full max-w-[210mm] rounded-sm bg-surface p-[15mm] text-black shadow-pop transition-transform duration-150"
         >
           {/* Header Tiêu ngữ & Đơn vị (Luôn ở trên đầu trang) */}
           <div className="border-b-2 border-black pb-4 text-center">
             <div className="flex flex-col items-center justify-between gap-2 sm:flex-row sm:items-start text-xs">
-              <div className="text-center sm:text-left font-bold uppercase leading-snug text-slate-900">
+              <div className="text-center sm:text-left font-bold uppercase leading-snug text-fg">
                 <p>CÔNG TY CP CÔNG NGHỆ DOCUSYNC</p>
-                <p className="text-[11px] font-normal text-slate-600">Hệ thống Tự động Đối soát Chứng từ</p>
+                <p className="text-[11px] font-normal text-fg-muted">Hệ thống Tự động Đối soát Chứng từ</p>
               </div>
-              <div className="text-center sm:text-right text-[11px] text-slate-900">
+              <div className="text-center sm:text-right text-[11px] text-fg">
                 <p className="font-bold uppercase tracking-wide">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
                 <p className="italic font-medium">Độc lập - Tự do - Hạnh phúc</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">Mẫu số: 03-DS/KT-2026</p>
+                <p className="text-[10px] text-fg-subtle mt-0.5">Mẫu số: 03-DS/KT-2026</p>
               </div>
             </div>
 
@@ -1015,7 +1016,7 @@ export default function ReconciliationReportModal({
               </h1>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs text-slate-600">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs text-fg-muted">
               <span>Thời điểm xuất: <strong>{timeStr}</strong></span>
               <span>Người lập biểu: <strong>{accountantName}</strong></span>
               <span>Kỳ báo cáo: <strong>{periodLabel}</strong></span>
@@ -1027,56 +1028,56 @@ export default function ReconciliationReportModal({
 
           {/* Section I: Thống kê chỉ số */}
           <div className="mt-5">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
+            <h2 className="text-sm font-bold text-black border-b-2 border-black pb-1 mb-2.5">
               I. Tổng hợp chỉ số
             </h2>
 
             <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Tổng số batch</p>
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Tổng số batch</p>
                 <p className="mt-0.5 text-lg font-bold text-black tabular-nums">{totalBatches}</p>
               </div>
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Khớp hoàn toàn</p>
-                <p className="mt-0.5 text-lg font-bold text-emerald-700 tabular-nums">
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Khớp hoàn toàn</p>
+                <p className="mt-0.5 text-lg font-bold text-tone-success-fg tabular-nums">
                   {reportSummary.matched || 0}
                 </p>
               </div>
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Có sai lệch</p>
-                <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Có sai lệch</p>
+                <p className="mt-0.5 text-lg font-bold text-tone-danger-fg tabular-nums">
                   {reportSummary.mismatch || 0}
                 </p>
               </div>
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Tỉ lệ khớp TB</p>
-                <p className="mt-0.5 text-lg font-bold text-blue-800 tabular-nums">
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Tỉ lệ khớp TB</p>
+                <p className="mt-0.5 text-lg font-bold text-tone-info-fg tabular-nums">
                   {reportSummary.avgMatchRate}%
                 </p>
               </div>
             </div>
 
             <div className="mt-2 grid grid-cols-4 gap-2 sm:gap-3 text-center">
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Thiếu dữ liệu</p>
-                <p className="mt-0.5 text-lg font-bold text-amber-700 tabular-nums">
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Thiếu dữ liệu</p>
+                <p className="mt-0.5 text-lg font-bold text-tone-warning-fg tabular-nums">
                   {reportSummary.missing || 0}
                 </p>
               </div>
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Đã duyệt</p>
-                <p className="mt-0.5 text-lg font-bold text-blue-700 tabular-nums">
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Đã duyệt</p>
+                <p className="mt-0.5 text-lg font-bold text-tone-info-fg tabular-nums">
                   {reportSummary.approved || 0}
                 </p>
               </div>
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Cần xử lý</p>
-                <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Cần xử lý</p>
+                <p className="mt-0.5 text-lg font-bold text-tone-danger-fg tabular-nums">
                   {reportSummary.needsAction || 0}
                 </p>
               </div>
-              <div className="rounded border border-gray-300 bg-gray-50 p-2.5">
-                <p className="text-[11px] font-medium text-gray-600">Lệch / thiếu</p>
+              <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
+                <p className="text-[11px] font-medium text-fg-muted">Lệch / thiếu</p>
                 <p className="mt-0.5 text-lg font-bold text-black tabular-nums">
                   {reportSummary.mismatchFields}/{reportSummary.missingFields}
                 </p>
@@ -1086,31 +1087,31 @@ export default function ReconciliationReportModal({
 
           {/* Section II: Lỗi nổi bật */}
           <div className="mt-5">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
+            <h2 className="text-sm font-bold text-black border-b-2 border-black pb-1 mb-2.5">
               II. Lỗi đối soát nổi bật
             </h2>
 
-            <div className="rounded border border-gray-400 overflow-hidden">
+            <div className="rounded border border-tone-neutral-line overflow-hidden">
               <table className="w-full table-auto border-collapse text-left text-[11px] leading-tight">
                 <thead>
-                  <tr className="border-b border-gray-400 bg-gray-100 font-bold text-black">
-                    <th className="px-2 py-2 w-8 border-r border-gray-300 text-center">STT</th>
-                    <th className="px-2.5 py-2 border-r border-gray-300">Nhóm lỗi</th>
+                  <tr className="border-b border-tone-neutral-line bg-surface-muted font-bold text-black">
+                    <th className="px-2 py-2 w-8 border-r border-tone-neutral-line text-center">STT</th>
+                    <th className="px-2.5 py-2 border-r border-tone-neutral-line">Nhóm lỗi</th>
                     <th className="px-2.5 py-2 w-20 text-right">Số batch</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-300">
+                <tbody className="divide-y divide-tone-neutral-line">
                   {issueStats.length > 0 ? (
                     issueStats.map((item, index) => (
                       <tr key={item.label}>
-                        <td className="px-2 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">{index + 1}</td>
-                        <td className="px-2.5 py-1.5 font-medium text-gray-900 border-r border-gray-300">{item.label}</td>
+                        <td className="px-2 py-1.5 text-center font-medium text-fg-muted border-r border-tone-neutral-line">{index + 1}</td>
+                        <td className="px-2.5 py-1.5 font-medium text-fg border-r border-tone-neutral-line">{item.label}</td>
                         <td className="px-2.5 py-1.5 text-right font-bold tabular-nums text-black">{item.count}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="px-4 py-5 text-center text-gray-500 italic">
+                      <td colSpan={3} className="px-4 py-5 text-center text-fg-subtle italic">
                         Không phát sinh lỗi trong phạm vi báo cáo.
                       </td>
                     </tr>
@@ -1122,37 +1123,37 @@ export default function ReconciliationReportModal({
 
           {/* Section III: Nhà cung cấp */}
           <div className="mt-5">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
+            <h2 className="text-sm font-bold text-black border-b-2 border-black pb-1 mb-2.5">
               III. Tổng hợp theo nhà cung cấp
             </h2>
 
-            <div className="rounded border border-gray-400 overflow-hidden">
+            <div className="rounded border border-tone-neutral-line overflow-hidden">
               <table className="w-full table-auto border-collapse text-left text-[11px] leading-tight">
                 <thead>
-                  <tr className="border-b border-gray-400 bg-gray-100 font-bold text-black text-center">
-                    <th className="px-2 py-2 w-8 border-r border-gray-300">STT</th>
-                    <th className="px-2.5 py-2 text-left border-r border-gray-300">Nhà cung cấp</th>
-                    <th className="px-2.5 py-2 w-16 text-right border-r border-gray-300">Batch</th>
-                    <th className="px-2.5 py-2 w-16 text-right border-r border-gray-300">Khớp</th>
-                    <th className="px-2.5 py-2 w-20 text-right border-r border-gray-300">Cần xử lý</th>
+                  <tr className="border-b border-tone-neutral-line bg-surface-muted font-bold text-black text-center">
+                    <th className="px-2 py-2 w-8 border-r border-tone-neutral-line">STT</th>
+                    <th className="px-2.5 py-2 text-left border-r border-tone-neutral-line">Nhà cung cấp</th>
+                    <th className="px-2.5 py-2 w-16 text-right border-r border-tone-neutral-line">Batch</th>
+                    <th className="px-2.5 py-2 w-16 text-right border-r border-tone-neutral-line">Khớp</th>
+                    <th className="px-2.5 py-2 w-20 text-right border-r border-tone-neutral-line">Cần xử lý</th>
                     <th className="px-2.5 py-2 w-20 text-right">Match TB</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-300">
+                <tbody className="divide-y divide-tone-neutral-line">
                   {supplierStats.length > 0 ? (
                     supplierStats.map((item, index) => (
                       <tr key={item.supplier}>
-                        <td className="px-2 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">{index + 1}</td>
-                        <td className="px-2.5 py-1.5 font-bold text-black border-r border-gray-300">{item.supplier}</td>
-                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-gray-300">{item.total}</td>
-                        <td className="px-2.5 py-1.5 text-right font-bold text-emerald-700 tabular-nums border-r border-gray-300">{item.matched}</td>
-                        <td className="px-2.5 py-1.5 text-right font-bold text-rose-700 tabular-nums border-r border-gray-300">{item.needsAction}</td>
+                        <td className="px-2 py-1.5 text-center font-medium text-fg-muted border-r border-tone-neutral-line">{index + 1}</td>
+                        <td className="px-2.5 py-1.5 font-bold text-black border-r border-tone-neutral-line">{item.supplier}</td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-tone-neutral-line">{item.total}</td>
+                        <td className="px-2.5 py-1.5 text-right font-bold text-tone-success-fg tabular-nums border-r border-tone-neutral-line">{item.matched}</td>
+                        <td className="px-2.5 py-1.5 text-right font-bold text-tone-danger-fg tabular-nums border-r border-tone-neutral-line">{item.needsAction}</td>
                         <td className="px-2.5 py-1.5 text-right font-bold text-black tabular-nums">{item.avg}%</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-4 py-5 text-center text-gray-500 italic">
+                      <td colSpan={6} className="px-4 py-5 text-center text-fg-subtle italic">
                         Không có dữ liệu nhà cung cấp trong phạm vi báo cáo.
                       </td>
                     </tr>
@@ -1164,24 +1165,24 @@ export default function ReconciliationReportModal({
 
           {/* Section IV: Bảng chi tiết */}
           <div className="mt-5">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-black border-l-4 border-black pl-2.5 mb-2.5">
+            <h2 className="text-sm font-bold text-black border-b-2 border-black pb-1 mb-2.5">
               IV. Chi tiết đối soát
             </h2>
 
-            <div className="rounded border border-gray-400 overflow-hidden">
+            <div className="rounded border border-tone-neutral-line overflow-hidden">
               <table className="w-full table-fixed border-collapse text-left text-[11px] leading-tight">
                 <thead>
-                  <tr className="border-b border-gray-400 bg-gray-100 font-bold text-black text-center">
-                    <th className="w-[6%] px-1.5 py-2 border-r border-gray-300">STT</th>
-                    <th className="w-[24%] px-2 py-2 text-left border-r border-gray-300">Mã Batch</th>
-                    <th className="w-[22%] px-2 py-2 text-left border-r border-gray-300">Nhà cung cấp</th>
-                    <th className="w-[15%] px-1.5 py-2 border-r border-gray-300">Bộ chứng từ</th>
-                    <th className="w-[8%] px-1.5 py-2 text-right border-r border-gray-300">Tỷ lệ khớp</th>
-                    <th className="w-[14%] px-1.5 py-2 text-center border-r border-gray-300">Trạng thái</th>
+                  <tr className="border-b border-tone-neutral-line bg-surface-muted font-bold text-black text-center">
+                    <th className="w-[6%] px-1.5 py-2 border-r border-tone-neutral-line">STT</th>
+                    <th className="w-[24%] px-2 py-2 text-left border-r border-tone-neutral-line">Mã Batch</th>
+                    <th className="w-[22%] px-2 py-2 text-left border-r border-tone-neutral-line">Nhà cung cấp</th>
+                    <th className="w-[15%] px-1.5 py-2 border-r border-tone-neutral-line">Bộ chứng từ</th>
+                    <th className="w-[8%] px-1.5 py-2 text-right border-r border-tone-neutral-line">Tỷ lệ khớp</th>
+                    <th className="w-[14%] px-1.5 py-2 text-center border-r border-tone-neutral-line">Trạng thái</th>
                     <th className="w-[11%] px-1.5 py-2 text-left">Ghi chú</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-300">
+                <tbody className="divide-y divide-tone-neutral-line">
                   {reportBatches.length > 0 ? (
                     reportBatches.map((batch, index) => {
                       const statusMeta = getStatusBadgeText(batch.status);
@@ -1196,40 +1197,40 @@ export default function ReconciliationReportModal({
                       ].filter(Boolean).join(' · ') || 'Chưa đủ';
 
                       return (
-                        <tr key={batch.id} className="hover:bg-gray-50/80">
-                          <td className="px-1.5 py-1.5 text-center font-medium text-gray-700 border-r border-gray-300">
+                        <tr key={batch.id} className="hover:bg-surface-muted">
+                          <td className="px-1.5 py-1.5 text-center font-medium text-fg-muted border-r border-tone-neutral-line">
                             {index + 1}
                           </td>
-                          <td className="break-words px-2 py-1.5 font-bold text-black border-r border-gray-300">
+                          <td className="break-words px-2 py-1.5 font-bold text-black border-r border-tone-neutral-line">
                             {batch.batchNumber}
                           </td>
-                          <td className="whitespace-normal break-words px-2 py-1.5 font-medium leading-snug text-gray-900 border-r border-gray-300">
+                          <td className="whitespace-normal break-words px-2 py-1.5 font-medium leading-snug text-fg border-r border-tone-neutral-line">
                             {repairVietnameseText(supplier)}
                           </td>
-                          <td className="px-1.5 py-1.5 text-center border-r border-gray-300 text-gray-700">
+                          <td className="px-1.5 py-1.5 text-center border-r border-tone-neutral-line text-fg-muted">
                             {docsPresent}
                           </td>
-                          <td className="px-1.5 py-1.5 text-right font-bold tabular-nums border-r border-gray-300 text-black">
+                          <td className="px-1.5 py-1.5 text-right font-bold tabular-nums border-r border-tone-neutral-line text-black">
                             {batch.matchRate}%
                           </td>
-                          <td className="px-1.5 py-1.5 text-center border-r border-gray-300">
+                          <td className="px-1.5 py-1.5 text-center border-r border-tone-neutral-line">
                             <span className={`inline-flex max-w-full items-center justify-center rounded px-1 py-0.5 text-[9px] font-semibold leading-tight border ${statusMeta.color}`}>
                               {statusMeta.label}
                             </span>
                           </td>
-                          <td className="break-words px-1.5 py-1.5 text-gray-800">
+                          <td className="break-words px-1.5 py-1.5 text-fg">
                             {batch.issues && batch.issues.length > 0 ? (
-                              <ul className="list-disc pl-3 text-[10px] text-rose-700 space-y-0.5">
+                              <ul className="list-disc pl-3 text-[10px] text-tone-danger-fg space-y-0.5">
                                 {batch.issues.map((issue, i) => (
                                   <li key={i}>{repairVietnameseText(issue)}</li>
                                 ))}
                               </ul>
                             ) : batch.status === 'matched' ? (
-                              <span className="text-emerald-700 text-[10px]">Khớp 100% các trường</span>
+                              <span className="text-tone-success-fg text-[10px]">Khớp 100% các trường</span>
                             ) : batch.status === 'missing' ? (
-                              <span className="text-amber-700 text-[10px]">Thiếu chứng từ</span>
+                              <span className="text-tone-warning-fg text-[10px]">Thiếu chứng từ</span>
                             ) : (
-                              <span className="text-gray-400 text-[10px]">-</span>
+                              <span className="text-fg-subtle text-[10px]">-</span>
                             )}
                           </td>
                         </tr>
@@ -1237,7 +1238,7 @@ export default function ReconciliationReportModal({
                     })
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500 italic">
+                      <td colSpan={7} className="px-4 py-8 text-center text-fg-subtle italic">
                         Không có dữ liệu batch nào trong phạm vi báo cáo.
                       </td>
                     </tr>
@@ -1249,7 +1250,7 @@ export default function ReconciliationReportModal({
 
           {/* Section III: Chữ ký & Phê duyệt */}
           <div className="mt-8 pt-4">
-            <div className="flex justify-end text-xs italic text-gray-700 mb-3">
+            <div className="flex justify-end text-xs italic text-fg-muted mb-3">
               {dateStr}
             </div>
 
@@ -1258,7 +1259,7 @@ export default function ReconciliationReportModal({
                 <p className="text-xs font-bold uppercase tracking-wider text-black">
                   Người Lập Biểu
                 </p>
-                <p className="text-[10px] italic text-gray-600">
+                <p className="text-[10px] italic text-fg-muted">
                   (Ký, họ tên)
                 </p>
                 <div className="h-16" />
@@ -1271,7 +1272,7 @@ export default function ReconciliationReportModal({
                 <p className="text-xs font-bold uppercase tracking-wider text-black">
                   Kế Toán Trưởng
                 </p>
-                <p className="text-[10px] italic text-gray-600">
+                <p className="text-[10px] italic text-fg-muted">
                   (Ký, họ tên, đóng dấu)
                 </p>
                 <div className="h-16" />

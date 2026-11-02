@@ -20,6 +20,7 @@ import { cn, useToast } from './ui/index.js';
 
 const AUTH_STORAGE_KEY = 'docusync_auth';
 const THEME_STORAGE_KEY = 'docusync_theme';
+const SIDEBAR_STORAGE_KEY = 'docusync_sidebar';
 // Trang mẫu giao diện chỉ có khi chạy dev hoặc build với VITE_STYLEGUIDE=true.
 const SHOW_STYLEGUIDE = import.meta.env.DEV || import.meta.env.VITE_STYLEGUIDE === 'true';
 
@@ -50,7 +51,14 @@ function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
 
 export default function App() {
   const toast = useToast();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Mặc định là thanh icon hẹp để dành chỗ cho bảng đối chiếu; người dùng mở rộng thì nhớ lựa chọn.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) !== 'expanded';
+    } catch {
+      return true;
+    }
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [auth, setAuth] = useState(getInitialAuth);
   const [theme, setTheme] = useState(getInitialTheme);
@@ -135,7 +143,7 @@ export default function App() {
   const homePath = getHomePath(role);
 
   return (
-    <div className="min-h-screen bg-canvas text-fg transition-colors duration-200">
+    <div className="min-h-screen bg-canvas bg-[linear-gradient(180deg,rgb(var(--c-accent-soft))_0%,rgb(var(--c-canvas))_28rem)] bg-no-repeat text-fg transition-colors duration-200">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80] focus:rounded-control focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-fg"
@@ -149,7 +157,16 @@ export default function App() {
         onClose={() => setMobileMenuOpen(false)}
         compact={compactSidebar}
         canToggle={isDesktop}
-        onToggleCompact={() => setSidebarCollapsed((collapsed) => !collapsed)}
+        onToggleCompact={() =>
+          setSidebarCollapsed((collapsed) => {
+            try {
+              window.localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? 'expanded' : 'collapsed');
+            } catch {
+              // Trình duyệt chặn lưu trữ: chỉ không nhớ lựa chọn, vẫn đổi được.
+            }
+            return !collapsed;
+          })
+        }
         token={auth.access_token}
         user={auth.user}
         onLogout={handleLogout}
@@ -161,13 +178,13 @@ export default function App() {
       <div
         className={cn(
           'flex min-h-screen min-w-0 flex-col transition-[margin] duration-200',
-          useDrawer ? 'ml-0' : compactSidebar ? 'ml-[68px]' : 'ml-[260px]',
+          useDrawer ? 'ml-0' : compactSidebar ? 'ml-16' : 'ml-[260px]',
         )}
       >
         {useDrawer && (
           <AppHeader token={auth.access_token} menuOpen={mobileMenuOpen} onOpenMenu={() => setMobileMenuOpen(true)} />
         )}
-        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 focus:outline-none md:px-6 md:py-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1480px] flex-1 px-4 py-5 focus:outline-none md:px-6 md:py-6">
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path={ROUTES.login} element={<Navigate to={homePath} replace />} />

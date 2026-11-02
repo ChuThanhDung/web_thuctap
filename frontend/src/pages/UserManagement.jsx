@@ -61,13 +61,13 @@ function UserAvatar({ user }) {
         src={avatarUrl}
         alt={fullName}
         onError={() => setImageError(true)}
-        className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+        className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-line"
       />
     );
   }
 
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-tone-brand-bg text-sm font-bold text-tone-brand-fg">
       {getInitials(fullName) || 'U'}
     </div>
   );
@@ -76,12 +76,8 @@ function UserAvatar({ user }) {
 function RoleBadge({ role }) {
   const isChief = role === 'chief_accountant';
   return (
-    <span className={`inline-flex whitespace-nowrap text-sm font-semibold ${
-      isChief
-        ? 'text-amber-700 dark:text-amber-300'
-        : 'text-blue-700 dark:text-blue-300'
-    }`}>
-      {isChief ? 'KT_Trưởng' : 'KT_Viên'}
+    <span className={`inline-flex whitespace-nowrap text-sm ${isChief ? 'font-semibold text-fg' : 'text-fg-muted'}`}>
+      {isChief ? 'Kế toán trưởng' : 'Kế toán viên'}
     </span>
   );
 }
@@ -89,12 +85,12 @@ function RoleBadge({ role }) {
 function StatusBadge({ status }) {
   const isActive = status === 'ACTIVE';
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+    <span className={`inline-flex whitespace-nowrap rounded-control px-2 py-0.5 text-xs font-semibold ${
       isActive
-        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+        ? 'bg-tone-success-bg text-tone-success-fg'
+        : 'bg-surface-muted text-fg-muted'
     }`}>
-      {isActive ? 'Active' : 'Deactive'}
+      {isActive ? 'Đang hoạt động' : 'Đã khóa'}
     </span>
   );
 }
@@ -281,7 +277,7 @@ export default function UserManagement({ token, currentUser }) {
       setError('');
       if (accountAction.type === 'deactivate') {
         await deactivateUserAccount(token, accountAction.user.id);
-        setMessage('Đã chuyển tài khoản sang Deactive.');
+        setMessage('Đã chuyển tài khoản sang Ngừng hoạt động.');
       } else {
         await activateUserAccount(token, accountAction.user.id);
         setMessage('Đã kích hoạt lại tài khoản.');
@@ -313,42 +309,42 @@ export default function UserManagement({ token, currentUser }) {
       />
 
       {(message || error) && (
-        <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+        <div className={`rounded-card border px-4 py-3 text-sm font-medium ${
           error
-            ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300'
-            : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
+            ? 'border-tone-danger-line bg-tone-danger-bg text-tone-danger-fg'
+            : 'border-tone-success-line bg-tone-success-bg text-tone-success-fg'
         }`}>
           {error || message}
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:p-4">
+      <div className="rounded-card border border-line bg-surface p-3 shadow-card lg:p-4">
         <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-row lg:items-center lg:gap-3">
           <div className="relative col-span-2 min-w-0 lg:flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Tìm theo tên, email, số điện thoại, CCCD, địa chỉ..."
-              className="input-field h-9 rounded-md pl-9 text-xs lg:h-auto lg:text-sm"
+              className="input-field h-9 rounded-control pl-9 text-xs lg:h-auto lg:text-sm"
             />
           </div>
-          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="input-field h-9 rounded-md text-xs lg:h-auto lg:w-52 lg:text-sm">
+          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="input-field h-9 rounded-control text-xs lg:h-auto lg:w-52 lg:text-sm">
             <option value="all">Tất cả vai trò</option>
             <option value="chief_accountant">Kế toán trưởng</option>
             <option value="accountant">Kế toán viên</option>
           </select>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input-field h-9 rounded-md text-xs lg:h-auto lg:w-44 lg:text-sm">
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input-field h-9 rounded-control text-xs lg:h-auto lg:w-44 lg:text-sm">
             <option value="all">Tất cả trạng thái</option>
-            <option value="ACTIVE">Active</option>
-            <option value="DEACTIVE">Deactive</option>
+            <option value="ACTIVE">Đang hoạt động</option>
+            <option value="DEACTIVE">Đã khóa</option>
           </select>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-2 py-16 text-sm text-fg-subtle">
             <Loader2 className="animate-spin" size={20} />
             Đang tải danh sách...
           </div>
@@ -365,40 +361,40 @@ export default function UserManagement({ token, currentUser }) {
                 <col className="w-[9%]" />
                 <col className="w-[11%]" />
               </colgroup>
-              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/50">
+              <thead className="border-b-2 border-primary">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Người dùng</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Số điện thoại</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">CCCD</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Địa chỉ</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Role</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">Trạng thái</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">Thao tác</th>
+                  <th className="px-4 py-3 text-left font-semibold text-fg-subtle">Người dùng</th>
+                  <th className="px-4 py-3 text-left font-semibold text-fg-subtle">Số điện thoại</th>
+                  <th className="px-4 py-3 text-left font-semibold text-fg-subtle">CCCD</th>
+                  <th className="px-4 py-3 text-left font-semibold text-fg-subtle">Địa chỉ</th>
+                  <th className="px-4 py-3 text-left font-semibold text-fg-subtle">Vai trò</th>
+                  <th className="px-4 py-3 text-left font-semibold text-fg-subtle">Trạng thái</th>
+                  <th className="px-3 py-3 text-right font-semibold text-fg-subtle">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line">
                 {paginatedUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/50">
+                  <tr key={user.id} className="hover:bg-surface-muted">
                     <td className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <UserAvatar user={user} />
                         <div className="min-w-0">
-                          <p className="truncate font-bold text-slate-900 dark:text-slate-100">{repairVietnameseText(user.full_name)}</p>
-                          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">
+                          <p className="truncate font-bold text-fg">{repairVietnameseText(user.full_name)}</p>
+                          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-fg-subtle">
                             <Mail size={12} />
                             {user.email}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-3 text-fg-muted">
                       <span className="inline-flex min-w-0 items-center gap-1">
                         <Phone size={13} />
                         <span className="truncate">{user.phone || '-'}</span>
                       </span>
                     </td>
-                    <td className="truncate px-4 py-3 text-slate-600 dark:text-slate-300">{user.citizen_id || '-'}</td>
-                    <td className="max-w-[260px] px-4 py-3 text-slate-600 dark:text-slate-300">
+                    <td className="truncate px-4 py-3 text-fg-muted">{user.citizen_id || '-'}</td>
+                    <td className="max-w-[260px] px-4 py-3 text-fg-muted">
                       <span className="inline-flex min-w-0 items-center gap-1">
                         <MapPin size={13} className="shrink-0" />
                         <span className="truncate">{repairVietnameseText(user.address) || '-'}</span>
@@ -411,7 +407,7 @@ export default function UserManagement({ token, currentUser }) {
                         <button
                           type="button"
                           onClick={() => openEditModal(user)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-line bg-surface text-fg-muted shadow-card transition-colors hover:bg-surface-muted hover:text-fg"
                           title="Sửa tài khoản"
                           aria-label={`Sửa tài khoản ${repairVietnameseText(user.full_name)}`}
                         >
@@ -422,9 +418,9 @@ export default function UserManagement({ token, currentUser }) {
                             type="button"
                             onClick={() => requestDeactivate(user)}
                             disabled={String(user.id) === String(currentUser?.id)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            title="Chuyển sang Deactive"
-                            aria-label={`Chuyển ${repairVietnameseText(user.full_name)} sang Deactive`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-tone-danger-line bg-tone-danger-bg text-tone-danger-fg transition-colors hover:bg-tone-danger-bg/70 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Chuyển sang Ngừng hoạt động"
+                            aria-label={`Chuyển ${repairVietnameseText(user.full_name)} sang Ngừng hoạt động`}
                           >
                             <X size={14} />
                           </button>
@@ -432,7 +428,7 @@ export default function UserManagement({ token, currentUser }) {
                           <button
                             type="button"
                             onClick={() => requestActivate(user)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-700"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-tone-success-line bg-tone-success-bg text-tone-success-fg transition-colors hover:bg-tone-success-bg/70"
                             title="Kích hoạt lại"
                             aria-label={`Kích hoạt lại ${repairVietnameseText(user.full_name)}`}
                           >
@@ -448,15 +444,15 @@ export default function UserManagement({ token, currentUser }) {
             </div>
             <div className="space-y-3 p-3 lg:hidden">
               {paginatedUsers.map((user) => (
-                <div key={user.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_1px_3px_rgba(0,55,112,0.06)] dark:border-slate-800 dark:bg-slate-900">
+                <div key={user.id} className="rounded-card border border-line bg-surface p-3 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
                       <UserAvatar user={user} />
                       <div className="min-w-0">
-                        <p className="break-words text-sm font-bold text-slate-900 dark:text-slate-100">
+                        <p className="break-words text-sm font-bold text-fg">
                           {repairVietnameseText(user.full_name)}
                         </p>
-                        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-fg-subtle">
                           <Mail size={12} className="shrink-0" />
                           <span className="truncate">{user.email}</span>
                         </p>
@@ -466,7 +462,7 @@ export default function UserManagement({ token, currentUser }) {
                       <button
                         type="button"
                         onClick={() => openEditModal(user)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-control border border-line bg-surface text-fg-muted shadow-card transition-colors hover:bg-surface-muted hover:text-fg"
                         title="Sửa tài khoản"
                         aria-label={`Sửa tài khoản ${repairVietnameseText(user.full_name)}`}
                       >
@@ -477,9 +473,9 @@ export default function UserManagement({ token, currentUser }) {
                           type="button"
                           onClick={() => requestDeactivate(user)}
                           disabled={String(user.id) === String(currentUser?.id)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          title="Chuyển sang Deactive"
-                          aria-label={`Chuyển ${repairVietnameseText(user.full_name)} sang Deactive`}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-control border border-tone-danger-line bg-tone-danger-bg text-tone-danger-fg transition-colors hover:bg-tone-danger-bg/70 disabled:cursor-not-allowed disabled:opacity-50"
+                          title="Chuyển sang Ngừng hoạt động"
+                          aria-label={`Chuyển ${repairVietnameseText(user.full_name)} sang Ngừng hoạt động`}
                         >
                           <X size={15} />
                         </button>
@@ -487,7 +483,7 @@ export default function UserManagement({ token, currentUser }) {
                         <button
                           type="button"
                           onClick={() => requestActivate(user)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-700"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-control border border-tone-success-line bg-tone-success-bg text-tone-success-fg transition-colors hover:bg-tone-success-bg/70"
                           title="Kích hoạt lại"
                           aria-label={`Kích hoạt lại ${repairVietnameseText(user.full_name)}`}
                         >
@@ -505,10 +501,10 @@ export default function UserManagement({ token, currentUser }) {
               ))}
             </div>
             {filteredUsers.length === 0 && (
-              <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">Không tìm thấy người dùng phù hợp.</div>
+              <div className="py-16 text-center text-sm text-fg-subtle">Không tìm thấy người dùng phù hợp.</div>
             )}
             {filteredUsers.length > USERS_PER_PAGE && (
-              <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-line px-4 py-3 text-sm text-fg-subtle sm:flex-row sm:items-center sm:justify-between">
                 <span>
                   Hiển thị {startIndex}-{endIndex} / {filteredUsers.length} tài khoản
                 </span>
@@ -517,18 +513,18 @@ export default function UserManagement({ token, currentUser }) {
                     type="button"
                     onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                     disabled={safePage === 1}
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-control border border-line px-3 py-1.5 font-semibold text-fg-muted transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Trước
                   </button>
-                  <span className="min-w-[88px] text-center font-semibold text-slate-700 dark:text-slate-200">
+                  <span className="min-w-[88px] text-center font-semibold text-fg-muted">
                     Trang {safePage}/{totalPages}
                   </span>
                   <button
                     type="button"
                     onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                     disabled={safePage === totalPages}
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-control border border-line px-3 py-1.5 font-semibold text-fg-muted transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Sau
                   </button>
@@ -540,33 +536,33 @@ export default function UserManagement({ token, currentUser }) {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm sm:p-4">
-          <form onSubmit={handleSubmit} className="max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-3 backdrop-blur-sm sm:p-4">
+          <form onSubmit={handleSubmit} className="max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-pop sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                <h2 className="text-lg font-bold text-fg">
                   {editingUser ? 'Sửa tài khoản' : 'Tạo tài khoản'}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Thông tin được lưu trực tiếp xuống database.</p>
+                <p className="mt-1 text-sm text-fg-subtle">Thông tin được lưu trực tiếp xuống database.</p>
               </div>
-              <button type="button" onClick={closeModal} className="btn-ghost h-8 w-8 rounded-lg p-0" aria-label="Đóng">
+              <button type="button" onClick={closeModal} className="btn-ghost h-8 w-8 rounded-control p-0" aria-label="Đóng">
                 <X size={18} />
               </button>
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
               {error && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 md:col-span-2 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+                <div className="rounded-control border border-tone-danger-line bg-tone-danger-bg px-3 py-2 text-sm font-semibold text-tone-danger-fg md:col-span-2">
                   {error}
                 </div>
               )}
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Email</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Email</span>
                 <input type="email" required value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="input-field" />
               </label>
               {!editingUser && (
                 <label className="block">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">Mật khẩu</span>
+                  <span className="mb-1 block text-xs font-semibold text-fg-subtle">Mật khẩu</span>
                   <div className="relative">
                     <input
                       type={passwordVisible ? 'text' : 'password'}
@@ -579,7 +575,7 @@ export default function UserManagement({ token, currentUser }) {
                     <button
                       type="button"
                       onClick={() => setPasswordVisible((visible) => !visible)}
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-brand-600"
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-fg-subtle transition-colors hover:text-primary"
                       title={passwordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                       aria-label={passwordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                     >
@@ -589,18 +585,18 @@ export default function UserManagement({ token, currentUser }) {
                 </label>
               )}
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Họ và tên</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Họ và tên</span>
                 <input required value={form.full_name} onChange={(e) => updateForm('full_name', e.target.value)} className="input-field" />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Role</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Vai trò</span>
                 <select value={form.role_code} onChange={(e) => updateForm('role_code', e.target.value)} className="input-field">
                   <option value="chief_accountant">Kế toán trưởng</option>
                   <option value="accountant">Kế toán viên</option>
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Số điện thoại</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Số điện thoại</span>
                 <input
                   value={form.phone}
                   onChange={(e) => updateForm('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -611,7 +607,7 @@ export default function UserManagement({ token, currentUser }) {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Căn cước công dân</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Căn cước công dân</span>
                 <input
                   value={form.citizen_id}
                   onChange={(e) => updateForm('citizen_id', e.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -622,19 +618,19 @@ export default function UserManagement({ token, currentUser }) {
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Địa chỉ</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Địa chỉ</span>
                 <input required value={form.address} onChange={(e) => updateForm('address', e.target.value)} className="input-field" />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Phòng ban</span>
-                <input value="Phòng Kế toán - Tài chính" disabled className="input-field cursor-not-allowed bg-slate-100 text-slate-500" />
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Phòng ban</span>
+                <input value="Phòng Kế toán - Tài chính" disabled className="input-field cursor-not-allowed bg-surface-muted text-fg-subtle" />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-slate-500">Mã nhân viên</span>
+                <span className="mb-1 block text-xs font-semibold text-fg-subtle">Mã nhân viên</span>
                 <input
                   value={editingUser?.employee_code || (form.role_code === 'chief_accountant' ? 'Tự sinh: CHIEF-xxx' : 'Tự sinh: ACC-xxx')}
                   disabled
-                  className="input-field cursor-not-allowed bg-slate-100 text-slate-500"
+                  className="input-field cursor-not-allowed bg-surface-muted text-fg-subtle"
                 />
               </label>
             </div>

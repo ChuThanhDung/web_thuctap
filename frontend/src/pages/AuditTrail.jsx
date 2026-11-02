@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
-  ClipboardList,
-  Clock3,
   Eye,
   FileSearch,
   FileText,
@@ -25,66 +23,52 @@ import {
   updateCachedBatchItem,
 } from '../services/batchCache.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import LineItemCopies from '../components/LineItemCopies.jsx';
+import FieldComparisonTable from '../components/FieldComparisonTable.jsx';
+import ApprovalConfirmBody from '../components/ApprovalConfirmBody.jsx';
 import FilePreviewModal from '../components/FilePreviewModal.jsx';
 import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
+import BatchListItem, { BatchMetaLine, ForeignCopyNotice } from '../components/BatchListItem.jsx';
 import ReconciliationReportModal from '../components/ReconciliationReportModal.jsx';
 import {
+  aggregateExtractedData,
   calculateMatchSummary,
   compareDocumentField,
   comparisonStatusToResult,
+  compareAmountResult,
   compareValues as compareRawValues,
   getComparisonCellClass,
   getGrnTotalAdjustment,
   inferVatRate,
+  detectForeignCopy,
+  resolveMatchStatus,
   toNumber,
 } from '../reconciliationCompare.js';
 import { repairTextDeep } from '../text.js';
-import { Button, PageHeader } from '../ui/index.js';
-
-const STATUS_META = {
-  missing: {
-    label: 'Thiếu dữ liệu',
-    tone: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
-    rail: 'bg-amber-500',
-  },
-  matching: {
-    label: 'Đang đối soát',
-    tone: 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/50 dark:text-brand-300',
-    rail: 'bg-brand-500',
-  },
-  matched: {
-    label: 'Khớp hoàn toàn',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300',
-    rail: 'bg-emerald-500',
-  },
-  approved: {
-    label: 'Đã duyệt',
-    tone: 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300',
-    rail: 'bg-teal-500',
-  },
-  final_approved: {
-    label: 'Đã duyệt cuối',
-    tone: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300',
-    rail: 'bg-blue-500',
-  },
-  rejected: {
-    label: 'Đã từ chối',
-    tone: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300',
-    rail: 'bg-red-500',
-  },
-  mismatch: {
-    label: 'Lệch',
-    tone: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300',
-    rail: 'bg-rose-500',
-  },
-};
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
+import { Button, PageHeader, cn } from '../ui/index.js';
+import useMediaQuery from '../lib/useMediaQuery.js';
+import SignatureStrip from '../components/SignatureStrip.jsx';
+import { useToast } from '../ui/Toast.jsx';
+import { EXPORT_FONT_STACK } from '../lib/exportStyles.js';
+import { vi } from '../i18n/vi.js';
 
 const DOC_TYPES = [
   { key: 'po', short: 'PO', label: 'Đơn đặt hàng', icon: ShoppingCart },
-  { key: 'invoice', short: 'Invoice', label: 'Hóa đơn', icon: FileText },
+  { key: 'invoice', short: 'HĐ', label: 'Hóa đơn', icon: FileText },
   { key: 'grn', short: 'GRN', label: 'Phiếu nhập kho', icon: PackageCheck },
 ];
-const BATCHES_PER_PAGE = 5;
+// Đủ dài cho một ngày làm việc; trang sau vẫn tới được bằng ↓ ở dòng cuối.
+const BATCHES_PER_PAGE = 50;
+
+/** XML được đọc tại máy chủ, không gửi AI; PDF và ảnh qua AI trích xuất. */
+function getReadSource(files) {
+  const exts = files.map((item) => getFileExt(item.filename));
+  const xml = exts.filter((ext) => ext === 'xml').length;
+  if (xml === exts.length) return 'XML · đọc cục bộ, không gửi AI';
+  if (xml === 0) return 'PDF/ảnh · AI trích xuất';
+  return `${xml} XML đọc cục bộ, ${exts.length - xml} file AI trích xuất`;
+}
 
 function getFileExt(filename = '') {
   return filename.split('.').pop()?.toLowerCase() || '';
@@ -107,7 +91,7 @@ function buildXmlPreviewHtml(filename, xmlText) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(filename)}</title>
   <style>
-    body { margin: 0; background: #f6f9fc; color: #0d253d; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f6f9fc; color: #0d253d; font-family: ${EXPORT_FONT_STACK}; }
     header { position: sticky; top: 0; border-bottom: 1px solid #e3e8ee; background: rgba(255,255,255,.94); padding: 14px 20px; backdrop-filter: blur(12px); }
     h1 { margin: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 700; }
     main { padding: 20px; }
@@ -121,365 +105,33 @@ function buildXmlPreviewHtml(filename, xmlText) {
 </html>`;
 }
 
-const SAMPLE_BATCHES = [
-  {
-    id: 'batch-08',
-    batchNumber: 'BATCH_11_08_2026_08',
-    status: 'matched',
-    updatedAt: '2026-08-11 12:21:18',
-    owner: 'Chu Thanh DÅ©ng',
-    matchRate: 100,
-    checkedFields: 18,
-    matchedFields: 18,
-    mismatchFields: 0,
-    missingFields: 0,
-    decision: 'Có thể xác nhận ngay. Tất cả trường quan trọng giữa PO, Invoice và GRN đều khớp.',
-    docs: {
-      po: {
-        filename: 'po_11_08_2026_05.pdf',
-        extractedAt: '12:20:42',
-        confidence: 98,
-        fields: {
-          'Số chứng từ': 'PO-2026-0811-05',
-          'Nhà cung cấp': 'Công ty Minh An',
-          'Mã số thuế': '0312456789',
-          'Ngày chứng từ': '2026-08-10',
-          'Tổng tiền': '128,500,000 VND',
-        },
-      },
-      invoice: {
-        filename: 'invoice_11_08_2026_04.pdf',
-        extractedAt: '12:20:48',
-        confidence: 97,
-        fields: {
-          'Số chứng từ': 'INV-2026-0811-04',
-          'Nhà cung cấp': 'Công ty Minh An',
-          'Mã số thuế': '0312456789',
-          'Ngày chứng từ': '2026-08-11',
-          'Tổng tiền': '128,500,000 VND',
-        },
-      },
-      grn: {
-        filename: 'grn_11_08_2026_02.pdf',
-        extractedAt: '12:20:55',
-        confidence: 96,
-        fields: {
-          'Số chứng từ': 'GRN-2026-0811-02',
-          'Nhà cung cấp': 'Công ty Minh An',
-          'Mã số thuế': '0312456789',
-          'Ngày chứng từ': '2026-08-11',
-          'Tổng tiền': '128,500,000 VND',
-        },
-      },
-    },
-    comparisons: [
-      { field: 'Nhà cung cấp', po: 'Công ty Minh An', invoice: 'Công ty Minh An', grn: 'Công ty Minh An', result: 'Khớp', severity: 'ok' },
-      { field: 'Mã số thuế', po: '0312456789', invoice: '0312456789', grn: '0312456789', result: 'Khớp', severity: 'ok' },
-      { field: 'Mã hàng / Tên hàng', po: 'SKU-2241 - Mực in HP 107A', invoice: 'SKU-2241 - Mực in HP 107A', grn: 'SKU-2241 - Mực in HP 107A', result: 'Đúng chủng loại', severity: 'ok' },
-      { field: 'Đơn vị tính', po: 'Hộp', invoice: 'Hộp', grn: 'Hộp', result: 'Khớp', severity: 'ok' },
-      { field: 'Số lượng hàng', po: '1,240', invoice: '1,240', grn: '1,240', result: 'Khớp', severity: 'ok' },
-      { field: 'Đơn giá', po: '103,629', invoice: '103,629', grn: '-', result: 'Không vượt PO', severity: 'ok' },
-      { field: 'Thuế suất VAT', po: '8%', invoice: '8%', grn: '-', result: 'Khớp', severity: 'ok' },
-      { field: 'Tổng tiền', po: '128,500,000', invoice: '128,500,000', grn: '128,500,000', result: 'Khớp', severity: 'ok' },
-    ],
-    lineItems: [
-      {
-        sku: 'SKU-2241',
-        name: 'Mực in HP 107A',
-        unit: 'Hộp',
-        poQty: '720',
-        invoiceQty: '720',
-        grnQty: '720',
-        poPrice: '103,629',
-        invoicePrice: '103,629',
-        vat: '8%',
-        amount: '74,612,880',
-        result: 'Khớp',
-        severity: 'ok',
-      },
-      {
-        sku: 'SKU-2242',
-        name: 'Mực in Canon 2900',
-        unit: 'Hộp',
-        poQty: '520',
-        invoiceQty: '520',
-        grnQty: '520',
-        poPrice: '103,629',
-        invoicePrice: '103,629',
-        vat: '8%',
-        amount: '53,887,080',
-        result: 'Khớp',
-        severity: 'ok',
-      },
-    ],
-    issues: [],
-  },
-  {
-    id: 'batch-07',
-    batchNumber: 'BATCH_11_08_2026_07',
-    status: 'mismatch',
-    updatedAt: '2026-08-11 10:36:20',
-    owner: 'Lê Minh Trang',
-    matchRate: 82,
-    checkedFields: 18,
-    matchedFields: 14,
-    mismatchFields: 3,
-    missingFields: 1,
-    decision: 'Cần kiểm tra trước khi xác nhận vì Invoice cao hơn PO và batch còn thiếu GRN.',
-    docs: {
-      po: {
-        filename: 'po_11_08_2026_4.pdf',
-        extractedAt: '10:34:02',
-        confidence: 96,
-        fields: {
-          'Số chứng từ': 'PO-2026-0811-04',
-          'Nhà cung cấp': 'Tân Phát Logistics',
-          'Mã số thuế': '0109988776',
-          'Ngày chứng từ': '2026-08-09',
-          'Tổng tiền': '74,250,000 VND',
-        },
-      },
-      invoice: {
-        filename: 'invoice_11_08_2026_2.pdf',
-        extractedAt: '10:34:09',
-        confidence: 93,
-        fields: {
-          'Số chứng từ': 'INV-2026-0811-02',
-          'Nhà cung cấp': 'Tân Phát Logistic',
-          'Mã số thuế': '0109988776',
-          'Ngày chứng từ': '2026-08-11',
-          'Tổng tiền': '76,250,000 VND',
-        },
-      },
-      grn: { filename: '', missing: true, fields: {} },
-    },
-    comparisons: [
-      { field: 'Nhà cung cấp', po: 'Tân Phát Logistics', invoice: 'Tân Phát Logistic', grn: '-', result: 'Tên NCC khác 1 ký tự', severity: 'warning' },
-      { field: 'Mã hàng / Tên hàng', po: 'SKU-8830 - Pallet nhựa xanh', invoice: 'SKU-8830 - Pallet nhựa xanh', grn: '-', result: 'Chưa có GRN để xác nhận', severity: 'warning' },
-      { field: 'Đơn vị tính', po: 'Cái', invoice: 'Cái', grn: '-', result: 'Tạm khớp PO-Invoice', severity: 'ok' },
-      { field: 'Số lượng hàng', po: '150', invoice: '150', grn: '-', result: 'Thiếu GRN để chốt thực nhận', severity: 'warning' },
-      { field: 'Đơn giá', po: '495,000', invoice: '495,000', grn: '-', result: 'Không vượt PO', severity: 'ok' },
-      { field: 'Thuế suất VAT', po: '8%', invoice: '8%', grn: '-', result: 'Khớp', severity: 'ok' },
-      { field: 'Tổng tiền', po: '74,250,000', invoice: '76,250,000', grn: '-', result: 'Invoice cao hơn PO 2,000,000', severity: 'danger' },
-      { field: 'Phí vận chuyển', po: '0', invoice: '2,000,000', grn: '-', result: 'Invoice có phí ngoài PO', severity: 'danger' },
-      { field: 'GRN', po: 'Cần đối chiếu', invoice: 'Cần đối chiếu', grn: 'Thiếu', result: 'Chưa có phiếu nhập kho', severity: 'warning' },
-    ],
-    lineItems: [
-      {
-        sku: 'SKU-8830',
-        name: 'Pallet nhựa xanh',
-        unit: 'Cái',
-        poQty: '150',
-        invoiceQty: '150',
-        grnQty: '-',
-        poPrice: '495,000',
-        invoicePrice: '495,000',
-        vat: '8%',
-        amount: '74,250,000',
-        result: 'Thiếu GRN để chốt thực nhận',
-        severity: 'warning',
-      },
-      {
-        sku: 'FEE-SHIP',
-        name: 'Phí vận chuyển',
-        unit: 'Lần',
-        poQty: '0',
-        invoiceQty: '1',
-        grnQty: '-',
-        poPrice: '0',
-        invoicePrice: '2,000,000',
-        vat: '8%',
-        amount: '2,000,000',
-        result: 'Có phí ngoài PO',
-        severity: 'danger',
-      },
-    ],
-    issues: [
-      'Thiếu phiếu nhập kho GRN nên chưa kết luận được số lượng thực nhận.',
-      'Invoice cao hơn PO 2,000,000 VND do xuất hiện phí vận chuyển.',
-      'Tên nhà cung cấp trên Invoice thiếu chữ "s" so với PO.',
-    ],
-  },
-  {
-    id: 'batch-09',
-    batchNumber: 'BATCH_11_08_2026_09',
-    status: 'missing',
-    updatedAt: '2026-08-11 11:33:11',
-    owner: 'Nguyễn Hoàng Anh',
-    matchRate: 0,
-    checkedFields: 0,
-    matchedFields: 0,
-    mismatchFields: 0,
-    missingFields: 3,
-    decision: 'Chưa thể đối soát. Cần bổ sung đủ PO, Invoice và GRN.',
-    docs: {
-      po: { filename: '', missing: true, fields: {} },
-      invoice: { filename: '', missing: true, fields: {} },
-      grn: { filename: '', missing: true, fields: {} },
-    },
-    comparisons: [],
-    lineItems: [],
-    issues: ['Batch chưa có PO, Invoice và GRN. Cần bổ sung đủ 3 chứng từ để bắt đầu đối soát.'],
-  },
-  {
-    id: 'batch-06',
-    batchNumber: 'BATCH_11_08_2026_06',
-    status: 'matching',
-    updatedAt: '2026-08-11 10:34:42',
-    owner: 'Hệ thống AI',
-    matchRate: 64,
-    checkedFields: 11,
-    matchedFields: 7,
-    mismatchFields: 1,
-    missingFields: 3,
-    decision: 'Kết quả đang tạm thời. Hệ thống vẫn đọc bảng hàng hóa trong Invoice và GRN.',
-    docs: {
-      po: {
-        filename: 'po_11_08_2026_3.pdf',
-        extractedAt: '10:33:58',
-        confidence: 94,
-        fields: {
-          'Số chứng từ': 'PO-2026-0811-03',
-          'Nhà cung cấp': 'Hoa Bình Food',
-          'Tổng tiền': '43,890,000 VND',
-        },
-      },
-      invoice: {
-        filename: 'invoice_11_08_2026_1.xml',
-        extractedAt: '10:34:06',
-        confidence: 99,
-        fields: {
-          'Số chứng từ': 'INV-2026-0811-01',
-          'Nhà cung cấp': 'Hoa Bình Food',
-          'Tổng tiền': 'Đang đọc dòng hàng',
-        },
-      },
-      grn: {
-        filename: 'grn_11_08_2026_01.pdf',
-        extractedAt: 'Đang xử lý',
-        confidence: 71,
-        fields: { 'Trạng thái': 'Đang tách bảng hàng hóa' },
-      },
-    },
-    comparisons: [
-      { field: 'Nhà cung cấp', po: 'Hoa Bình Food', invoice: 'Hoa Bình Food', grn: 'Đang đọc', result: 'Tạm khớp PO-Invoice', severity: 'ok' },
-      { field: 'Mã hàng / Tên hàng', po: 'SKU-4410 - Bột mì số 11', invoice: 'SKU-4410 - Bột mì số 11', grn: 'Đang đọc', result: 'Chờ GRN hoàn tất', severity: 'warning' },
-      { field: 'Đơn vị tính', po: 'Bao', invoice: 'Bao', grn: 'Đang đọc', result: 'Chờ GRN hoàn tất', severity: 'warning' },
-      { field: 'Số lượng hàng', po: '300', invoice: 'Đang đọc', grn: 'Đang đọc', result: 'Chờ hệ thống hoàn tất', severity: 'warning' },
-      { field: 'Đơn giá', po: '146,300', invoice: 'Đang đọc', grn: '-', result: 'Chờ hệ thống hoàn tất', severity: 'warning' },
-      { field: 'Thuế suất VAT', po: '5%', invoice: 'Đang đọc', grn: '-', result: 'Chờ hệ thống hoàn tất', severity: 'warning' },
-      { field: 'Tổng tiền', po: '43,890,000', invoice: 'Đang đọc', grn: 'Đang đọc', result: 'Chờ hệ thống hoàn tất', severity: 'warning' },
-    ],
-    lineItems: [
-      {
-        sku: 'SKU-4410',
-        name: 'Bột mì số 11',
-        unit: 'Bao',
-        poQty: '300',
-        invoiceQty: 'Đang đọc',
-        grnQty: 'Đang đọc',
-        poPrice: '146,300',
-        invoicePrice: 'Đang đọc',
-        vat: '5%',
-        amount: '43,890,000',
-        result: 'Đang đối soát',
-        severity: 'warning',
-      },
-    ],
-    issues: ['Hệ thống đang đọc bảng hàng hóa trong Invoice và GRN. Kết quả hiện tại chỉ là tạm thời.'],
-  },
-  {
-    id: 'batch-05',
-    batchNumber: 'BATCH_11_08_2026_05',
-    status: 'mismatch',
-    updatedAt: '2026-08-11 10:17:03',
-    owner: 'Phạm Quốc Việt',
-    matchRate: 91,
-    checkedFields: 18,
-    matchedFields: 16,
-    mismatchFields: 2,
-    missingFields: 0,
-    decision: 'Có thể xử lý nếu xác nhận lại số lượng GRN và ngày nhập kho.',
-    docs: {
-      po: {
-        filename: 'po_11_08_2026_3.pdf',
-        extractedAt: '10:15:41',
-        confidence: 95,
-        fields: {
-          'Số chứng từ': 'PO-2026-0811-03',
-          'Nhà cung cấp': 'An Khang Supplies',
-          'Tổng tiền': '52,300,000 VND',
-        },
-      },
-      invoice: {
-        filename: 'invoice_11_08_2026_3.pdf',
-        extractedAt: '10:15:45',
-        confidence: 94,
-        fields: {
-          'Số chứng từ': 'INV-2026-0811-03',
-          'Nhà cung cấp': 'An Khang Supplies',
-          'Tổng tiền': '52,300,000 VND',
-        },
-      },
-      grn: {
-        filename: 'grn_11_08_2026_03.pdf',
-        extractedAt: '10:15:50',
-        confidence: 92,
-        fields: {
-          'Số chứng từ': 'GRN-2026-0811-03',
-          'Nhà cung cấp': 'An Khang Supplies',
-          'Tổng tiền': '52,300,000 VND',
-        },
-      },
-    },
-    comparisons: [
-      { field: 'Mã hàng / Tên hàng', po: 'SKU-1182 - Găng tay nitrile', invoice: 'SKU-1182 - Găng tay nitrile', grn: 'SKU-1182 - Găng tay nitrile', result: 'Đúng chủng loại', severity: 'ok' },
-      { field: 'Đơn vị tính', po: 'Hộp', invoice: 'Hộp', grn: 'Hộp', result: 'Khớp', severity: 'ok' },
-      { field: 'Số lượng hàng', po: '240 hộp', invoice: '240 hộp', grn: '236 hộp', result: 'GRN nhận thiếu 4 hộp', severity: 'danger' },
-      { field: 'Đơn giá', po: '217,917', invoice: '217,917', grn: '-', result: 'Không vượt PO', severity: 'ok' },
-      { field: 'Thuế suất VAT', po: '8%', invoice: '8%', grn: '-', result: 'Khớp', severity: 'ok' },
-      { field: 'Ngày chứng từ', po: '2026-08-08', invoice: '2026-08-11', grn: '2026-08-07', result: 'GRN trước ngày PO', severity: 'warning' },
-      { field: 'Tổng tiền', po: '52,300,000', invoice: '52,300,000', grn: '52,300,000', result: 'Khớp', severity: 'ok' },
-    ],
-    lineItems: [
-      {
-        sku: 'SKU-1182',
-        name: 'Găng tay nitrile',
-        unit: 'Hộp',
-        poQty: '240',
-        invoiceQty: '240',
-        grnQty: '236',
-        poPrice: '217,917',
-        invoicePrice: '217,917',
-        vat: '8%',
-        amount: '52,300,000',
-        result: 'GRN nhận thiếu 4 hộp',
-        severity: 'danger',
-      },
-      {
-        sku: 'SKU-1183',
-        name: 'Khẩu trang y tế 4 lớp',
-        unit: 'Thùng',
-        poQty: '80',
-        invoiceQty: '80',
-        grnQty: '80',
-        poPrice: '315,000',
-        invoicePrice: '315,000',
-        vat: '8%',
-        amount: '25,200,000',
-        result: 'Khớp',
-        severity: 'ok',
-      },
-    ],
-    issues: [
-      'GRN ghi nhận thiếu 4 hộp tại mã hàng SKU-1182.',
-      'Ngày nhập kho trên GRN sớm hơn ngày PO, cần kiểm tra lại chứng từ gốc.',
-    ],
-  },
-];
-
 function getCompletion(batch) {
   return DOC_TYPES.filter((docType) => !batch.docs[docType.key]?.missing).length;
+}
+
+// Kế toán viên duyệt cấp 1 được bộ khớp và bộ lệch nhỏ (chênh lệch tiền trong ngưỡng làm tròn), giống quy tắc ở backend.
+function canAccountantApprove(batch) {
+  return Boolean(batch) && ['matched', 'minor'].includes(batch.status) && batch.rawStatus !== 'rejected';
+}
+
+/** Vì sao bộ chưa duyệt được và cần làm gì; null khi duyệt được hoặc bộ đã qua bước duyệt cấp 1. */
+function getApproveBlockReason(batch) {
+  if (!batch || ['approved', 'final_approved', 'rejected'].includes(batch.rawStatus)) return null;
+  if (batch.foreignCopy) {
+    return `Chưa duyệt được: liên ${batch.foreignCopy.label} có vẻ thuộc giao dịch khác. Thay liên ${batch.foreignCopy.label} bằng chứng từ đúng.`;
+  }
+  if (batch.status === 'mismatch') {
+    const field = batch.comparisons?.find((item) => item.severity === 'danger')?.field
+      || (batch.lineItems?.some((item) => item.priceSeverity === 'danger') && 'đơn giá')
+      || (batch.lineItems?.some((item) => item.qtySeverity === 'danger') && 'số lượng')
+      || (batch.lineItems?.some((item) => item.amountSeverity === 'danger') && 'thành tiền');
+    const where = field ? ` ở ${String(field).toLowerCase()}` : '';
+    return `Chưa duyệt được: lệch lớn${where}. Cần nhà cung cấp điều chỉnh chứng từ, rồi bổ sung hoặc thay chứng từ.`;
+  }
+  if (batch.status === 'missing') {
+    return 'Chưa duyệt được: thiếu dữ liệu trích xuất ở một liên. Kiểm tra lại chứng từ hoặc thay bản rõ hơn.';
+  }
+  return null;
 }
 
 function isSameBatchId(left, right) {
@@ -545,44 +197,9 @@ function getOverviewFilterLabel(overviewFilter) {
     matched: 'Đã khớp',
     review: 'Cần xem',
     rejected: 'Từ chối',
-    incomplete: 'Batch chưa có hồ sơ',
+    incomplete: 'Chưa đủ chứng từ',
   };
   return labels[overviewFilter] || null;
-}
-
-function getStatusIcon(status) {
-  if (status === 'matched' || status === 'approved' || status === 'final_approved') return CheckCircle2;
-  if (status === 'mismatch' || status === 'rejected') return AlertTriangle;
-  if (status === 'matching') return Clock3;
-  return ClipboardList;
-}
-
-function StatusBadge({ status }) {
-  const meta = STATUS_META[status] || STATUS_META.matching;
-  const Icon = getStatusIcon(status);
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.tone}`}>
-      <Icon size={14} />
-      {meta.label}
-    </span>
-  );
-}
-
-function getBatchDocumentTileClass(batchStatus, isMissing) {
-  if (isMissing) {
-    return 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400';
-  }
-
-  if (batchStatus === 'mismatch' || batchStatus === 'rejected') {
-    return 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300';
-  }
-
-  if (batchStatus === 'missing') {
-    return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300';
-  }
-
-  return 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300';
 }
 
 function DocumentCard({ type, doc, docs, onOpenFile }) {
@@ -593,16 +210,16 @@ function DocumentCard({ type, doc, docs, onOpenFile }) {
   const typeLabel = files.length > 1 ? `${type.label} (${files.length} file)` : type.label;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.06)] dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isMissing ? 'bg-slate-100 text-slate-400 dark:bg-slate-800' : 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'}`}>
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${isMissing ? 'bg-surface-muted text-fg-subtle' : 'bg-tone-brand-bg text-tone-brand-fg'}`}>
             <Icon size={18} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{typeLabel}</p>
-            <p className={`mt-1 truncate text-xs ${isMissing ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>
-              {isMissing ? 'Chưa có chứng từ' : `${files.length} chứng từ`}
+            <p className="text-sm font-bold text-fg"><span className="text-primary">Liên {type.short}</span> · {typeLabel}</p>
+            <p className={`mt-1 truncate text-xs ${isMissing ? 'text-fg-subtle' : 'text-fg-subtle'}`}>
+              {isMissing ? 'Chưa có chứng từ' : getReadSource(files)}
             </p>
           </div>
         </div>
@@ -611,13 +228,13 @@ function DocumentCard({ type, doc, docs, onOpenFile }) {
       {!isMissing && (
         <div className="mt-4 space-y-2">
           {files.map((item, idx) => (
-            <div key={`${item.file?.id || item.filename || idx}`} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
-              <span className="min-w-0 truncate text-xs font-medium text-slate-600 dark:text-slate-300">{item.filename}</span>
+            <div key={`${item.file?.id || item.filename || idx}`} className="flex items-center justify-between gap-3 border-t border-line pt-2">
+              <span className="min-w-0 truncate text-xs font-medium text-fg-muted">{item.filename}</span>
               {item.file && (
                 <button
                   type="button"
                   onClick={() => onOpenFile?.(item.file)}
-                  className="btn-ghost h-8 w-8 shrink-0 rounded-lg p-0"
+                  className="btn-ghost h-8 w-8 shrink-0 rounded-control p-0"
                   title="Xem chứng từ gốc"
                   aria-label={`Xem chứng từ gốc ${item.filename}`}
                 >
@@ -636,23 +253,13 @@ function RejectionNoteAlert({ note }) {
   if (!note) return null;
 
   return (
-    <div className="flex items-start gap-2 text-rose-700 dark:text-rose-300">
+    <div className="flex items-start gap-2 text-tone-danger-fg">
       <AlertTriangle size={16} className="mt-0.5 shrink-0" />
       <p className="min-w-0 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
         Lí do: {note}
       </p>
     </div>
   );
-}
-
-function ResultPill({ severity, text }) {
-  const className = {
-    ok: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
-    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
-    danger: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
-  }[severity];
-
-  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold ${className}`}>{text}</span>;
 }
 
 const LINE_ITEM_FIELDS = ['Mã hàng', 'Tên hàng', 'Đơn vị tính', 'Số lượng', 'Đơn giá'];
@@ -729,7 +336,7 @@ function getComparableValue(doc, key) {
 }
 
 function formatVatRate(value) {
-  return value > 0 ? formatDisplayValue(value) : '-';
+  return value > 0 ? `${formatDisplayValue(value)}%` : '-';
 }
 
 function compareValues(values) {
@@ -776,7 +383,7 @@ function buildComparisons(docs) {
       grn: values[2],
       ...result,
     };
-  }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
+  });
 }
 
 function normalizeItemText(value) {
@@ -876,16 +483,14 @@ function buildLineItems(docs) {
     const poAmount = getLineAmount(poItem);
     const invoiceAmount = getLineAmount(invoiceItem);
     const grnAmount = getLineAmount(grnItem);
-    const amountResult = compareValues([
-      formatDisplayValue(poAmount),
-      formatDisplayValue(invoiceAmount),
-      formatDisplayValue(grnAmount),
-    ]);
+    const amountResult = compareAmountResult([poAmount, invoiceAmount, grnAmount]);
     const severity = [qtyResult, priceResult, amountResult].some((item) => item.severity === 'danger')
       ? 'danger'
       : [qtyResult, priceResult, amountResult].some((item) => item.severity === 'warning')
         ? 'warning'
         : 'ok';
+    // Chỉ thành tiền lệch trong ngưỡng, số lượng và đơn giá khớp: lệch nhỏ do làm tròn, không phải thiếu dữ liệu.
+    const minor = Boolean(amountResult.minor) && qtyResult.severity === 'ok' && priceResult.severity === 'ok';
 
     return {
       sku: formatDisplayValue(baseItem.sku || `Dòng ${index + 1}`),
@@ -903,104 +508,15 @@ function buildLineItems(docs) {
       result: severity === 'danger'
         ? 'Có chênh lệch'
         : severity === 'warning'
-          ? 'Thiếu dữ liệu'
+          ? (minor ? 'Lệch nhỏ · trong ngưỡng làm tròn 1.000 đ' : 'Thiếu dữ liệu')
           : 'Khớp',
       severity,
+      minor,
       qtySeverity: qtyResult.severity,
       priceSeverity: priceResult.severity,
       amountSeverity: amountResult.severity,
     };
   }).sort((a, b) => ({ danger: 0, warning: 1, ok: 2 }[a.severity] - ({ danger: 0, warning: 1, ok: 2 }[b.severity])));
-}
-
-function aggregateExtractedData(files, docType) {
-  const validFiles = (files || []).filter(
-    (f) => f.doc_type === docType && (f.ai_extraction?.extracted_data || f.status === 'completed')
-  );
-  if (validFiles.length === 0) return null;
-
-  const docNumbers = [];
-  const docDates = [];
-  const suppliers = [];
-  const taxIds = [];
-  let totalAmount = 0;
-  let hasTotalAmount = false;
-  let vatRate = null;
-  const lineItemsMap = new Map();
-  const anonymousLineItems = [];
-
-  validFiles.forEach((file) => {
-    const data = getExtractionData(file) || {};
-    const docNum = getDocumentNumber(data, docType);
-    if (docNum && !docNumbers.includes(docNum)) docNumbers.push(docNum);
-
-    const docDate = getDocumentDate(data, docType);
-    if (docDate && !docDates.includes(docDate)) docDates.push(docDate);
-
-    if (data.supplier_name && !suppliers.includes(data.supplier_name)) suppliers.push(data.supplier_name);
-    if (data.supplier_tax_id && !taxIds.includes(data.supplier_tax_id)) taxIds.push(data.supplier_tax_id);
-
-    const fileTotal = toNumber(data.total_amount);
-    if (fileTotal !== null) {
-      totalAmount += fileTotal;
-      hasTotalAmount = true;
-    }
-
-    if (vatRate === null) {
-      const fileVat = toNumber(data.vat_rate_pct ?? data.tax_rate_pct);
-      if (fileVat !== null && fileVat > 0) vatRate = fileVat;
-    }
-
-    const items = Array.isArray(data.line_items) ? data.line_items : [];
-    items.forEach((item) => {
-      const key = getItemIdentityKey(item);
-      if (!key) {
-        anonymousLineItems.push({ ...item });
-        return;
-      }
-
-      const qty = toNumber(item.qty) || 0;
-      const price = toNumber(item.price);
-      const amount = toNumber(item.amount ?? item.line_total) ?? (price !== null ? qty * price : 0);
-
-      if (!lineItemsMap.has(key)) {
-        lineItemsMap.set(key, {
-          ...item,
-          qty,
-          price,
-          amount,
-          _weightedPriceAmount: amount,
-          _weightedPriceQty: qty,
-        });
-      } else {
-        const existing = lineItemsMap.get(key);
-        existing.qty += qty;
-        existing.amount += amount;
-        existing._weightedPriceAmount += amount;
-        existing._weightedPriceQty += qty;
-      }
-    });
-  });
-
-  const aggregatedLineItems = [...lineItemsMap.values()].map((item) => {
-    const itemCopy = { ...item };
-    if (itemCopy._weightedPriceQty > 0) {
-      itemCopy.price = itemCopy._weightedPriceAmount / itemCopy._weightedPriceQty;
-    }
-    delete itemCopy._weightedPriceAmount;
-    delete itemCopy._weightedPriceQty;
-    return itemCopy;
-  }).concat(anonymousLineItems);
-
-  return {
-    document_number: docNumbers.join(', '),
-    document_date: docDates.join(', '),
-    supplier_name: suppliers[0] || null,
-    supplier_tax_id: taxIds[0] || null,
-    total_amount: hasTotalAmount ? totalAmount : null,
-    vat_rate_pct: vatRate,
-    line_items: aggregatedLineItems,
-  };
 }
 
 function getBatchSupplierName(docs) {
@@ -1066,7 +582,7 @@ function mapApiBatchToAuditBatch(batch) {
       ? 'final_approved'
       : isApproved
         ? 'approved'
-        : summary.status;
+        : resolveMatchStatus(backendReconciliationStatus, summary.status);
 
   return {
     id: batch.id,
@@ -1091,12 +607,14 @@ function mapApiBatchToAuditBatch(batch) {
     checkedFields: summary.checkedFields,
     matchedFields: summary.matchedFields,
     mismatchFields: summary.mismatchFields,
+    minorFields: summary.minorFields,
     missingFields: missingDataFields,
+    foreignCopy: detectForeignCopy(docs),
     decision:
       summary.mismatchFields > 0
           ? 'Có chênh lệch trong dữ liệu AI đã trích xuất. Cần kiểm tra lại chứng từ.'
         : missingDataFields > 0
-          ? 'Batch còn thiếu dữ liệu trích xuất. Cần kiểm tra lại chứng từ hoặc chờ AI đọc đầy đủ.'
+          ? 'Bộ chứng từ còn thiếu dữ liệu trích xuất. Cần kiểm tra lại chứng từ hoặc chờ AI đọc đầy đủ.'
           : 'Các trường AI đã trích xuất đang khớp theo dữ liệu hiện có.',
     docs,
     docList,
@@ -1108,7 +626,26 @@ function mapApiBatchToAuditBatch(batch) {
   };
 }
 
+// Năm tab theo việc cần làm: duyệt được (khớp, lệch nhỏ), cần xem lại (lệch lớn, thiếu dữ liệu), đã qua cấp 1, bị trả lại.
+const AUDIT_STATUS_TABS = [
+  { value: 'all', label: vi.batchFilters.all },
+  { value: 'pending', label: vi.batchFilters.pendingAccountant },
+  { value: 'review', label: vi.batchFilters.review },
+  { value: 'approved', label: vi.batchFilters.approvedByAccountant },
+  { value: 'rejected', label: vi.batchFilters.rejected },
+];
+
+/** Điều kiện của từng tab trạng thái; dùng chung cho danh sách và số đếm trên tab. */
+function matchesStatusTab(batch, value) {
+  if (value === 'all') return true;
+  if (value === 'pending') return canAccountantApprove(batch);
+  if (value === 'review') return ['mismatch', 'missing'].includes(batch.status);
+  if (value === 'approved') return batch.status === 'approved' || batch.status === 'final_approved' || batch.isApproved || batch.isFinalApproved;
+  return batch.status === value;
+}
+
 export default function AuditTrail({ token, role, currentUser }) {
+  const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedBatchId = searchParams.get('batchId');
@@ -1252,14 +789,7 @@ export default function AuditTrail({ token, role, currentUser }) {
         }
       }
 
-      let matchesStatus = true;
-      if (statusFilter === 'all') {
-        matchesStatus = true;
-      } else if (statusFilter === 'approved') {
-        matchesStatus = batch.status === 'approved' || batch.status === 'final_approved' || batch.isApproved || batch.isFinalApproved;
-      } else {
-        matchesStatus = batch.status === statusFilter;
-      }
+      const matchesStatus = matchesStatusTab(batch, statusFilter);
 
       const matchesOverviewGroup = matchesOverviewFilter(batch, overviewFilter);
       const matchesDateRange = isWithinDateRange(batch, overviewDateRange);
@@ -1300,7 +830,6 @@ export default function AuditTrail({ token, role, currentUser }) {
     }
   }, [filteredBatches, selectedId]);
 
-  const selectedBatch = filteredBatches.find((batch) => isSameBatchId(batch.id, selectedId)) || filteredBatches[0] || null;
   const summary = {
     total: filteredBatches.length,
     missing: filteredBatches.filter((batch) => batch.status === 'missing').length,
@@ -1309,11 +838,75 @@ export default function AuditTrail({ token, role, currentUser }) {
     matched: filteredBatches.filter((batch) => batch.status === 'matched').length,
     approved: filteredBatches.filter((batch) => batch.status === 'approved').length,
   };
-  const documentComparisons = selectedBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
-  const lineItems = selectedBatch?.lineItems || [];
   const modalBatch = batches.find((batch) => isSameBatchId(batch.id, modalBatchId)) || null;
   const modalComparisons = modalBatch?.comparisons.filter((item) => !isLineItemComparison(item)) || [];
   const modalLineItems = modalBatch?.lineItems || [];
+
+  const isWide = useMediaQuery('(min-width: 1280px)');
+  const listRef = useRef(null);
+  const tabCounts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const base = batches.filter((batch) => {
+      if (!batch.isReady) return false;
+      if (role === 'chief_accountant' && !['matched', 'approved', 'final_approved', 'rejected'].includes(batch.status)) return false;
+      const haystack = [batch.batchNumber, batch.note, batch.owner, batch.supplierName].join(' ').toLowerCase();
+      return (
+        matchesOverviewFilter(batch, overviewFilter) &&
+        isWithinDateRange(batch, overviewDateRange) &&
+        (!normalizedQuery || haystack.includes(normalizedQuery))
+      );
+    });
+    return Object.fromEntries(AUDIT_STATUS_TABS.map((tab) => [tab.value, base.filter((batch) => matchesStatusTab(batch, tab.value)).length]));
+  }, [batches, overviewDateRange, overviewFilter, role, searchQuery]);
+
+  useEffect(() => {
+    if (!isWide) return;
+    if (paginatedBatches.length === 0) {
+      if (modalBatchId !== null) setModalBatchId(null);
+      return;
+    }
+    if (!paginatedBatches.some((batch) => isSameBatchId(batch.id, modalBatchId))) {
+      setModalBatchId(paginatedBatches[0].id);
+    }
+  }, [isWide, paginatedBatches, modalBatchId]);
+
+  // ↑/↓ chuyển giữa các bộ; trên màn rộng chi tiết đổi theo ngay. Ở mép trang thì sang trang kề bên.
+  const pendingRowFocusRef = useRef(null);
+  const selectRow = (batch) => {
+    if (!isWide || !batch) return;
+    setSelectedId(batch.id);
+    setModalBatchId(batch.id);
+  };
+  const handleListKeyDown = (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const rows = [...(listRef.current?.querySelectorAll('[data-batch-row]') || [])];
+    const index = rows.indexOf(document.activeElement);
+    if (index === -1) return;
+    event.preventDefault();
+    const down = event.key === 'ArrowDown';
+    if (down && index === rows.length - 1 && safeBatchPage < totalBatchPages) {
+      pendingRowFocusRef.current = 'first';
+      setBatchPage(safeBatchPage + 1);
+      return;
+    }
+    if (!down && index === 0 && safeBatchPage > 1) {
+      pendingRowFocusRef.current = 'last';
+      setBatchPage(safeBatchPage - 1);
+      return;
+    }
+    const nextIndex = down ? Math.min(rows.length - 1, index + 1) : Math.max(0, index - 1);
+    rows[nextIndex].focus();
+    selectRow(paginatedBatches[nextIndex]);
+  };
+
+  useEffect(() => {
+    const target = pendingRowFocusRef.current;
+    if (!target || paginatedBatches.length === 0) return;
+    pendingRowFocusRef.current = null;
+    const index = target === 'first' ? 0 : paginatedBatches.length - 1;
+    listRef.current?.querySelectorAll('[data-batch-row]')[index]?.focus();
+    selectRow(paginatedBatches[index]);
+  });
 
   const requestApproveBatch = (batch, options = {}) => {
     // Kiểm tra điều kiện theo role
@@ -1323,16 +916,25 @@ export default function AuditTrail({ token, role, currentUser }) {
     // Kế toán viên: chỉ duyệt batch 'matched'
     const canApprove = isChiefAccountant 
       ? (batch.status === 'approved' || batch.status === 'matched')
-      : (batch.status === 'matched' && batch.rawStatus !== 'rejected');
+      : canAccountantApprove(batch);
     
     if (!batch?.id || !canApprove || approvingBatchIds.includes(batch.id)) return;
     setApproveConfirm({ batch, options });
+  };
+
+  // Bộ khớp kế tiếp đang chờ duyệt cấp 1 trong danh sách đang hiển thị.
+  const getNextApprovableId = (currentId) => {
+    const pending = paginatedBatches.filter(canAccountantApprove);
+    const index = pending.findIndex((item) => isSameBatchId(item.id, currentId));
+    const next = pending[index + 1] || pending.find((item) => !isSameBatchId(item.id, currentId));
+    return next?.id ?? null;
   };
 
   const handleApproveBatch = async () => {
     const batch = approveConfirm?.batch;
     const options = approveConfirm?.options || {};
     if (!batch?.id || approvingBatchIds.includes(batch.id)) return;
+    const nextId = getNextApprovableId(batch.id);
 
     setError('');
     setApprovingBatchIds((prev) => [...prev, batch.id]);
@@ -1345,16 +947,38 @@ export default function AuditTrail({ token, role, currentUser }) {
       const mappedBatch = mapApiBatchToAuditBatch(approvedBatch);
       setBatches((prev) => prev.map((item) => (isSameBatchId(item.id, mappedBatch.id) ? mappedBatch : item)));
       setSelectedId(mappedBatch.id);
-      if (!options.keepModalOpen) {
+      if (isWide && nextId !== null) {
+        setSelectedId(nextId);
+        setModalBatchId(nextId);
+      } else if (!options.keepModalOpen) {
         setModalBatchId(null);
       }
       setApproveConfirm(null);
+      toast.success(
+        isChiefAccountant
+          ? `Đã duyệt cuối và lưu trữ ${batch.batchNumber}.`
+          : `Đã duyệt ${batch.batchNumber}, chờ kế toán trưởng duyệt cuối.`,
+      );
     } catch (err) {
-      setError(err.message || 'Không thể duyệt batch này. Vui lòng thử lại.');
+      setError(err.message || 'Không thể duyệt bộ chứng từ này. Vui lòng thử lại.');
+      toast.error(err.message || 'Không thể duyệt bộ chứng từ này. Vui lòng thử lại.');
     } finally {
       setApprovingBatchIds((prev) => prev.filter((id) => !isSameBatchId(id, batch.id)));
     }
   };
+
+  useEffect(() => {
+    if (!isWide || role === 'chief_accountant') return undefined;
+    const onKeyDown = (event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.key.toLowerCase() !== 'a') return;
+      if (event.target.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
+      if (approveConfirm || !canAccountantApprove(modalBatch)) return;
+      event.preventDefault();
+      requestApproveBatch(modalBatch, { keepModalOpen: true });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
 
   const handleOpenUploadedFile = async (file) => {
     if (!file?.file_url || file.status !== 'completed') return;
@@ -1377,7 +1001,7 @@ export default function AuditTrail({ token, role, currentUser }) {
         xmlText,
       });
     } catch (err) {
-      alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
+      toast.error(err.message || 'Không thể mở file này. Vui lòng thử lại.');
     }
   };
 
@@ -1388,15 +1012,15 @@ export default function AuditTrail({ token, role, currentUser }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-        Đang tải dữ liệu batch...
+      <div className="rounded-card border border-line bg-surface px-5 py-12 text-center text-sm text-fg-subtle shadow-card">
+        Đang tải danh sách bộ chứng từ...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+      <div className="rounded-card border border-tone-danger-line bg-tone-danger-bg px-5 py-4 text-sm font-medium text-tone-danger-fg">
         {error}
       </div>
     );
@@ -1406,489 +1030,74 @@ export default function AuditTrail({ token, role, currentUser }) {
     return (
       <div className="space-y-5">
         <PageHeader title="Bộ đối soát" description="Các bộ đã đủ PO, Hóa đơn và GRN để đối soát và duyệt." />
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-          Chưa có batch nào đã đủ PO, Invoice và GRN. Các batch còn thiếu chứng từ vẫn nằm ở Hàng đợi xử lý.
+        <div className="rounded-card border border-dashed border-tone-neutral-line bg-surface px-5 py-12 text-center text-sm text-fg-subtle">
+          Chưa có bộ chứng từ nào đã đủ PO, hóa đơn và GRN. Các bộ chứng từ còn thiếu chứng từ vẫn nằm ở Hàng đợi xử lý.
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Bộ đối soát"
-        description={
-          overviewFilterLabel ? (
-            <>
-              Đang xem nhóm: <span className="font-semibold text-fg">{overviewFilterLabel}</span>
-            </>
-          ) : (
-            'Các bộ đã đủ PO, Hóa đơn và GRN để đối soát và duyệt.'
-          )
-        }
-        actions={
-          <Button variant="primary" leadingIcon={FileSearch} onClick={() => setIsReportModalOpen(true)} title="Xuất báo cáo đối soát dạng PDF / In">
-            Xuất báo cáo
-          </Button>
-        }
-      />
-
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          ['Tổng batch', summary.total, 'text-slate-900 dark:text-slate-100'],
-          ['Thiếu dữ liệu', summary.missing, 'text-amber-700 dark:text-amber-300'],
-          ['Khớp hoàn toàn', summary.matched, 'text-emerald-700 dark:text-emerald-300'],
-          ['Lệch', summary.mismatch, 'text-rose-700 dark:text-rose-300'],
-        ].map(([label, value, color]) => (
-          <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</p>
-            <p className={`mt-2 text-2xl font-bold tabular-nums ${color}`}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Tìm theo tên batch, note, người tạo, nhà cung cấp..."
-              className="input-field pl-9"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                title="Xóa tìm kiếm"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-          <div className="relative min-w-[220px]">
-            <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="input-field appearance-none pl-9 pr-9"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="matched">Khớp hoàn toàn</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="rejected">Đã từ chối</option>
-              <option value="mismatch">Lệch</option>
-              <option value="missing">Thiếu dữ liệu</option>
-            </select>
-            <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-5">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-3">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Danh sách batch ({filteredBatches.length})</h2>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Mỗi batch gồm 3 chứng từ để đối khớp.</p>
-          </div>
-
-          <div className="space-y-3">
-            {paginatedBatches.map((batch) => {
-              const isSelected = isSameBatchId(batch.id, selectedBatch?.id);
-              const completion = getCompletion(batch);
-              const meta = STATUS_META[batch.status];
-              const hasMissingData = batch.status === 'missing';
-              // Kế toán viên: duyệt batch matched
-              // Kế toán trưởng: duyệt batch approved hoặc matched
-              const canApprove = role === 'chief_accountant' 
-                ? (batch.status === 'approved' || batch.status === 'matched')
-                : (batch.status === 'matched' && batch.rawStatus !== 'rejected');
-              const isApproving = approvingBatchIds.some((id) => isSameBatchId(id, batch.id));
-
-              return (
-                <div
-                  key={batch.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setSelectedId(batch.id);
-                    setModalBatchId(batch.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      setSelectedId(batch.id);
-                      setModalBatchId(batch.id);
-                    }
-                  }}
-                  className={`relative block w-full rounded-xl border bg-white p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:bg-slate-900 ${
-                    hasMissingData
-                      ? 'z-10 border-amber-300 bg-amber-50/60 shadow-[0_14px_36px_rgba(146,64,14,0.16)] ring-1 ring-amber-100 dark:border-amber-700 dark:bg-amber-950/15 dark:ring-amber-900/60'
-                      : isSelected
-                      ? 'z-10 border-brand-300 shadow-[0_12px_30px_rgba(0,55,112,0.14)] ring-1 ring-brand-100 dark:border-brand-700 dark:ring-brand-900'
-                      : 'border-slate-200 shadow-sm hover:z-10 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_18px_42px_rgba(0,55,112,0.18)] dark:border-slate-800 dark:hover:border-brand-800'
-                  }`}
-                >
-                  <span className={`absolute bottom-3 left-0 top-3 w-1 rounded-r-full ${meta.rail}`} />
-                  <div className="pl-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{batch.batchNumber}</p>
-                          {role !== 'chief_accountant' && <StatusBadge status={batch.status} />}
-                        </div>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Cập nhật: {batch.updatedAt}</p>
-                        {batch.note && (
-                          <p
-                            className="mt-1 max-w-xl truncate text-xs font-semibold text-slate-700 dark:text-slate-300"
-                            title={batch.note}
-                          >
-                            Note: {batch.note}
-                          </p>
-                        )}
-                        {batch.rejectionNote && (
-                          <p
-                            className="mt-1 max-w-xl truncate text-xs font-semibold text-rose-700 dark:text-rose-300"
-                            title={batch.rejectionNote}
-                          >
-                            Lý do từ chối: {batch.rejectionNote}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-2 text-right">
-                        <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">{batch.matchRate}%</p>
-                        <p className="text-[11px] text-slate-400">match</p>
-                        {canApprove && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              requestApproveBatch(batch);
-                            }}
-                            disabled={isApproving}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-                            title="Duyệt batch"
-                            aria-label={`Duyệt batch ${batch.batchNumber}`}
-                          >
-                            {isApproving ? (
-                              <Loader2 size={13} className="animate-spin" />
-                            ) : (
-                              <CheckCircle2 size={13} />
-                            )}
-                            Duyệt
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      {DOC_TYPES.map((type) => {
-                        const doc = batch.docs[type.key];
-                        return (
-                          <span
-                            key={type.key}
-                            className={`min-w-0 rounded-lg border px-2.5 py-2 text-xs ${getBatchDocumentTileClass(batch.status, doc?.missing)}`}
-                          >
-                            <span className="block font-bold">{type.short}</span>
-                            <span className="mt-0.5 block truncate">{doc?.missing ? 'Chưa có' : doc.filename}</span>
-                          </span>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                      <span>{completion}/3 chứng từ</span>
-                      <span className="shrink-0 tabular-nums">{batch.mismatchFields} lệch · {batch.missingFields} thiếu dữ liệu</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredBatches.length === 0 && (
-              <div className="rounded-lg border border-dashed border-slate-300 px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                <FileSearch size={36} className="mx-auto mb-2 opacity-40" />
-                <p className="font-semibold text-slate-700 dark:text-slate-200">Không tìm thấy batch phù hợp với bộ lọc hiện tại.</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc.</p>
-                {(searchQuery || statusFilter !== 'all') && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setStatusFilter('all');
-                    }}
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                  >
-                    Xóa bộ lọc & tìm kiếm
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {filteredBatches.length > BATCHES_PER_PAGE && (
-            <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Hiển thị {batchStartIndex}-{batchEndIndex} / {filteredBatches.length} batch
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setBatchPage((page) => Math.max(1, page - 1))}
-                  disabled={safeBatchPage === 1}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Trước
-                </button>
-                <span className="min-w-[88px] text-center font-semibold text-slate-700 dark:text-slate-200">
-                  Trang {safeBatchPage}/{totalBatchPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setBatchPage((page) => Math.min(totalBatchPages, page + 1))}
-                  disabled={safeBatchPage === totalBatchPages}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {selectedBatch && (
-          <div className="hidden">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedBatch.batchNumber}</h2>
-                    {role !== 'chief_accountant' && <StatusBadge status={selectedBatch.status} />}
-                  </div>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Xử lý bởi {selectedBatch.owner} · Cập nhật {selectedBatch.updatedAt}
-                  </p>
-                </div>
-                <button type="button" className="btn-secondary self-start">
-                  <Eye size={16} />
-                  Xem hồ sơ
-                </button>
-              </div>
-
-              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                <p className="text-xs font-semibold uppercase text-slate-400">Kết luận</p>
-                <p className="mt-1 text-sm font-medium leading-6 text-slate-800 dark:text-slate-200">{selectedBatch.decision}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {DOC_TYPES.map((type) => {
-                const list = selectedBatch.docList?.[type.key] || [];
-                if (list.length === 0) {
-                  return (
-                    <DocumentCard
-                      key={`${type.key}-missing`}
-                      type={type}
-                      doc={{ filename: '', missing: true, fields: {} }}
-                      onOpenFile={handleOpenUploadedFile}
-                    />
-                  );
-                }
-                return (
-                  <DocumentCard
-                    key={type.key}
-                    type={type}
-                    docs={list}
-                    onOpenFile={handleOpenUploadedFile}
-                  />
-                );
-              })}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  Hiện rõ từng trường AI đã lấy ra từ 3 chứng từ và kết quả so khớp.
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Trường</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">PO</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Invoice</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">GRN</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {documentComparisons.length > 0 ? (
-                      documentComparisons.map((item) => (
-                        <tr key={`${selectedBatch.id}-${item.field}`} className="table-row-hover">
-                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
-                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
-                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
-                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                          Chưa có dữ liệu đối chiếu. Hãy bổ sung đủ 3 chứng từ để hệ thống bắt đầu so khớp.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  Mỗi dòng là một mã hàng trong PO, Invoice và GRN để kiểm tra chủng loại, ĐVT, số lượng và giá.
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Mã hàng / Tên hàng</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL PO</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá PO</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
-                      <th className="border-l border-dashed border-slate-300 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {lineItems.length > 0 ? (
-                      lineItems.map((item) => (
-                        <tr key={`${selectedBatch.id}-${item.sku}`} className="table-row-hover">
-                          <td className="px-4 py-3">
-                            <p className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{item.name || item.sku}</p>
-                            <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{item.unit}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
-                          <td className={`border-l border-dashed border-slate-300 px-4 py-3 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
-                          <td className={`px-4 py-3 text-right tabular-nums ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
-                          <td className="px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                          Chưa có dữ liệu hàng hóa. Khi đủ chứng từ, hệ thống sẽ tách từng dòng hàng để đối chiếu.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <ReconciliationHistorySection
-              history={selectedBatch?.history}
-              onOpenFile={handleOpenUploadedFile}
-            />
-          </div>
-        )}
-      </div>
-
-      {modalBatch && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="batch-detail-title"
-          onClick={() => setModalBatchId(null)}
-        >
-          <div
-            className="max-h-[92vh] w-full max-w-[1360px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(0,55,112,0.24)] dark:border-slate-800 dark:bg-slate-950"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:flex-row lg:items-start lg:justify-between">
+  // Màn rộng: chi tiết nằm cạnh danh sách. Màn hẹp: chi tiết mở trong hộp thoại.
+  const AuditTitle = isWide ? 'h2' : DialogTitle;
+  const auditDetailView = modalBatch ? (
+    <>
+            <div className={cn('flex flex-col gap-3 border-b border-line bg-surface px-5 py-4 lg:flex-row lg:items-start lg:justify-between', !isWide && 'sticky top-0 z-10')}>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 id="batch-detail-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  <AuditTitle className="text-2xl font-bold text-fg">
                     {modalBatch.batchNumber}
-                  </h2>
-                  {role !== 'chief_accountant' && <StatusBadge status={modalBatch.status} />}
+                  </AuditTitle>
                 </div>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Xử lý bởi {modalBatch.owner} · Cập nhật {modalBatch.updatedAt}
-                </p>
+                <BatchMetaLine batch={{ ...modalBatch, completion: getCompletion(modalBatch) }} />
+                {role !== 'chief_accountant' && getApproveBlockReason(modalBatch) && (
+                  <p className="mt-1 max-w-3xl text-sm text-fg-muted">{getApproveBlockReason(modalBatch)}</p>
+                )}
+                <SignatureStrip batch={modalBatch} className="mt-3 max-w-3xl" />
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {role !== 'chief_accountant' && modalBatch.status === 'rejected' && (
+                {role !== 'chief_accountant' && (modalBatch.status === 'rejected' || getApproveBlockReason(modalBatch)) && (
                   <button
                     type="button"
                     onClick={() => handleUploadSupplement(modalBatch)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                    title="Upload bổ sung vào batch này"
-                    aria-label={`Upload bổ sung vào batch ${modalBatch.batchNumber}`}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-control bg-primary px-3 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    title="Upload bổ sung vào bộ chứng từ này"
+                    aria-label={`Upload bổ sung vào bộ chứng từ ${modalBatch.batchNumber}`}
                   >
                     <UploadCloud size={14} />
-                    Upload bổ sung
+                    {modalBatch.status === 'rejected' ? 'Upload bổ sung' : 'Bổ sung / thay chứng từ'}
                   </button>
                 )}
-                {modalBatch.status === 'matched' && modalBatch.rawStatus !== 'rejected' && (
-                  <button
-                    type="button"
+                {role !== 'chief_accountant' && canAccountantApprove(modalBatch) && (
+                  <Button
+                    variant="primary"
+                    leadingIcon={CheckCircle2}
+                    loading={approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id))}
                     onClick={() => requestApproveBatch(modalBatch, { keepModalOpen: true })}
-                    disabled={approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id))}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-                    title="Duyệt batch"
-                    aria-label={`Duyệt batch ${modalBatch.batchNumber}`}
+                    aria-keyshortcuts={isWide ? 'A' : undefined}
                   >
-                    {approvingBatchIds.some((id) => isSameBatchId(id, modalBatch.id)) ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <CheckCircle2 size={14} />
-                    )}
-                    Duyệt
-                  </button>
+                    Duyệt cấp 1
+                    {isWide && <kbd className="ml-1 rounded-sm border border-current/30 px-1 font-sans text-xs opacity-70">A</kbd>}
+                  </Button>
                 )}
+                {!isWide && (
                 <button
                   type="button"
                   onClick={() => setModalBatchId(null)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   title="Đóng"
-                  aria-label="Đóng chi tiết batch"
+                  aria-label="Đóng chi tiết bộ chứng từ"
                 >
                   <X size={18} />
                 </button>
+                )}
               </div>
             </div>
 
-            <div className="max-h-[calc(92vh-82px)] space-y-5 overflow-y-auto p-5">
+            <div className={cn('space-y-6 p-5', !isWide && 'max-h-[calc(92vh-82px)] overflow-y-auto')}>
               {modalBatch.rawStatus === 'rejected' && (
                 <RejectionNoteAlert note={modalBatch.rejectionNote} />
               )}
+              <ForeignCopyNotice foreignCopy={modalBatch.foreignCopy} />
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => {
@@ -1914,110 +1123,208 @@ export default function AuditTrail({ token, role, currentUser }) {
                 })}
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Chi tiết hàng hóa</h3>
+              <section>
+                <div className="pb-2">
+                  <h3 className="text-base font-bold text-fg">Bảng đối chiếu thông tin</h3>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-[13px]">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                        <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Tên hàng / Mã</th>
-                        <th className="px-2 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">ĐVT</th>
-                        <th className="border-l border-dashed border-slate-300 px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">SL PO</th>
-                        <th className="px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL Invoice</th>
-                        <th className="px-2 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">SL GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Giá PO</th>
-                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá Invoice</th>
-                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Giá GRN</th>
-                        <th className="border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">Tiền PO</th>
-                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền Invoice</th>
-                        <th className="px-2.5 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400">Tiền GRN</th>
-                        <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {modalLineItems.length > 0 ? (
-                        modalLineItems.map((item) => (
-                          <tr key={`${modalBatch.id}-modal-${item.sku}`} className="table-row-hover">
-                            <td className="px-3 py-2.5 max-w-[240px]">
-                              <p className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm leading-snug">{item.name || item.sku}</p>
-                              <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">{item.sku}</p>
-                            </td>
-                            <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{item.unit}</td>
-                            <td className={`border-l border-dashed border-slate-300 px-2 py-2.5 text-right tabular-nums dark:border-slate-700 ${getComparisonCellClass(item.qtySeverity, item.poQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.poQty}</td>
-                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.invoiceQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.invoiceQty}</td>
-                            <td className={`px-2 py-2.5 text-right tabular-nums ${getComparisonCellClass(item.qtySeverity, item.grnQty, [item.poQty, item.invoiceQty, item.grnQty])}`}>{item.grnQty}</td>
-                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.poPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.poPrice}</td>
-                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.invoicePrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.invoicePrice}</td>
-                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.priceSeverity, item.grnPrice, [item.poPrice, item.invoicePrice, item.grnPrice])}`}>{item.grnPrice}</td>
-                            <td className={`border-l border-dashed border-slate-300 px-2.5 py-2.5 text-right tabular-nums dark:border-slate-700 whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.poAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.poAmount}</td>
-                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.invoiceAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.invoiceAmount}</td>
-                            <td className={`px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap ${getComparisonCellClass(item.amountSeverity, item.grnAmount, [item.poAmount, item.invoiceAmount, item.grnAmount])}`}>{item.grnAmount}</td>
-                            <td className="px-3 py-2.5 text-center whitespace-nowrap"><ResultPill severity={item.severity} text={item.result} /></td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={12} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                            Chưa có dữ liệu hàng hóa.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                <FieldComparisonTable items={modalComparisons} />
+              </section>
 
-              <div className="rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bảng đối chiếu thông tin</h3>
+              <section>
+                <div className="pb-2">
+                  <h3 className="text-base font-bold text-fg">Chi tiết hàng hóa</h3>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-950/50">
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Trường</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">PO</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Invoice</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">GRN</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400">Kết quả</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {modalComparisons.map((item) => (
-                        <tr key={`${modalBatch.id}-modal-${item.field}`} className="table-row-hover">
-                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item.field}</td>
-                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.po, [item.po, item.invoice, item.grn])}`}>{item.po}</td>
-                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.invoice, [item.po, item.invoice, item.grn])}`}>{item.invoice}</td>
-                          <td className={`px-4 py-3 tabular-nums ${getComparisonCellClass(item.severity, item.grn, [item.po, item.invoice, item.grn])}`}>{item.grn}</td>
-                          <td className="min-w-[130px] whitespace-nowrap px-4 py-3"><ResultPill severity={item.severity} text={item.result} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                <LineItemCopies items={modalLineItems} emptyText="Chưa có dữ liệu hàng hóa. Khi đủ chứng từ, hệ thống sẽ tách từng dòng hàng để đối chiếu." />
+              </section>
 
               <ReconciliationHistorySection
                 history={modalBatch.history}
                 onOpenFile={handleOpenUploadedFile}
               />
             </div>
-          </div>
+    </>
+  ) : null;
+
+  return (
+    <div className="-mx-4 -my-5 min-h-screen space-y-5 bg-surface px-4 pt-5 md:-mx-6 md:-my-6 md:px-6 md:pt-6">
+      <PageHeader
+        title="Bộ đối soát"
+        description={
+          overviewFilterLabel ? (
+            <>
+              Đang xem nhóm: <span className="font-semibold text-fg">{overviewFilterLabel}</span>
+            </>
+          ) : (
+            'Các bộ đã đủ PO, Hóa đơn và GRN để đối soát và duyệt.'
+          )
+        }
+        actions={
+          <Button variant="primary" leadingIcon={FileSearch} onClick={() => setIsReportModalOpen(true)} title="Xuất báo cáo đối soát dạng PDF / In">
+            Xuất báo cáo
+          </Button>
+        }
+      />
+
+      {error && (
+        <div className="rounded-card border border-tone-danger-line bg-tone-danger-bg px-4 py-3 text-sm font-semibold text-tone-danger-fg">
+          {error}
         </div>
       )}
 
+
+      <div className="border-b border-line pb-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Tìm theo tên bộ chứng từ, ghi chú, người tạo, nhà cung cấp..."
+              className="input-field pl-9"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
+                title="Xóa tìm kiếm"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="-mx-4 grid border-t border-line md:-mx-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="min-w-0 bg-surface-muted xl:border-r xl:border-line">
+          <h2 className="sr-only">Danh sách bộ chứng từ ({filteredBatches.length})</h2>
+          <div role="group" aria-label={vi.batchFilters.groupLabel} className="sticky top-0 z-10 flex flex-wrap gap-0.5 border-b border-line bg-surface-muted px-2 py-2">
+            {AUDIT_STATUS_TABS.map((tab) => {
+              const count = loading ? '–' : tabCounts[tab.value] ?? 0;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  aria-pressed={statusFilter === tab.value}
+                  aria-label={vi.batchFilters.countLabel(tab.label, count)}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={cn(
+                    'shrink-0 rounded-control px-2 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                    statusFilter === tab.value ? 'bg-primary text-primary-fg' : 'text-fg-muted hover:bg-surface hover:text-fg',
+                  )}
+                >
+                  {tab.label}
+                  <span className="ml-1.5 tabular-nums opacity-80">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-4 py-4 md:px-6 xl:px-4">
+
+          <div className="space-y-3">
+            <ul ref={listRef} aria-label="Danh sách bộ chứng từ" onKeyDown={handleListKeyDown} className="min-w-0 divide-y divide-line border-y border-line bg-surface">
+            {paginatedBatches.map((batch) => {
+              const isSelected = isWide && isSameBatchId(batch.id, modalBatch?.id);
+              return (
+                <li key={batch.id}>
+                  <BatchListItem
+                    batch={{ ...batch, completion: getCompletion(batch) }}
+                    role={role}
+                    selected={isSelected}
+                    onSelect={() => {
+                      setSelectedId(batch.id);
+                      setModalBatchId(batch.id);
+                    }}
+                  />
+                </li>
+              );
+            })}
+            </ul>
+
+            {filteredBatches.length === 0 && (
+              <div className="rounded-control border border-dashed border-tone-neutral-line px-5 py-12 text-center text-sm text-fg-subtle">
+                <FileSearch size={36} className="mx-auto mb-2 opacity-40" />
+                <p className="font-semibold text-fg-muted">Không tìm thấy bộ chứng từ phù hợp với bộ lọc hiện tại.</p>
+                <p className="mt-1 text-xs text-fg-subtle">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc.</p>
+                {(searchQuery || statusFilter !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                    }}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-control border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-fg-muted shadow-card transition-colors hover:bg-surface-muted"
+                  >
+                    Xóa bộ lọc & tìm kiếm
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {filteredBatches.length > BATCHES_PER_PAGE && (
+            <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 text-sm text-fg-subtle sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Hiển thị {batchStartIndex}-{batchEndIndex} / {filteredBatches.length} bộ chứng từ
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBatchPage((page) => Math.max(1, page - 1))}
+                  disabled={safeBatchPage === 1}
+                  className="rounded-control border border-line px-3 py-1.5 font-semibold text-fg-muted transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Trước
+                </button>
+                <span className="min-w-[88px] text-center font-semibold text-fg-muted">
+                  Trang {safeBatchPage}/{totalBatchPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBatchPage((page) => Math.min(totalBatchPages, page + 1))}
+                  disabled={safeBatchPage === totalBatchPages}
+                  className="rounded-control border border-line px-3 py-1.5 font-semibold text-fg-muted transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
+          </div>
+        </div>
+
+        {isWide && (
+          <section aria-label="Chi tiết bộ chứng từ" className="min-w-0 bg-surface">
+            {auditDetailView || (
+              <p className="px-6 py-16 text-center text-sm text-fg-subtle">Chọn một bộ ở danh sách bên trái để xem ba liên chứng từ.</p>
+            )}
+          </section>
+        )}
+
+      </div>
+
+      <Dialog open={!isWide && Boolean(modalBatch)} onClose={() => setModalBatchId(null)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-scrim/50" />
+        <div className="fixed inset-0 flex items-stretch justify-center p-0 sm:items-center sm:p-4">
+          {modalBatch && (
+            <DialogPanel className="h-dvh w-full max-w-[1360px] overflow-y-auto bg-surface text-fg shadow-pop sm:h-auto sm:max-h-[92vh] sm:rounded-modal">
+              {auditDetailView}
+            </DialogPanel>
+          )}
+        </div>
+      </Dialog>
+
       <ConfirmDialog
         open={Boolean(approveConfirm)}
-        tone="success"
-        title={role === 'chief_accountant' ? 'Xác nhận duyệt cuối' : 'Xác nhận duyệt batch'}
+        title={role === 'chief_accountant' ? 'Duyệt cuối và lưu trữ hồ sơ' : 'Duyệt bộ chứng từ (cấp 1)'}
         description={
-          approveConfirm
-            ? `Bạn có chắc chắn muốn duyệt batch "${approveConfirm.batch.batchNumber}" không?`
-            : ''
+          role === 'chief_accountant'
+            ? 'Kiểm tra lại thông tin trước khi khóa hồ sơ.'
+            : 'Bộ sẽ được chuyển cho kế toán trưởng duyệt cuối.'
         }
-        confirmLabel="Xác nhận duyệt"
+        confirmLabel={role === 'chief_accountant' ? 'Duyệt và lưu trữ' : 'Duyệt và chuyển'}
         cancelLabel="Hủy"
         loading={Boolean(approveConfirm?.batch && approvingBatchIds.some((id) => isSameBatchId(id, approveConfirm.batch.id)))}
         onCancel={() => {
@@ -2025,7 +1332,9 @@ export default function AuditTrail({ token, role, currentUser }) {
           setApproveConfirm(null);
         }}
         onConfirm={handleApproveBatch}
-      />
+      >
+        <ApprovalConfirmBody batch={approveConfirm?.batch} final={role === 'chief_accountant'} />
+      </ConfirmDialog>
       <FilePreviewModal filePreview={filePreview} onClose={closeFilePreview} />
       <ReconciliationReportModal
         isOpen={isReportModalOpen}

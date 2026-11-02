@@ -8,75 +8,79 @@
 @layer base {
   :root {
 
-  --c-canvas: 248 250 252; /* #f8fafc */
+  --c-canvas: 242 246 252; /* #f2f6fc: trắng ánh xanh, cùng đầu nhạt của dải màu trang đăng nhập */
   --c-surface: 255 255 255; /* #ffffff */
-  --c-surface-muted: 241 245 249; /* #f1f5f9 */
-  --c-surface-sunken: 232 238 245; /* #e8eef5 */
-  --c-line: 226 232 240; /* #e2e8f0 */
-  --c-line-input: 132 147 168; /* #8493a8 */
-  --c-fg: 15 23 42; /* #0f172a */
-  --c-fg-muted: 71 85 105; /* #475569 */
-  --c-fg-subtle: 90 106 128; /* #5a6a80 */
-  --c-primary: 30 90 168; /* #1e5aa8 */
-  --c-primary-hover: 22 70 135; /* #164687 */
+  --c-surface-muted: 234 240 249; /* #eaf0f9 */
+  --c-surface-sunken: 223 231 243; /* #dfe7f3 */
+  --c-line: 218 226 238; /* #dae2ee */
+  --c-line-input: 120 135 162; /* #7887a2 */
+  --c-fg: 14 27 51; /* #0e1b33 */
+  --c-fg-muted: 58 74 102; /* #3a4a66 */
+  --c-fg-subtle: 80 96 124; /* #50607c */
+  --c-primary: 31 79 163; /* #1f4fa3 */
+  --c-primary-hover: 23 61 128; /* #173d80 */
   --c-primary-fg: 255 255 255; /* #ffffff */
-  --c-accent: 30 90 168; /* #1e5aa8 */
-  --c-accent-soft: 235 243 252; /* #ebf3fc */
-  --c-focus: 30 90 168; /* #1e5aa8 */
-  --c-tone-success-bg: 236 253 245; /* #ecfdf5 */
-  --c-tone-success-fg: 4 120 87; /* #047857 */
-  --c-tone-success-line: 167 243 208; /* #a7f3d0 */
-  --c-tone-warning-bg: 255 251 235; /* #fffbeb */
-  --c-tone-warning-fg: 146 64 14; /* #92400e */
-  --c-tone-warning-line: 253 230 138; /* #fde68a */
-  --c-tone-danger-bg: 255 241 242; /* #fff1f2 */
-  --c-tone-danger-fg: 190 18 60; /* #be123c */
-  --c-tone-danger-line: 254 205 211; /* #fecdd3 */
-  --c-tone-info-bg: 239 246 255; /* #eff6ff */
+  --c-accent: 31 79 163; /* #1f4fa3 */
+  --c-accent-soft: 232 239 250; /* #e8effa */
+  --c-focus: 31 79 163; /* #1f4fa3 */
+  --c-scrim: 14 27 51; /* #0e1b33 */
+  --c-tone-success-bg: 232 246 239; /* #e8f6ef */
+  --c-tone-success-fg: 10 107 72; /* #0a6b48 */
+  --c-tone-success-line: 170 221 196; /* #aaddc4 */
+  --c-tone-warning-bg: 255 244 221; /* #fff4dd */
+  --c-tone-warning-fg: 138 75 0; /* #8a4b00 */
+  --c-tone-warning-line: 245 208 140; /* #f5d08c */
+  --c-tone-danger-bg: 253 235 236; /* #fdebec */
+  --c-tone-danger-fg: 168 22 38; /* #a81626 */
+  --c-tone-danger-line: 244 192 196; /* #f4c0c4 */
+  --c-tone-info-bg: 232 239 250; /* #e8effa */
   --c-tone-info-fg: 29 78 216; /* #1d4ed8 */
-  --c-tone-info-line: 191 219 254; /* #bfdbfe */
-  --c-tone-neutral-bg: 241 245 249; /* #f1f5f9 */
-  --c-tone-neutral-fg: 51 65 85; /* #334155 */
-  --c-tone-neutral-line: 203 213 225; /* #cbd5e1 */
-  --c-tone-brand-bg: 235 243 252; /* #ebf3fc */
-  --c-tone-brand-fg: 22 70 135; /* #164687 */
-  --c-tone-brand-line: 179 208 241; /* #b3d0f1 */
-  --c-sidebar: 255 255 255; /* #ffffff */
-  --c-sidebar-hover: 241 245 249; /* #f1f5f9 */
-  --c-sidebar-active: 235 243 252; /* #ebf3fc */
-  --c-sidebar-line: 226 232 240; /* #e2e8f0 */
-  --c-sidebar-fg: 15 23 42; /* #0f172a */
-  --c-sidebar-muted: 71 85 105; /* #475569 */
-  --c-sidebar-accent: 30 90 168; /* #1e5aa8 */
+  --c-tone-info-line: 185 205 238; /* #b9cdee */
+  --c-tone-neutral-bg: 236 241 248; /* #ecf1f8 */
+  --c-tone-neutral-fg: 51 65 90; /* #33415a */
+  --c-tone-neutral-line: 200 212 230; /* #c8d4e6 */
+  --c-tone-brand-bg: 232 239 250; /* #e8effa */
+  --c-tone-brand-fg: 23 61 128; /* #173d80 */
+  --c-tone-brand-line: 185 203 234; /* #b9cbea */
+  --c-sidebar: 19 33 61; /* #13213d: mực navy */
+  --c-sidebar-end: 31 79 163; /* #1f4fa3: cuối dải màu thanh bên và trang đăng nhập */
+  --c-sidebar-hover: 29 47 82; /* #1d2f52 */
+  --c-sidebar-active: 38 64 110; /* #26406e */
+  --c-sidebar-line: 34 52 90; /* #22345a */
+  --c-sidebar-fg: 255 255 255; /* #ffffff */
+  --c-sidebar-muted: 201 210 227; /* #c9d2e3 */
+  --c-sidebar-accent: 217 178 106; /* #d9b26a: ánh đồng, chỉ dùng cho điểm nhấn thương hiệu, không dùng cho trạng thái */
   --c-chart-success: 5 150 105; /* #059669 */
-  --c-chart-danger: 225 29 72; /* #e11d48 */
-  --c-chart-warning: 217 119 6; /* #d97706 */
+  --c-chart-danger: 200 30 50; /* #c81e32 */
+  --c-chart-warning: 200 110 6; /* #c86e06 */
   --c-chart-neutral: 100 116 139; /* #64748b */
 
-    --radius-control: 0.5rem;
-    --radius-card: 0.75rem;
-    --radius-modal: 1rem;
-    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.06);
-    --shadow-pop: 0 10px 30px -6px rgb(15 23 42 / 0.18), 0 2px 6px rgb(15 23 42 / 0.08);
+    /* Thế giới "ba liên hóa đơn": góc vuông vức như mẫu biểu, viền 1px gánh việc phân vùng, gần như không đổ bóng. */
+    --radius-control: 0.25rem;
+    --radius-card: 0.375rem;
+    --radius-modal: 0.5rem;
+    --shadow-card: 0 1px 0 rgb(14 27 51 / 0.04);
+    --shadow-pop: 0 12px 32px -8px rgb(14 27 51 / 0.22), 0 2px 6px rgb(14 27 51 / 0.08);
   }
 
   .dark {
 
-  --c-canvas: 11 15 25; /* #0b0f19 */
-  --c-surface: 17 24 39; /* #111827 */
-  --c-surface-muted: 26 35 51; /* #1a2333 */
-  --c-surface-sunken: 14 21 34; /* #0e1522 */
-  --c-line: 38 50 71; /* #263247 */
-  --c-line-input: 111 126 148; /* #6f7e94 */
-  --c-fg: 241 245 249; /* #f1f5f9 */
-  --c-fg-muted: 170 182 201; /* #aab6c9 */
-  --c-fg-subtle: 143 157 179; /* #8f9db3 */
-  --c-primary: 125 175 240; /* #7daff0 */
-  --c-primary-hover: 163 200 248; /* #a3c8f8 */
-  --c-primary-fg: 11 15 25; /* #0b0f19 */
-  --c-accent: 147 190 245; /* #93bef5 */
-  --c-accent-soft: 22 38 66; /* #162642 */
-  --c-focus: 147 190 245; /* #93bef5 */
+  --c-canvas: 11 19 36; /* #0b1324: nền tối, sâu hơn surface một bậc để lớp xanh phía trên hiện ra */
+  --c-surface: 16 26 47; /* #101a2f */
+  --c-surface-muted: 22 34 58; /* #16223a */
+  --c-surface-sunken: 12 20 37; /* #0c1425 */
+  --c-line: 36 52 84; /* #243454 */
+  --c-line-input: 110 128 160; /* #6e80a0 */
+  --c-fg: 236 241 250; /* #ecf1fa */
+  --c-fg-muted: 176 190 214; /* #b0bed6 */
+  --c-fg-subtle: 148 164 192; /* #94a4c0 */
+  --c-primary: 122 166 240; /* #7aa6f0 */
+  --c-primary-hover: 160 192 246; /* #a0c0f6 */
+  --c-primary-fg: 10 17 32; /* #0a1120 */
+  --c-accent: 140 178 244; /* #8cb2f4 */
+  --c-accent-soft: 24 40 74; /* #18284a */
+  --c-focus: 140 178 244; /* #8cb2f4 */
+  --c-scrim: 0 0 0; /* #000000 */
   --c-tone-success-bg: 13 43 34; /* #0d2b22 */
   --c-tone-success-fg: 110 231 183; /* #6ee7b7 */
   --c-tone-success-line: 20 81 63; /* #14513f */
@@ -89,19 +93,20 @@
   --c-tone-info-bg: 18 37 74; /* #12254a */
   --c-tone-info-fg: 147 197 253; /* #93c5fd */
   --c-tone-info-line: 37 74 138; /* #254a8a */
-  --c-tone-neutral-bg: 26 35 51; /* #1a2333 */
+  --c-tone-neutral-bg: 22 34 58; /* #16223a */
   --c-tone-neutral-fg: 203 213 225; /* #cbd5e1 */
   --c-tone-neutral-line: 51 65 85; /* #334155 */
-  --c-tone-brand-bg: 21 36 64; /* #152440 */
-  --c-tone-brand-fg: 175 208 248; /* #afd0f8 */
-  --c-tone-brand-line: 40 66 112; /* #284270 */
-  --c-sidebar: 9 14 24; /* #090e18 */
-  --c-sidebar-hover: 19 28 44; /* #131c2c */
-  --c-sidebar-active: 25 38 60; /* #19263c */
-  --c-sidebar-line: 28 40 60; /* #1c283c */
-  --c-sidebar-fg: 241 245 249; /* #f1f5f9 */
-  --c-sidebar-muted: 163 177 198; /* #a3b1c6 */
-  --c-sidebar-accent: 125 175 240; /* #7daff0 */
+  --c-tone-brand-bg: 24 40 74; /* #18284a */
+  --c-tone-brand-fg: 175 205 248; /* #afcdf8 */
+  --c-tone-brand-line: 44 70 120; /* #2c4678 */
+  --c-sidebar-end: 27 54 112; /* #1b3670: xanh mẫu biểu tối, giữ chữ trắng đủ tương phản */
+  --c-sidebar: 10 19 38; /* #0a1326: mực navy tối */
+  --c-sidebar-hover: 22 42 88; /* #162a58 */
+  --c-sidebar-active: 31 58 116; /* #1f3a74 */
+  --c-sidebar-line: 30 48 88; /* #1e3058 */
+  --c-sidebar-fg: 241 245 252; /* #f1f5fc */
+  --c-sidebar-muted: 190 206 234; /* #beceea */
+  --c-sidebar-accent: 217 178 106; /* #d9b26a: ánh đồng, như chế độ sáng */
   --c-chart-success: 52 211 153; /* #34d399 */
   --c-chart-danger: 251 113 133; /* #fb7185 */
   --c-chart-warning: 251 191 36; /* #fbbf24 */
@@ -132,6 +137,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "ss01";
   @apply bg-canvas text-fg transition-colors duration-200;
+}
+
+/* Số trong bảng luôn đều cột để so số tiền giữa ba liên. */
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: rgb(var(--c-primary) / 0.22);
 }
 
 img,
@@ -167,76 +181,73 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgb(var(--c-line-input) / 0.45);
   border-radius: 3px;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #334155;
-}
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgb(var(--c-line-input) / 0.8);
 }
 
 /* ── Data Table & Components ── */
 @layer components {
   .table-row-hover {
-    @apply transition-colors duration-100 hover:bg-slate-50 dark:hover:bg-slate-800/60;
+    @apply transition-colors duration-100 hover:bg-surface-muted;
   }
 
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] dark:bg-brand-500 dark:hover:bg-brand-600;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-control bg-primary px-4 py-2 text-sm font-semibold text-primary-fg transition-colors duration-150 hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-line-input bg-surface px-4 py-2 text-sm font-semibold text-fg transition-colors duration-150 hover:bg-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
 
   .btn-danger {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 active:scale-[0.98];
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-tone-danger-line bg-tone-danger-bg px-4 py-2 text-sm font-semibold text-tone-danger-fg transition-colors duration-150 hover:bg-tone-danger-bg/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2;
   }
 
   .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-control px-3 py-2 text-sm font-medium text-fg-muted transition-colors duration-150 hover:bg-surface-muted hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-focus;
   }
 
   .input-field {
-    @apply block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-150 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 sm:text-sm;
+    @apply block min-h-10 w-full rounded-control border border-line-input bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-focus/25 transition-colors duration-150 sm:text-sm;
   }
 
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,55,112,0.08)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5)];
+    @apply rounded-card border border-line bg-surface shadow-card;
   }
 
   .card-compact {
-    @apply rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+    @apply rounded-card border border-line bg-surface;
   }
 
-  /* Distinct Bounding Highlight Boxes for Important Text */
+  /* Hộp nhấn mạnh: nền tone nhạt, viền 1px, không viền trái dày. */
   .highlight-box-info {
-    @apply rounded-xl border-2 border-brand-400/50 bg-brand-50/70 p-4 shadow-sm transition-all dark:border-brand-500/60 dark:bg-brand-950/50 dark:text-brand-100;
+    @apply rounded-card border border-tone-brand-line bg-tone-brand-bg p-4 text-tone-brand-fg;
   }
 
   .highlight-box-warning {
-    @apply rounded-xl border-2 border-amber-400/60 bg-amber-50/80 p-4 shadow-sm transition-all dark:border-amber-500/60 dark:bg-amber-950/50 dark:text-amber-100;
+    @apply rounded-card border border-tone-warning-line bg-tone-warning-bg p-4 text-tone-warning-fg;
   }
 
   .highlight-box-danger {
-    @apply rounded-xl border-2 border-rose-400/60 bg-rose-50/80 p-4 shadow-sm transition-all dark:border-rose-500/60 dark:bg-rose-950/50 dark:text-rose-100;
+    @apply rounded-card border border-tone-danger-line bg-tone-danger-bg p-4 text-tone-danger-fg;
   }
 
   .highlight-box-success {
-    @apply rounded-xl border-2 border-emerald-400/60 bg-emerald-50/80 p-4 shadow-sm transition-all dark:border-emerald-500/60 dark:bg-emerald-950/50 dark:text-emerald-100;
+    @apply rounded-card border border-tone-success-line bg-tone-success-bg p-4 text-tone-success-fg;
   }
 
-  /* Diff highlight for mismatched cells */
+  /* Ô lệch trong bảng đối chiếu */
   .diff-highlight {
-    @apply bg-rose-50 border-l-4 border-rose-500 dark:bg-rose-950/40 dark:border-rose-500;
+    @apply bg-tone-danger-bg font-semibold text-tone-danger-fg;
   }
 
   .diff-highlight-warning {
-    @apply bg-amber-50 border-l-4 border-amber-500 dark:bg-amber-950/40 dark:border-amber-500;
+    @apply bg-tone-warning-bg font-semibold text-tone-warning-fg;
   }
 
   /* Confidence-based opacity */
@@ -254,11 +265,6 @@ textarea {
 }
 
 @media (max-width: 639px) {
-  .card,
-  .card-compact {
-    border-radius: 0.75rem;
-  }
-
   h1 {
     overflow-wrap: anywhere;
   }
@@ -291,7 +297,7 @@ textarea {
 
 /* ── Upload dropzone ── */
 .dropzone-active {
-  @apply border-brand-500 bg-brand-50;
+  @apply border-primary bg-accent-soft;
 }
 
 /* ── Print Styles ── */

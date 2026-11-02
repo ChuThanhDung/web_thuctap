@@ -1,10 +1,10 @@
 import React from 'react';
-import { AlertTriangle, BadgeCheck, CheckCircle2, Clock, FileWarning, Hourglass, Loader2, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, BadgeCheck, CheckCircle2, Clock, FileWarning, Hourglass, Loader2, XCircle } from 'lucide-react';
 import { getApprovalMeta, getBatchStatuses, getReconciliationMeta } from '../lib/status.js';
 import { cn } from './cn.js';
 import Badge from './Badge.jsx';
 
-const ICONS = { AlertTriangle, BadgeCheck, CheckCircle2, Clock, FileWarning, Hourglass, Loader2, XCircle };
+const ICONS = { AlertCircle, AlertTriangle, BadgeCheck, CheckCircle2, Clock, FileWarning, Hourglass, Loader2, XCircle };
 
 function MetaBadge({ meta, size, className }) {
   if (!meta) return null;

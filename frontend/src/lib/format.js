@@ -34,7 +34,8 @@ export function formatNumber(value) {
 /** 119.240.000 ₫ */
 export function formatVND(amount) {
   if (amount === null || amount === undefined || amount === '' || Number.isNaN(Number(amount))) return '';
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(amount));
+  // Ghi "đ" như chứng từ kế toán và mọi nơi khác trong app, không dùng ký hiệu ₫.
+  return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(amount))} đ`;
 }
 
 /** 0.93 -> "93%". Nhận cả thang 0-1 lẫn 0-100. */

@@ -21,7 +21,7 @@ function NotificationIcon({ kind }) {
   return (
     <span
       className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-control',
         isRejected ? 'bg-tone-danger-bg text-tone-danger-fg' : 'bg-tone-brand-bg text-tone-brand-fg',
       )}
     >
@@ -40,6 +40,9 @@ export default function NotificationBell({ token, variant = 'default' }) {
   const loadRequestRef = useRef(0);
   const socketRef = useRef(null);
   const mountedRef = useRef(false);
+  // Lần kết nối WebSocket đầu tiên ngay sau khi trang vừa tải danh sách thì không tải lại;
+  // chỉ các lần kết nối lại (sau khi rớt mạng) mới tải lại để bù thông báo bị lỡ.
+  const hasConnectedRef = useRef(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +71,7 @@ export default function NotificationBell({ token, variant = 'default' }) {
   useEffect(() => {
     let cancelled = false;
     mountedRef.current = true;
+    hasConnectedRef.current = false;
     loadNotifications();
 
     function ringBell() {
@@ -109,7 +113,8 @@ export default function NotificationBell({ token, variant = 'default' }) {
         if (payload.event === 'connected') {
           reconnectAttemptRef.current = 0;
           setUnreadCount(payload.unread_count || 0);
-          loadNotifications({ silent: true });
+          if (hasConnectedRef.current) loadNotifications({ silent: true });
+          hasConnectedRef.current = true;
           pingTimerRef.current = window.setInterval(() => {
             if (socket.readyState === WebSocket.OPEN) {
               socket.send(JSON.stringify({ type: 'ping' }));
@@ -197,9 +202,9 @@ export default function NotificationBell({ token, variant = 'default' }) {
       <PopoverButton
         aria-label={vi.notifications.ariaLabel(unreadCount)}
         className={cn(
-          'relative flex h-10 w-10 items-center justify-center rounded-full transition-colors',
+          'relative flex h-10 w-10 items-center justify-center rounded-control transition-colors',
           onSidebar
-            ? 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-accent'
+            ? 'text-sidebar-muted hover:bg-sidebar-fg/10 hover:text-sidebar-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-accent'
             : cn(
                 'border bg-surface text-fg-muted shadow-card hover:bg-surface-muted hover:text-fg',
                 unreadCount > 0 ? 'border-tone-danger-line' : 'border-line',
@@ -212,7 +217,7 @@ export default function NotificationBell({ token, variant = 'default' }) {
           <span
             aria-hidden="true"
             className={cn(
-              'absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-tone-danger-fg px-1 text-[10px] font-bold leading-none text-canvas ring-2',
+              'absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-control bg-tone-danger-fg px-1 text-[10px] font-bold leading-none text-canvas ring-2',
               onSidebar ? 'ring-sidebar' : 'ring-canvas',
             )}
           >
@@ -239,7 +244,7 @@ export default function NotificationBell({ token, variant = 'default' }) {
                 onClick={unreadCount > 0 ? handleMarkAllRead : undefined}
                 aria-disabled={unreadCount === 0}
                 className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-accent hover:bg-accent-soft aria-disabled:cursor-not-allowed aria-disabled:text-fg-subtle aria-disabled:hover:bg-transparent',
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-accent hover:bg-accent-soft aria-disabled:cursor-not-allowed aria-disabled:text-fg-subtle aria-disabled:hover:bg-transparent',
                   focusRing,
                 )}
                 title={vi.notifications.markAllRead}

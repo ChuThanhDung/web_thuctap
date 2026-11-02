@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Menu } from 'lucide-react';
+import { Files, Menu } from 'lucide-react';
 import { vi } from '../i18n/vi.js';
 import { cn, focusRing } from '../ui/index.js';
 import NotificationBell from './NotificationBell.jsx';
@@ -23,7 +23,7 @@ export default function AppHeader({ token, menuOpen, onOpenMenu }) {
         </button>
         <span className="flex min-w-0 items-center gap-2">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary text-primary-fg">
-            <Bot size={18} aria-hidden="true" />
+            <Files size={18} aria-hidden="true" />
           </span>
           <span className="truncate text-sm font-semibold text-fg">{vi.brand.name}</span>
         </span>

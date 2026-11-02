@@ -11,8 +11,6 @@ const SIZES = {
 const TONES = [
   'bg-tone-brand-bg text-tone-brand-fg',
   'bg-tone-info-bg text-tone-info-fg',
-  'bg-tone-success-bg text-tone-success-fg',
-  'bg-tone-warning-bg text-tone-warning-fg',
   'bg-tone-neutral-bg text-tone-neutral-fg',
 ];
 

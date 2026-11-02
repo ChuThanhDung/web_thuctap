@@ -60,7 +60,7 @@ describe('Button', () => {
 describe('status badges', () => {
   it('always renders text and an icon, not just a colour', () => {
     const { container } = render(<ReconciliationBadge status="mismatch" />);
-    expect(screen.getByText('Có chênh lệch')).toBeInTheDocument();
+    expect(screen.getByText('Lệch lớn')).toBeInTheDocument();
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 

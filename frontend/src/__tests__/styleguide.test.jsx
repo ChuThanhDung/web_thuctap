@@ -13,7 +13,7 @@ describe('StyleGuide', () => {
     );
     expect(screen.getByRole('heading', { level: 1, name: 'Bảng mẫu giao diện' })).toBeInTheDocument();
     // Cả 4 trạng thái đối soát và 4 trạng thái duyệt đều có badge.
-    for (const label of ['Đang xử lý', 'Thiếu chứng từ', 'Khớp', 'Có chênh lệch', 'Chờ kế toán viên duyệt', 'Chờ kế toán trưởng duyệt', 'Đã duyệt', 'Từ chối']) {
+    for (const label of ['Đang xử lý', 'Thiếu chứng từ', 'Khớp', 'Lệch nhỏ', 'Lệch lớn', 'Chờ kế toán viên duyệt', 'Chờ kế toán trưởng duyệt', 'Đã duyệt', 'Từ chối']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
     // Avatar lấy chữ viết tắt từ họ tên thật, không từ vai trò trong ngoặc.

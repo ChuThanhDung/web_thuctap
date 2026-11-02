@@ -32,10 +32,11 @@ export function TimelineChart({ buckets }) {
     label: dayLabel(bucket.date),
     fullDate: formatDate(bucket.date),
     matched: bucket.matched,
+    minor: bucket.minor,
     mismatch: bucket.mismatch,
     rejected: bucket.rejected,
   }));
-  const hasData = data.some((row) => row.matched + row.mismatch + row.rejected > 0);
+  const hasData = data.some((row) => row.matched + row.minor + row.mismatch + row.rejected > 0);
 
   if (!hasData) {
     return <p className="px-5 py-12 text-center text-sm text-fg-muted">{vi.overview.timeline.empty}</p>;
@@ -52,6 +53,7 @@ export function TimelineChart({ buckets }) {
             <Tooltip content={<ChartTooltip colors={colors} />} cursor={{ fill: colors.grid, opacity: 0.4 }} />
             <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: colors.axis }} />
             <Bar dataKey="matched" name={vi.overview.timeline.matched} stackId="day" fill={colors.success} />
+            <Bar dataKey="minor" name={vi.overview.timeline.minor} stackId="day" fill={colors.warning} />
             <Bar dataKey="mismatch" name={vi.overview.timeline.mismatch} stackId="day" fill={colors.danger} />
             <Bar dataKey="rejected" name={vi.overview.timeline.rejected} stackId="day" fill={colors.neutral} radius={[3, 3, 0, 0]} />
           </BarChart>
@@ -63,6 +65,7 @@ export function TimelineChart({ buckets }) {
           <tr>
             <th scope="col">{vi.overview.timeline.date}</th>
             <th scope="col">{vi.overview.timeline.matched}</th>
+            <th scope="col">{vi.overview.timeline.minor}</th>
             <th scope="col">{vi.overview.timeline.mismatch}</th>
             <th scope="col">{vi.overview.timeline.rejected}</th>
           </tr>
@@ -72,6 +75,7 @@ export function TimelineChart({ buckets }) {
             <tr key={row.fullDate}>
               <th scope="row">{row.fullDate}</th>
               <td>{row.matched}</td>
+              <td>{row.minor}</td>
               <td>{row.mismatch}</td>
               <td>{row.rejected}</td>
             </tr>
@@ -84,12 +88,13 @@ export function TimelineChart({ buckets }) {
 
 const SEGMENTS = [
   ['matched', 'success'],
+  ['minor', 'warning'],
   ['mismatch', 'danger'],
-  ['missing_docs', 'warning'],
-  ['processing', 'neutral'],
+  ['missing_docs', 'neutral'],
+  ['processing', 'primary'],
 ];
 
-/** Vòng tròn kết quả đối soát, số % khớp ở giữa, chú thích kèm số lượng (không chỉ dựa vào màu). */
+/** Vòng tròn kết quả đối soát, số bộ khớp ở giữa, chú thích kèm số lượng (không chỉ dựa vào màu). */
 export function ResultDonut({ verdicts, matchRate }) {
   const colors = useChartColors();
   const segments = SEGMENTS.map(([key, tone]) => ({
@@ -121,7 +126,7 @@ export function ResultDonut({ verdicts, matchRate }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold tabular-nums text-fg">{matchRate === null ? '—' : `${matchRate}%`}</span>
+          <span className="text-2xl font-semibold tabular-nums text-fg">{matchRate === null ? '—' : `${verdicts.matched + verdicts.minor}/${verdicts.matched + verdicts.minor + verdicts.mismatch}`}</span>
           <span className="text-xs text-fg-muted">{vi.overview.result.matchedShort}</span>
         </div>
       </div>

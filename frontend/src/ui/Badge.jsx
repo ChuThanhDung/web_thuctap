@@ -20,7 +20,7 @@ export default function Badge({ tone = 'neutral', icon: Icon, size = 'md', spin 
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center whitespace-nowrap rounded-full border font-semibold leading-none',
+        'inline-flex shrink-0 items-center whitespace-nowrap rounded-control border font-semibold leading-none',
         TONES[tone],
         SIZES[size],
         className,

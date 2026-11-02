@@ -9,6 +9,7 @@ import {
   buildTimeline,
   filterByRange,
   formatWaiting,
+  getAccountantQueue,
   getAttention,
   getPendingQueue,
   groupByAccountant,
@@ -60,7 +61,7 @@ describe('summarize', () => {
       batch({ id: 4, status: 'incomplete', missing_doc_types: ['grn'], reconciliation_status: null }),
     ]);
     expect(result).toMatchObject({ pending: 1, approved: 1, rejected: 1, judged: 3, matchRate: 67 });
-    expect(result.verdicts).toEqual({ matched: 2, mismatch: 1, missing_docs: 1, processing: 0 });
+    expect(result.verdicts).toEqual({ matched: 2, minor: 0, mismatch: 1, missing_docs: 1, processing: 0 });
   });
 
   it('does not call an already-decided batch without a verdict "processing"', () => {
@@ -105,6 +106,28 @@ describe('pending queue and attention', () => {
   });
 });
 
+describe('accountant queue', () => {
+  const file = (docType) => ({ doc_type: docType });
+  const batches = [
+    batch({ id: 1, batch_number: 'EMPTY', status: 'incomplete', missing_doc_types: ['po', 'invoice', 'grn'], files: [] }),
+    batch({ id: 2, batch_number: 'NEEDS_GRN', status: 'incomplete', missing_doc_types: ['grn'], files: [file('po'), file('invoice')], updated_at: '2026-10-10 08:00:00' }),
+    batch({ id: 3, batch_number: 'READY', status: 'ready', updated_at: '2026-10-14 08:00:00' }),
+    batch({ id: 4, batch_number: 'BOUNCED', status: 'rejected', updated_at: '2026-10-12 08:00:00' }),
+    batch({ id: 5, batch_number: 'WITH_CHIEF', status: 'approved' }),
+    batch({ id: 6, batch_number: 'ARCHIVED', status: 'final_approved' }),
+  ];
+
+  it('lists supplements, returns and ready batches oldest first, skipping empty and decided ones', () => {
+    const queue = getAccountantQueue(batches, () => 'mismatch', NOW);
+    expect(queue.items.map((item) => item.batch.batch_number)).toEqual(['NEEDS_GRN', 'BOUNCED', 'READY']);
+    expect(queue.items.map((item) => item.kind)).toEqual(['supplement', 'rejected', 'review']);
+    expect(queue.items[0].missing).toEqual(['grn']);
+    expect(queue.items[2].result).toBe('mismatch');
+    expect(queue.total).toBe(3);
+    expect(queue.supplement).toBe(1);
+  });
+});
+
 describe('timeline, activity and accountants', () => {
   it('buckets batches by day over the requested window', () => {
     const buckets = buildTimeline(
@@ -117,7 +140,8 @@ describe('timeline, activity and accountants', () => {
       { days: 3, endDate: NOW },
     );
     expect(buckets).toHaveLength(3);
-    expect(buckets.map((b) => [b.matched, b.mismatch, b.rejected])).toEqual([[0, 0, 0], [0, 0, 1], [1, 1, 0]]);
+    // Lệch nhỏ có cột riêng (hổ phách), không gộp vào khớp hay lệch lớn.
+    expect(buckets.map((b) => [b.matched, b.minor, b.mismatch, b.rejected])).toEqual([[0, 0, 0, 0], [0, 0, 0, 1], [1, 1, 0, 0]]);
   });
 
   it('builds a newest-first feed from current state and saved rejections', () => {
@@ -196,7 +220,7 @@ describe('ChiefOverview', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: 'Tổng quan' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Chờ bạn duyệt/ })).toHaveTextContent('1');
-    expect(screen.getByText('Tỷ lệ khớp')).toBeInTheDocument();
+    expect(screen.getByText('Bộ ba liên khớp')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Cần xử lý ngay' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xem BATCH_OLD' })).toBeInTheDocument();
     expect(screen.getByText(/Quá hạn, chờ 5 ngày/)).toBeInTheDocument();

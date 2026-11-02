@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import {
-  Bot,
+  Files,
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
@@ -31,13 +31,13 @@ const NAV_ICONS = {
   settings: SlidersHorizontal,
 };
 
-// Thanh bên luôn tối (cả giao diện sáng) nên có bộ màu và ring focus riêng, tương phản trên nền navy.
+// Thanh bên luôn mang màu xanh mẫu biểu (cả giao diện sáng) nên có bộ màu và ring focus riêng.
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-accent focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar';
 const itemBase = 'flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors';
-const itemIdle = 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg';
+const itemIdle = 'text-sidebar-muted hover:bg-sidebar-fg/10 hover:text-sidebar-fg';
 const itemActive =
-  'relative bg-sidebar-active text-sidebar-fg before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-sidebar-accent';
+  'bg-sidebar-fg/15 font-semibold text-sidebar-fg ring-1 ring-inset ring-sidebar-fg/25';
 
 /** Nhãn hiện khi thanh bên mở rộng; khi thu gọn, tên nằm trong tooltip và aria-label của nút. */
 function withTooltip(compact, label, element) {
@@ -66,7 +66,7 @@ function ThemeToggle({ theme, onToggle, compact }) {
 
   return (
     <div role="group" aria-label={vi.shell.theme} className="px-3 py-1">
-      <span className="inline-flex rounded-control bg-sidebar-hover p-0.5">
+      <span className="inline-flex rounded-control bg-sidebar-fg/10 p-0.5">
         {[
           ['light', vi.shell.themeLight, Sun],
           ['dark', vi.shell.themeDark, Moon],
@@ -81,8 +81,8 @@ function ThemeToggle({ theme, onToggle, compact }) {
               title={label}
               onClick={() => !active && onToggle()}
               className={cn(
-                'inline-flex h-8 w-10 items-center justify-center rounded-md transition-colors',
-                active ? 'bg-sidebar-active text-sidebar-fg' : 'text-sidebar-muted hover:text-sidebar-fg',
+                'inline-flex h-8 w-10 items-center justify-center rounded-control transition-colors',
+                active ? 'bg-sidebar-fg/15 text-sidebar-fg' : 'text-sidebar-muted hover:text-sidebar-fg',
                 focusRing,
               )}
             >
@@ -119,7 +119,7 @@ function SidebarContent({
       type="button"
       onClick={onOpenProfile}
       aria-label={compact ? `${vi.shell.profile}: ${displayName}` : vi.shell.profile}
-      className={cn('flex min-h-14 w-full items-center gap-3 rounded-control px-2 text-left transition-colors hover:bg-sidebar-hover', compact && 'justify-center px-0', focusRing)}
+      className={cn('flex min-h-14 w-full items-center gap-3 rounded-control px-2 text-left transition-colors hover:bg-sidebar-fg/10', compact && 'justify-center px-0', focusRing)}
     >
       <Avatar name={user.full_name} src={avatarSrc} />
       {!compact && (
@@ -147,7 +147,7 @@ function SidebarContent({
     <>
       <div className={cn('flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-line px-4', compact && 'justify-center px-0')}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-sidebar-accent text-sidebar">
-          <Bot size={20} aria-hidden="true" />
+          <Files size={20} aria-hidden="true" />
         </span>
         {!compact && (
           <span className="min-w-0 flex-1">
@@ -161,7 +161,7 @@ function SidebarContent({
             type="button"
             onClick={onClose}
             aria-label={vi.shell.closeMenu}
-            className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-sidebar-muted hover:bg-sidebar-hover', focusRing)}
+            className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control text-sidebar-muted hover:bg-sidebar-fg/10', focusRing)}
           >
             <X size={20} aria-hidden="true" />
           </button>
@@ -271,16 +271,16 @@ export default function Sidebar({
     <>
       {drawer ? (
         <Dialog open={open} onClose={onClose} className="relative z-50">
-          <div aria-hidden="true" className="fixed inset-0 bg-fg/40" />
-          <DialogPanel className="fixed inset-y-0 left-0 flex w-[min(86vw,288px)] flex-col border-r border-sidebar-line bg-sidebar shadow-pop">
+          <div aria-hidden="true" className="fixed inset-0 bg-scrim/50" />
+          <DialogPanel className="fixed inset-y-0 left-0 flex w-[min(86vw,288px)] flex-col border-r border-sidebar-line bg-sidebar bg-[linear-gradient(180deg,rgb(var(--c-sidebar))_0%,rgb(var(--c-sidebar-end))_100%)] shadow-pop">
             {content}
           </DialogPanel>
         </Dialog>
       ) : (
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-line bg-sidebar transition-[width] duration-200',
-            compact ? 'w-[68px]' : 'w-[260px]',
+            'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-line bg-sidebar bg-[linear-gradient(180deg,rgb(var(--c-sidebar))_0%,rgb(var(--c-sidebar-end))_100%)] transition-[width] duration-200',
+            compact ? 'w-16' : 'w-[260px]',
           )}
         >
           {content}

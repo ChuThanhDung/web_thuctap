@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;height:900px;overflow:hidden;font-family:Inter,sans-serif;background:#f3f6fb;color:#0f1f3d;display:flex;font-feature-settings:"tnum"}
+.nav{width:232px;flex-shrink:0;background:#0f1f3d;color:#c9d6ee;padding:22px 16px;display:flex;flex-direction:column;gap:4px}
+.brand{color:#fff;font-weight:700;font-size:16px;margin-bottom:26px;display:flex;gap:10px;align-items:center}
+.brand i{width:26px;height:26px;border:2px solid #fff;border-radius:50%;display:inline-block}
+.nav a{padding:10px 12px;border-radius:6px;font-size:14px}
+.nav a.on{background:#1a4b9c;color:#fff;font-weight:600}
+main{flex:1;min-width:0;padding:28px 36px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:24px;font-weight:700}
+.sub{font-size:14px;color:#4a5b7a;margin-top:4px}
+.tools{display:flex;gap:10px}
+.in{flex:1;height:40px;border:1px solid #c3cfe2;background:#fff;border-radius:6px;padding:0 14px;font-size:14px;color:#5f6f8c;display:flex;align-items:center}
+.sel{height:40px;border:1px solid #c3cfe2;background:#fff;border-radius:6px;padding:0 14px;font-size:14px;display:flex;align-items:center}
+.tabs{display:flex;gap:24px;border-bottom:1px solid #d5deeb;font-size:14px}
+.tabs span{padding:10px 0;color:#4a5b7a}.tabs .on{color:#1a4b9c;font-weight:600;border-bottom:2px solid #1a4b9c}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d5deeb}
+th{font-size:12px;font-weight:600;color:#4a5b7a;text-align:left;padding:10px 14px;border-bottom:1px solid #d5deeb;background:#f7f9fc}
+td{padding:14px;border-bottom:1px solid #e6ecf4;font-size:14px;vertical-align:middle}
+td.num{text-align:right}
+.b{font-weight:600}
+.small{font-size:12px;color:#5b6b88}
+.sig{display:grid;grid-template-columns:repeat(3,128px);width:max-content;border:1px solid #b9c7de}
+.sig>div{height:58px;padding:6px 8px;border-left:1px solid #b9c7de;position:relative}
+.sig>div:first-child{border-left:0}
+.sig .l{font-size:11px;color:#5b6b88;font-weight:600}
+.sig .n{font-size:13px;color:#1a4b9c;font-weight:600;margin-top:4px}
+.sig .d{font-size:11px;color:#1a4b9c}
+.sig .wait{color:#5f6f8c;font-weight:500}
+.seal{position:absolute;right:-26px;top:-14px;background:rgba(255,255,255,.85);width:58px;height:58px;border:2px solid #c8102e;border-radius:50%;color:#c8102e;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;transform:rotate(-12deg);line-height:1.1}
+.pill{white-space:nowrap;font-size:12px;font-weight:600;padding:3px 8px;border-radius:4px}
+.ok{background:#e6f4ee;color:#0b6b48}.minor{background:#fff4dd;color:#8a4b00}.major{background:#fde8ea;color:#a3122b}
+.act{display:flex;gap:16px;justify-content:flex-end}
+.btn{height:34px;padding:0 14px;white-space:nowrap;border-radius:6px;font-size:13px;font-weight:600;display:flex;align-items:center}
+.pri{background:#1a4b9c;color:#fff}.out{border:1px solid #c3cfe2;color:#a3122b;background:#fff}
+</style></head><body>
+<nav class="nav">
+<div class="brand"><i></i>DocuSync AI</div>
+<a>Tổng quan</a><a class="on">Bộ đối soát</a><a>Quản lý tài khoản</a><a>Ngưỡng sai số</a>
+</nav>
+<main>
+<div><h1>Bộ đối soát</h1><p class="sub">Kế toán trưởng · 3 bộ chờ duyệt cuối, 1 bộ lệch lớn</p></div>
+<div class="tools"><div class="in">Tìm theo mã bộ, nhà cung cấp, người lập…</div><div class="sel">Tháng 10/2026</div><div class="sel">Nhà cung cấp: Tất cả</div></div>
+<div class="tabs"><span class="on">Chờ duyệt cuối (3)</span><span>Đã lưu trữ (24)</span><span>Đã từ chối (2)</span><span>Tất cả</span></div>
+<table>
+<tr><th>Bộ chứng từ</th><th>Kết quả</th><th style="text-align:right">Tổng thanh toán (VND)</th><th>Chữ ký</th><th></th></tr>
+<tr><td><div class="b">BATCH_25_10_2026_03</div><div class="small">Hòa Phát Thành · 3 mặt hàng</div></td>
+<td><span class="pill ok">Khớp</span></td><td class="num b">259.740.000</td>
+<td><div class="sig"><div><div class="l">NGƯỜI LẬP</div><div class="n">Nguyễn Thị Lan</div><div class="d">24/10 08:12</div></div><div><div class="l">DUYỆT CẤP 1</div><div class="n">Chu Thanh Dũng</div><div class="d">25/10 09:40</div></div><div><div class="l">DUYỆT CUỐI</div><div class="n wait">Chờ ký</div></div></div></td>
+<td><div class="act"><span class="btn out">Từ chối</span><span class="btn pri">Duyệt và lưu trữ</span></div></td></tr>
+<tr><td><div class="b">BATCH_25_10_2026_02</div><div class="small">Thiên Long Văn phòng phẩm · 12 mặt hàng</div></td>
+<td><span class="pill minor">Lệch nhỏ · 640 đ</span></td><td class="num b">48.215.640</td>
+<td><div class="sig"><div><div class="l">NGƯỜI LẬP</div><div class="n">Trần Minh Khoa</div><div class="d">24/10 14:05</div></div><div><div class="l">DUYỆT CẤP 1</div><div class="n">Chu Thanh Dũng</div><div class="d">25/10 10:02</div></div><div><div class="l">DUYỆT CUỐI</div><div class="n wait">Chờ ký</div></div></div></td>
+<td><div class="act"><span class="btn out">Từ chối</span><span class="btn pri">Duyệt và lưu trữ</span></div></td></tr>
+<tr><td><div class="b">BATCH_24_10_2026_05</div><div class="small">Sơn Hà Inox · 4 mặt hàng</div></td>
+<td><span class="pill major">Lệch lớn · đơn giá dòng 2</span></td><td class="num b">131.900.000</td>
+<td><div class="sig"><div><div class="l">NGƯỜI LẬP</div><div class="n">Nguyễn Thị Lan</div><div class="d">24/10 16:30</div></div><div><div class="l">DUYỆT CẤP 1</div><div class="n wait">Chưa duyệt</div></div><div><div class="l">DUYỆT CUỐI</div><div class="n wait">—</div></div></div></td>
+<td><div class="act"><span class="btn out" style="color:#1a4b9c">Xem chênh lệch</span></div></td></tr>
+<tr><td><div class="b">BATCH_24_10_2026_02</div><div class="small">Hòa Phát Thành · 3 mặt hàng</div></td>
+<td><span class="pill ok">Khớp</span></td><td class="num b">235.400.000</td>
+<td><div class="sig"><div><div class="l">NGƯỜI LẬP</div><div class="n">Chu Thanh Dũng</div><div class="d">23/10 11:20</div></div><div><div class="l">DUYỆT CẤP 1</div><div class="n">Chu Thanh Dũng</div><div class="d">24/10 02:10</div></div><div><div class="l">DUYỆT CUỐI</div><div class="n">Chu Thanh Dũng</div><div class="d">24/10 03:45</div><div class="seal">ĐÃ<br>LƯU<br>TRỮ</div></div></div></td>
+<td><div class="act"><span class="small">Bất biến</span></div></td></tr>
+</table>
+</main>
+</body></html>

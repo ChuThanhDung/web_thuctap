@@ -35,7 +35,16 @@ export default {
         primary: { DEFAULT: token('primary'), hover: token('primary-hover'), fg: token('primary-fg') },
         accent: { DEFAULT: token('accent'), soft: token('accent-soft') },
         focus: token('focus'),
+        // Lớp phủ sau hộp thoại: luôn tối ở cả hai giao diện (không dùng fg, vì fg đảo màu ở chế độ tối).
+        scrim: token('scrim'),
         tone: toneColors,
+        // Màu đặc cho thanh tỉ lệ, vạch trạng thái và biểu đồ (đậm hơn tone-*-fg để nhìn rõ trên nền sáng/tối).
+        chart: {
+          success: token('chart-success'),
+          danger: token('chart-danger'),
+          warning: token('chart-warning'),
+          neutral: token('chart-neutral'),
+        },
         sidebar: {
           DEFAULT: token('sidebar'),
           hover: token('sidebar-hover'),
@@ -44,21 +53,22 @@ export default {
           fg: token('sidebar-fg'),
           muted: token('sidebar-muted'),
           accent: token('sidebar-accent'),
+          end: token('sidebar-end'),
         },
         // Thang màu cũ, còn dùng ở các màn hình chưa chuyển sang token (sẽ bỏ khi hoàn tất giai đoạn 6).
-        // Đã đổi sang cùng dải xanh với token primary để trang cũ không lệch màu với khung mới.
+        // Cùng dải xanh mẫu biểu với token primary (#1f4fa3 ở mức 600) để trang cũ không lệch màu với khung mới.
         brand: {
-          50: '#ebf3fc',
-          100: '#d6e6f8',
-          200: '#b3d0f1',
-          300: '#85b3e8',
-          400: '#5490dc',
-          500: '#2f72c6',
-          600: '#1e5aa8',
-          700: '#164687',
-          800: '#123868',
-          900: '#0f2c50',
-          950: '#091b33',
+          50: '#eef3fb',
+          100: '#dde7f7',
+          200: '#b9cbea',
+          300: '#8eaadb',
+          400: '#5f85c8',
+          500: '#3a67b6',
+          600: '#1f4fa3',
+          700: '#173d80',
+          800: '#132f63',
+          900: '#0f244b',
+          950: '#0a1730',
         },
       },
       borderRadius: {

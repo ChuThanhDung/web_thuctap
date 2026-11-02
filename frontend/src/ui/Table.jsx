@@ -17,7 +17,7 @@ export function Table({ caption, className, children, ...rest }) {
 }
 
 export function THead({ children }) {
-  return <thead className="border-b border-line bg-surface-muted">{children}</thead>;
+  return <thead className="border-b-2 border-primary">{children}</thead>;
 }
 
 export function TBody({ children }) {
@@ -33,7 +33,7 @@ export function TH({ numeric = false, className, children, ...rest }) {
     <th
       scope="col"
       className={cn(
-        'whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-fg-muted',
+        'whitespace-nowrap px-4 py-2.5 text-xs font-semibold text-fg-muted',
         numeric ? 'text-right' : 'text-left',
         className,
       )}

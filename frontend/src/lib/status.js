@@ -4,14 +4,14 @@ import { vi } from '../i18n/vi.js';
  * Hệ trạng thái dùng chung cho badge, biểu đồ, bộ lọc và báo cáo.
  *
  * Hai nhóm tách bạch:
- *  - Đối soát (do AI/hệ thống): processing, missing_docs, matched, mismatch
+ *  - Đối soát (do AI/hệ thống): processing, missing_docs, matched, minor (lệch trong ngưỡng làm tròn), mismatch
  *  - Duyệt (do con người):      pending_accountant, pending_chief, approved, rejected
  *
  * Nguồn sự thật cho "khớp / chênh lệch" là `reconciliation_status` backend trả về, không tính lại ở frontend.
  * (Đo trên bộ dữ liệu mẫu: phép tính cũ ở frontend báo sai 2/4 bộ khớp là "thiếu dữ liệu".)
  */
 
-export const RECONCILIATION_STATUSES = ['processing', 'missing_docs', 'matched', 'mismatch'];
+export const RECONCILIATION_STATUSES = ['processing', 'missing_docs', 'matched', 'minor', 'mismatch'];
 export const APPROVAL_STATUSES = ['pending_accountant', 'pending_chief', 'approved', 'rejected'];
 
 // `icon` là tên icon lucide, được ánh xạ sang component ở src/ui/StatusBadge.jsx (giữ module này thuần dữ liệu).
@@ -19,6 +19,7 @@ const RECONCILIATION_META = {
   processing: { tone: 'info', icon: 'Loader2' },
   missing_docs: { tone: 'warning', icon: 'FileWarning' },
   matched: { tone: 'success', icon: 'CheckCircle2' },
+  minor: { tone: 'warning', icon: 'AlertCircle' },
   mismatch: { tone: 'danger', icon: 'AlertTriangle' },
 };
 
@@ -56,6 +57,7 @@ export function getReconciliationStatus(batch) {
     case 'matched':
       return 'matched';
     case 'minor_diff':
+      return 'minor';
     case 'major_diff':
       return 'mismatch';
     default:

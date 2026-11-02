@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, Clock, Inbox, Percent, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, Inbox, XCircle } from 'lucide-react';
 import DateRangeFilter from '../components/overview/DateRangeFilter.jsx';
 import { ResultDonut, TimelineChart } from '../components/overview/OverviewCharts.jsx';
 import { vi } from '../i18n/vi.js';
+import SummaryLine from '../components/overview/SummaryLine.jsx';
 import { batchDetail, batchesWithStatus } from '../routes.js';
 import { getPresetRange, parseDateInput } from '../lib/dateRange.js';
 import { formatDateTime, formatVND } from '../lib/format.js';
@@ -19,7 +20,7 @@ import {
   summarize,
 } from '../lib/overview.js';
 import useBatches from '../lib/useBatches.js';
-import { Avatar, Badge, Button, Card, CardHeader, EmptyState, PageHeader, StatCard } from '../ui/index.js';
+import { Avatar, Badge, Button, Card, CardHeader, EmptyState, PageHeader } from '../ui/index.js';
 
 const TIMELINE_DAYS = 14;
 
@@ -111,7 +112,7 @@ function AttentionCard({ attention, onOpen, onFilter }) {
       <AttentionRow
         key="diff"
         icon={AlertTriangle}
-        tone="warning"
+        tone={largestDiff.batch.reconciliation_status === 'minor_diff' ? 'warning' : 'danger'}
         label={vi.overview.attention.largestDiff}
         value={formatVND(largestDiff.amount)}
         detail={largestDiff.batch.batch_number}
@@ -190,7 +191,7 @@ function AccountantsCard({ rows }) {
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{row.name}</span>
               <span className="shrink-0 text-right text-xs text-fg-muted">
                 <span className="block font-semibold tabular-nums text-fg">{vi.overview.accountants.sets(row.total)}</span>
-                {vi.overview.accountants.rate(row.matchRate)}
+                {vi.overview.accountants.rate(row.matched, row.judged)}
               </span>
             </li>
           ))}
@@ -290,40 +291,19 @@ export default function ChiefOverview({ token }) {
     <div className="space-y-6">
       {header}
 
-      <section aria-label={vi.overview.title} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label={vi.overview.kpi.pending}
-          value={summary.pending}
-          hint={vi.overview.kpi.pendingHint}
-          icon={ClipboardList}
-          tone="brand"
-          onClick={() => openFilter('unapproved')}
-          className="border-primary ring-1 ring-primary"
-        />
-        <StatCard
-          label={vi.overview.kpi.approved}
-          value={summary.approved}
-          hint={vi.overview.kpi.approvedHint}
-          icon={CheckCircle2}
-          tone="success"
-          onClick={() => openFilter('approved')}
-        />
-        <StatCard
-          label={vi.overview.kpi.rejected}
-          value={summary.rejected}
-          hint={vi.overview.kpi.rejectedHint}
-          icon={XCircle}
-          tone="danger"
-          onClick={() => openFilter('rejected')}
-        />
-        <StatCard
-          label={vi.overview.kpi.matchRate}
-          value={summary.matchRate === null ? '—' : `${summary.matchRate}%`}
-          hint={summary.matchRate === null ? vi.overview.kpi.matchRateEmpty : vi.overview.kpi.matchRateHint(summary.judged)}
-          icon={Percent}
-          tone="info"
-        />
-      </section>
+      <SummaryLine
+        label={vi.overview.title}
+        items={[
+          { label: vi.overview.kpi.pending, value: summary.pending, hint: vi.overview.kpi.pendingHint, lead: true, onClick: () => openFilter('unapproved') },
+          { label: vi.overview.kpi.approved, value: summary.approved, onClick: () => openFilter('approved') },
+          { label: vi.overview.kpi.rejected, value: summary.rejected, onClick: () => openFilter('rejected') },
+          {
+            label: vi.overview.kpi.matchRate,
+            value: summary.matchRate === null ? '—' : `${summary.verdicts.matched + summary.verdicts.minor}/${summary.judged}`,
+            hint: summary.matchRate === null ? vi.overview.kpi.matchRateEmpty : vi.overview.kpi.matchRateHint(summary.judged),
+          },
+        ]}
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <QueueCard queue={view.queue} onOpen={openBatch} onViewAll={() => openFilter('unapproved')} />

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;height:900px;overflow:hidden;font-family:Inter,sans-serif;background:#fff;color:#0e1b33;display:flex;font-feature-settings:"tnum"}
+.nav{width:64px;flex-shrink:0;background:#1f4fa3;display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:18px}
+.nav i{width:28px;height:28px;border-radius:6px;background:#3f6dbd;display:block}.nav i.on{background:#fff}
+.list{width:340px;border-right:1px solid #d6e0f0;background:#f6f9fe;padding:20px 16px;display:flex;flex-direction:column;gap:10px}
+.list h2{font-size:18px;font-weight:700}
+.in{height:36px;border:1px solid #c5d3ea;border-radius:6px;background:#fff;font-size:13px;color:#5c6b86;padding:0 12px;display:flex;align-items:center}
+.it{background:#fff;border:1px solid #d6e0f0;border-radius:6px;padding:12px}
+.it.on{border-color:#1f4fa3;box-shadow:inset 3px 0 0 #1f4fa3}
+.it b{font-size:14px}.it p{font-size:12px;color:#55657f;margin-top:4px}
+.tag{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:6px;display:inline-block}
+.ok{background:#e6f4ee;color:#0b6b48}.minor{background:#fff4dd;color:#8a4b00}.major{background:#fde8ea;color:#a3122b}
+main{flex:1;min-width:0;padding:24px 32px;display:flex;flex-direction:column;gap:16px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start}
+h1{font-size:24px}.sub{font-size:13px;color:#55657f;margin-top:4px}
+.acts{display:flex;gap:24px}.btn{height:36px;padding:0 16px;border-radius:6px;font-size:13px;font-weight:600;display:flex;align-items:center}
+.pri{background:#1f4fa3;color:#fff}.out{border:1px solid #c5d3ea;color:#a3122b}
+.docs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.doc{border:1px solid #d6e0f0;border-radius:6px;padding:12px;font-size:12px;color:#55657f}
+.doc b{display:block;font-size:13px;color:#0e1b33;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;color:#55657f;font-weight:600;text-align:right;padding:8px 10px;border-bottom:2px solid #1f4fa3}
+th:first-child,th:nth-child(2),th:nth-child(3){text-align:left}
+td{padding:6px 10px;text-align:right;border-bottom:1px solid #edf1f8}
+td:first-child,td:nth-child(2),td:nth-child(3){text-align:left}
+tr.g td{border-bottom:2px solid #c5d3ea}
+.copy{font-size:11px;font-weight:700;color:#1f4fa3;background:#e8effa;border-radius:3px;padding:2px 6px}
+.x{background:#fde8ea;color:#a3122b;font-weight:700;position:relative;left:6px}
+.res{font-weight:600}
+</style></head><body>
+<nav class="nav"><i class="on"></i><i></i><i></i><i></i></nav>
+<aside class="list">
+<h2>Chờ duyệt cuối</h2><div class="in">Tìm bộ chứng từ…</div>
+<div class="it on"><b>BATCH_24_10_2026_05</b><p>Sơn Hà Inox · 131.900.000 đ</p><span class="tag major">Lệch lớn · đơn giá</span></div>
+<div class="it"><b>BATCH_25_10_2026_03</b><p>Hòa Phát Thành · 259.740.000 đ</p><span class="tag ok">Khớp</span></div>
+<div class="it"><b>BATCH_25_10_2026_02</b><p>Thiên Long · 48.215.640 đ</p><span class="tag minor">Lệch nhỏ · 640 đ</span></div>
+<div class="it"><b>BATCH_23_10_2026_04</b><p>Đại Việt Pipe · 76.300.000 đ</p><span class="tag ok">Khớp</span></div>
+</aside>
+<main>
+<div class="hd"><div><h1>BATCH_24_10_2026_05</h1><p class="sub">Sơn Hà Inox · MST 0312456789 · VAT 10% · 1 trường lệch lớn</p></div>
+<div class="acts"><span class="btn out">Từ chối</span><span class="btn pri">Duyệt và lưu trữ</span></div></div>
+<div class="docs"><div class="doc"><b>Liên PO · Đơn đặt hàng</b>po_sonha_1024.xml · XML, đọc cục bộ</div><div class="doc"><b>Liên HĐ · Hóa đơn</b>hd_0001845.pdf · AI trích xuất</div><div class="doc"><b>Liên GRN · Phiếu nhập kho</b>pnk_1024_05.xml · XML, đọc cục bộ</div></div>
+<table>
+<tr><th>Mặt hàng</th><th>ĐVT</th><th>Liên</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Kết quả</th></tr>
+<tr><td rowspan="3"><b>Bồn inox 1000L đứng</b><br><span style="font-size:11px;color:#55657f">SH-1000D</span></td><td rowspan="3">Cái</td><td><span class="copy">PO</span></td><td>20</td><td>3.450.000</td><td>69.000.000</td><td rowspan="3" class="res" style="color:#0b6b48">Khớp</td></tr>
+<tr><td><span class="copy">HĐ</span></td><td>20</td><td>3.450.000</td><td>69.000.000</td></tr>
+<tr class="g"><td><span class="copy">GRN</span></td><td>20</td><td>—</td><td>—</td></tr>
+<tr><td rowspan="3"><b>Bồn inox 1500L ngang</b><br><span style="font-size:11px;color:#55657f">SH-1500N</span></td><td rowspan="3">Cái</td><td><span class="copy">PO</span></td><td>12</td><td>4.750.000</td><td>57.000.000</td><td rowspan="3" class="res" style="color:#a3122b">Lệch lớn: đơn giá HĐ cao hơn PO 150.000 đ</td></tr>
+<tr><td><span class="copy">HĐ</span></td><td>12</td><td><span class="x">4.900.000</span></td><td><span class="x">58.800.000</span></td></tr>
+<tr class="g"><td><span class="copy">GRN</span></td><td>12</td><td>—</td><td>—</td></tr>
+<tr><td rowspan="3"><b>Chân bồn inox 1000L</b><br><span style="font-size:11px;color:#55657f">SH-CB10</span></td><td rowspan="3">Bộ</td><td><span class="copy">PO</span></td><td>20</td><td>205.000</td><td>4.100.000</td><td rowspan="3" class="res" style="color:#0b6b48">Khớp</td></tr>
+<tr><td><span class="copy">HĐ</span></td><td>20</td><td>205.000</td><td>4.100.000</td></tr>
+<tr class="g"><td><span class="copy">GRN</span></td><td>20</td><td>—</td><td>—</td></tr>
+</table>
+</main>
+</body></html>

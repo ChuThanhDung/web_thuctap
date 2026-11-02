@@ -1,4 +1,5 @@
 import { getReconciliationStatus } from './status.js';
+import { detectForeignCopy, docsFromApiBatch } from '../reconciliationCompare.js';
 import { startOfDay, isWithinRange } from './dateRange.js';
 import { toDate } from './format.js';
 import { vi } from '../i18n/vi.js';
@@ -20,7 +21,7 @@ export function filterByRange(batches, range) {
 
 /** Số liệu thẻ KPI và biểu đồ kết quả đối soát. matchRate là null khi chưa bộ nào có kết quả. */
 export function summarize(batches) {
-  const verdicts = { matched: 0, mismatch: 0, missing_docs: 0, processing: 0 };
+  const verdicts = { matched: 0, minor: 0, mismatch: 0, missing_docs: 0, processing: 0 };
   let pending = 0;
   let approved = 0;
   let rejected = 0;
@@ -34,7 +35,8 @@ export function summarize(batches) {
     else if (batch.status === 'rejected') rejected += 1;
   }
 
-  const judged = verdicts.matched + verdicts.mismatch;
+  // Lệch nhỏ là làm tròn: tính là khớp khi đếm "bộ ba liên khớp".
+  const judged = verdicts.matched + verdicts.minor + verdicts.mismatch;
   return {
     total: batches.length,
     pending,
@@ -42,7 +44,7 @@ export function summarize(batches) {
     rejected,
     verdicts,
     judged,
-    matchRate: judged ? Math.round((verdicts.matched / judged) * 100) : null,
+    matchRate: judged ? Math.round(((verdicts.matched + verdicts.minor) / judged) * 100) : null,
   };
 }
 
@@ -61,6 +63,45 @@ export function getPendingQueue(batches, now = new Date(), limit = 5) {
     })
     .sort((a, b) => b.waitingMs - a.waitingMs);
   return { items: waiting.slice(0, limit), total: waiting.length };
+}
+
+const DOC_TYPE_KEYS = ['po', 'invoice', 'grn'];
+
+/** Loại chứng từ còn thiếu của một bộ; ưu tiên `missing_doc_types` từ API. */
+export function getMissingDocTypes(batch) {
+  if (Array.isArray(batch?.missing_doc_types)) return batch.missing_doc_types;
+  const uploaded = new Set((batch?.files || []).map((file) => file.doc_type));
+  return DOC_TYPE_KEYS.filter((type) => !uploaded.has(type));
+}
+
+/**
+ * Việc của kế toán viên, chờ lâu nhất lên trước:
+ * - `supplement`: bộ đã có file nhưng chưa đủ ba liên (bộ rỗng do trang Tải chứng từ tạo sẵn không tính);
+ * - `rejected`: kế toán trưởng trả lại;
+ * - `review`: đủ ba liên, chưa duyệt cấp 1. `resultOf(batch)` trả 'matched' | 'mismatch' | 'missing'.
+ */
+export function getAccountantQueue(batches, resultOf, now = new Date(), limit = 5) {
+  const items = [];
+  for (const batch of batches) {
+    if (['approved', 'final_approved'].includes(batch.status)) continue;
+    const waitingMs = getWaitingMs(batch, now);
+    if (batch.status === 'rejected') {
+      items.push({ batch, kind: 'rejected', waitingMs });
+      continue;
+    }
+    const missing = getMissingDocTypes(batch);
+    if (missing.length > 0) {
+      if ((batch.files || []).length > 0) items.push({ batch, kind: 'supplement', missing, waitingMs });
+      continue;
+    }
+    items.push({ batch, kind: 'review', result: resultOf(batch), waitingMs });
+  }
+  items.sort((a, b) => b.waitingMs - a.waitingMs);
+  return {
+    items: items.slice(0, limit),
+    total: items.length,
+    supplement: items.filter((item) => item.kind === 'supplement').length,
+  };
 }
 
 /** "vừa xong", "5 giờ", "3 ngày". */
@@ -82,7 +123,10 @@ export function getAttention(batches, now = new Date()) {
     if (batch.status === 'approved' && getWaitingMs(batch, now) > OVERDUE_DAYS * DAY_MS) overdueCount += 1;
 
     const amount = Math.abs(Number(batch.reconciliation_diff_amount) || 0);
-    if (amount > 0 && batch.status !== 'final_approved' && (!largestDiff || amount > largestDiff.amount)) {
+    if (amount === 0 || batch.status === 'final_approved') continue;
+    // Bộ gắn nhầm liên của giao dịch khác: con số chênh lệch là do so nhầm chứng từ, không phải chênh lệch thật.
+    if (detectForeignCopy(docsFromApiBatch(batch))) continue;
+    if (!largestDiff || amount > largestDiff.amount) {
       largestDiff = { batch, amount };
     }
   }
@@ -100,7 +144,7 @@ export function buildTimeline(batches, { days = 14, endDate = new Date() } = {})
   for (let offset = days - 1; offset >= 0; offset -= 1) {
     const day = new Date(end);
     day.setDate(end.getDate() - offset);
-    buckets.push({ date: day, matched: 0, mismatch: 0, rejected: 0 });
+    buckets.push({ date: day, matched: 0, minor: 0, mismatch: 0, rejected: 0 });
   }
   const first = buckets[0].date.getTime();
 
@@ -114,6 +158,7 @@ export function buildTimeline(batches, { days = 14, endDate = new Date() } = {})
     else {
       const verdict = getReconciliationStatus(batch);
       if (verdict === 'matched') buckets[index].matched += 1;
+      else if (verdict === 'minor') buckets[index].minor += 1;
       else if (verdict === 'mismatch') buckets[index].mismatch += 1;
     }
   }

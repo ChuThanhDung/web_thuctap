@@ -6,10 +6,11 @@ import {
   PackageCheck,
   Save,
 } from 'lucide-react';
-import { formatDateTime, formatVND } from '../lib/format.js';
+import { formatDateTime } from '../lib/format.js';
 import { Badge, PageHeader } from '../ui/index.js';
 import { repairVietnameseText } from '../text.js';
 import { getCachedThresholds, getThresholds, updateThreshold } from '../services/thresholds.js';
+import { useToast } from '../ui/Toast.jsx';
 
 const RULE_META = [
   {
@@ -24,21 +25,21 @@ const RULE_META = [
     absoluteSuffix: 'VND',
     percentStep: '0.1',
     absoluteStep: '1000',
-    tone: 'emerald',
+    tone: 'brand',
   },
   {
     key: 'quantity',
     aliases: ['quantity', 'qty', 'số lượng', 'so luong'],
     title: 'Ngưỡng chênh lệch Số lượng',
     shortTitle: 'Số lượng',
-    subtitle: 'Dùng khi số lượng trên PO, hóa đơn và phiếu nhận hàng bị thiếu hoặc thừa.',
+    subtitle: 'Dùng khi số lượng trên PO, hóa đơn và phiếu nhập kho chênh nhau. Đặt 0 nghĩa là số lượng phải khớp tuyệt đối.',
     icon: PackageCheck,
     percentLabel: 'Tỷ lệ thiếu/thừa cho phép (0 = không xét)',
     absoluteLabel: 'Số lượng tuyệt đối cho phép',
     absoluteSuffix: 'đơn vị',
     percentStep: '0.1',
     absoluteStep: '1',
-    tone: 'emerald',
+    tone: 'brand',
   },
 ];
 
@@ -64,51 +65,51 @@ function formatPlainNumber(value) {
 }
 
 function formatAbsoluteValue(value, meta) {
-  return meta.key === 'amount' ? formatVND(value) : `${formatPlainNumber(value)} ${meta.absoluteSuffix}`;
+  return meta.key === 'amount' ? `${formatPlainNumber(value)} đ` : `${formatPlainNumber(value)} ${meta.absoluteSuffix}`;
 }
 
 function getToneClasses(tone) {
   if (tone === 'amber') {
     return {
-      shell: 'border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/20',
-      icon: 'bg-amber-100 text-amber-700 ring-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-900',
-      badge: 'bg-amber-100 text-amber-800 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-900',
+      shell: 'border-line',
+      icon: 'bg-tone-warning-bg text-tone-warning-fg ring-tone-warning-line',
+      badge: 'bg-tone-warning-bg text-tone-warning-fg ring-tone-warning-line',
     };
   }
 
   if (tone === 'brand') {
     return {
-      shell: 'border-brand-200 bg-brand-50/60 dark:border-brand-900 dark:bg-brand-950/20',
-      icon: 'bg-brand-100 text-brand-700 ring-brand-200 dark:bg-brand-950 dark:text-brand-300 dark:ring-brand-900',
-      badge: 'bg-brand-100 text-brand-800 ring-brand-200 dark:bg-brand-950 dark:text-brand-200 dark:ring-brand-900',
+      shell: 'border-line',
+      icon: 'bg-tone-brand-bg text-tone-brand-fg ring-focus',
+      badge: 'bg-tone-brand-bg text-tone-brand-fg ring-focus',
     };
   }
 
   return {
-    shell: 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/20',
-    icon: 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-900',
-    badge: 'bg-emerald-100 text-emerald-800 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-900',
+    shell: 'border-line',
+    icon: 'bg-tone-success-bg text-tone-success-fg ring-tone-success-line',
+    badge: 'bg-tone-success-bg text-tone-success-fg ring-tone-success-line',
   };
 }
 
 function RuleInput({ label, suffix, value, step, onChange, helper }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</span>
-      <div className="mt-2 flex min-h-12 items-center rounded-lg border border-slate-300 bg-white shadow-sm transition-colors focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950">
+      <span className="text-xs font-semibold text-fg-subtle">{label}</span>
+      <div className="mt-2 flex min-h-12 items-center rounded-control border border-tone-neutral-line bg-surface shadow-card transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-focus">
         <input
           type="number"
           min="0"
           step={step}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 rounded-l-lg bg-transparent px-3.5 py-3 text-right text-base font-bold tabular-nums text-slate-900 outline-none dark:text-slate-100 sm:text-sm"
+          className="min-w-0 flex-1 rounded-l-lg bg-transparent px-3.5 py-3 text-right text-base font-bold tabular-nums text-fg outline-none sm:text-sm"
         />
-        <span className="flex h-12 min-w-20 items-center justify-center border-l border-slate-200 px-3 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <span className="flex h-12 min-w-20 items-center justify-center border-l border-line px-3 text-xs font-semibold text-fg-subtle">
           {suffix}
         </span>
       </div>
-      {helper && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{helper}</p>}
+      {helper && <p className="mt-1.5 text-xs text-fg-subtle">{helper}</p>}
     </label>
   );
 }
@@ -153,28 +154,25 @@ function RuleCard({
   }, [expanded, meta.key]);
 
   return (
-    <section ref={cardRef} className={`rounded-xl border bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:bg-slate-900 ${tone.shell}`}>
+    <section ref={cardRef} className={`rounded-card border bg-surface shadow-card ${tone.shell}`}>
       <div className="p-5">
         <div className="min-w-0">
           <div className="flex items-start gap-3">
-            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ring-1 ${tone.icon}`}>
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-control ring-1 ${tone.icon}`}>
               <Icon size={22} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-base">{meta.title}</h2>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${tone.badge}`}>
-                      Đang áp dụng
-                    </span>
+                    <h2 className="text-sm font-bold text-fg sm:text-base">{meta.title}</h2>
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">{meta.subtitle}</p>
+                  <p className="mt-1 text-sm leading-6 text-fg-muted">{meta.subtitle}</p>
                 </div>
                 <button
                   type="button"
                   onClick={onToggleExpand}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-fg-muted shadow-card transition hover:bg-surface-muted hover:text-fg focus:outline-none focus:ring-2 focus:ring-focus"
                   aria-label={expanded ? 'Ẩn phần chỉnh sửa' : 'Mở phần chỉnh sửa'}
                   aria-expanded={expanded}
                 >
@@ -184,35 +182,29 @@ function RuleCard({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Giá trị hiện tại</p>
-              <p className="mt-2 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">
-                {formatPlainNumber(item.percent_threshold)}%
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{meta.percentLabel}</p>
+          <dl className="mt-4 grid border-t border-line sm:grid-cols-2">
+            <div className="py-3 sm:pr-4">
+              <dt className="text-sm text-fg-muted">{meta.percentLabel}</dt>
+              <dd className="mt-1 text-lg font-bold tabular-nums text-fg">{formatPlainNumber(item.percent_threshold)}%</dd>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Giá trị hiện tại</p>
-              <p className="mt-2 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">
-                {formatAbsoluteValue(item.absolute_threshold, meta)}
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{meta.absoluteLabel}</p>
+            <div className="border-t border-line py-3 sm:border-l sm:border-t-0 sm:pl-4">
+              <dt className="text-sm text-fg-muted">{meta.absoluteLabel}</dt>
+              <dd className="mt-1 text-lg font-bold tabular-nums text-fg">{formatAbsoluteValue(item.absolute_threshold, meta)}</dd>
             </div>
-          </div>
+          </dl>
 
         </div>
 
         {expanded && (
-        <div ref={detailsRef} className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+        <div ref={detailsRef} className="mt-5 rounded-card border border-line bg-surface-muted p-4">
           <div className="grid gap-4">
             <label className="block">
-              <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Tên nhóm cấu hình</span>
+              <span className="text-xs font-semibold text-fg-subtle">Tên nhóm cấu hình</span>
               <input
                 type="text"
                 value={draft.category}
                 onChange={(event) => onDraftChange(item.id, 'category', event.target.value)}
-                className="input-field mt-2 bg-white dark:bg-slate-950"
+                className="input-field mt-2 bg-surface"
                 placeholder="Ví dụ: Đơn giá & Tổng tiền"
               />
             </label>
@@ -237,10 +229,10 @@ function RuleCard({
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Cập nhật: {formatDateTime(item.updated_at) || 'Chưa có'}</p>
+            <p className="text-xs text-fg-subtle">Cập nhật: {formatDateTime(item.updated_at) || 'Chưa có'}</p>
             <div className="flex gap-2">
               <button type="button" onClick={onSave} disabled={saving} className="btn-primary w-full sm:min-w-32 sm:w-auto">
-                {saving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Save size={16} />}
+                {saving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-white" /> : <Save size={16} />}
                 Lưu
               </button>
             </div>
@@ -254,6 +246,7 @@ function RuleCard({
 }
 
 export default function ThresholdConfig({ token }) {
+  const toast = useToast();
   const cached = getCachedThresholds();
   const initialItems = Array.isArray(cached) ? cached : cached?.items || [];
   const [configs, setConfigs] = useState(() => initialItems);
@@ -342,7 +335,7 @@ export default function ThresholdConfig({ token }) {
 
     const category = draft.category.trim();
     if (!category) {
-      alert('Vui lòng nhập tên quy tắc.');
+      toast.error('Vui lòng nhập tên quy tắc.');
       return;
     }
 
@@ -364,7 +357,7 @@ export default function ThresholdConfig({ token }) {
       }));
       showSavedSignal();
     } catch (err) {
-      alert(err.message || 'Không thể lưu cấu hình.');
+      toast.error(err.message || 'Không thể lưu cấu hình.');
     } finally {
       setSavingId(null);
     }
@@ -373,14 +366,14 @@ export default function ThresholdConfig({ token }) {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-tone-brand-line border-t-brand-600" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+      <div className="rounded-card border border-tone-danger-line bg-tone-danger-bg px-5 py-4 text-sm font-medium text-tone-danger-fg">
         {error}
       </div>
     );
@@ -390,7 +383,7 @@ export default function ThresholdConfig({ token }) {
     <div className="space-y-5">
       <PageHeader
         title="Ngưỡng sai số"
-        description="Chọn mức chênh lệch được chấp nhận về số tiền, đơn giá và số lượng. Hệ thống dùng các ngưỡng này để phân loại bộ đối soát thành xanh, vàng hoặc đỏ."
+        description="Mức chênh lệch được chấp nhận cho số tiền và số lượng. Chênh lệch trong ngưỡng được xếp “Lệch nhỏ”, vượt ngưỡng là “Lệch lớn”."
         actions={
           saved && (
             <Badge tone="success" icon={Check}>
@@ -400,9 +393,22 @@ export default function ThresholdConfig({ token }) {
         }
       />
 
+      <div className="rounded-card border border-line bg-surface-muted px-4 py-3 text-sm text-fg">
+        <p className="font-medium">Quy tắc cố định, không cấu hình được</p>
+        <ul className="mt-1.5 list-disc space-y-1 pl-5 text-fg-muted">
+          <li>Mã số thuế, thuế suất VAT và đơn giá phải khớp tuyệt đối giữa các chứng từ.</li>
+        </ul>
+        <p className="mt-3 font-medium">Cấu hình được ở bên dưới</p>
+        <ul className="mt-1.5 list-disc space-y-1 pl-5 text-fg-muted">
+          <li>Số tiền (thành tiền, tiền thuế, tổng tiền): mặc định được lệch tối đa 1.000 đ do làm tròn.</li>
+          <li>Số lượng: mặc định 0, tức phải khớp tuyệt đối.</li>
+          <li>Ngưỡng % bằng 0 nghĩa là không xét theo phần trăm, chỉ xét theo số tuyệt đối.</li>
+        </ul>
+      </div>
+
       <div className="space-y-4">
         {groupedConfigs.focus.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+          <div className="rounded-card border border-dashed border-tone-neutral-line bg-surface px-5 py-8 text-center text-sm text-fg-subtle">
             Chưa có hai cấu hình chính. Hãy tạo nhóm “Đơn giá & Tổng tiền” và “Số lượng” ở phần bên dưới.
           </div>
         )}

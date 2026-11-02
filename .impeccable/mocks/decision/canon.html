@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;height:900px;overflow:hidden;font-family:Inter,sans-serif;background:#f8fafc;color:#0f172a;display:flex;font-feature-settings:"tnum"}
+.nav{width:240px;flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;padding:20px 14px;display:flex;flex-direction:column;gap:4px}
+.nav b{font-size:16px;margin:0 8px 22px}
+.nav a{padding:9px 10px;border-radius:8px;font-size:14px;color:#475569}.nav a.on{background:#eff6ff;color:#2563eb;font-weight:600}
+main{flex:1;min-width:0;padding:28px 36px;display:flex;flex-direction:column;gap:20px}
+h1{font-size:24px}.sub{font-size:14px;color:#64748b;margin-top:4px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.card p{font-size:13px;color:#64748b}.card b{font-size:28px;display:block;margin-top:6px}
+.tb{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.tbh{display:flex;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e2e8f0}
+.in{width:320px;height:36px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;color:#64748b;padding:0 12px;display:flex;align-items:center}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:#64748b;font-weight:600;padding:10px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0}
+td{padding:14px 18px;border-bottom:1px solid #f1f5f9;font-size:14px}
+.n{text-align:right}
+.bd{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px}
+.g{background:#ecfdf5;color:#047857}.a{background:#fffbeb;color:#92400e}.r{background:#fff1f2;color:#be123c}.b{background:#eff6ff;color:#1d4ed8}
+.btn{background:#2563eb;color:#fff;font-size:13px;font-weight:600;padding:7px 14px;border-radius:8px}
+</style></head><body>
+<nav class="nav"><b>DocuSync AI</b><a>Tổng quan</a><a class="on">Bộ đối soát</a><a>Quản lý tài khoản</a><a>Ngưỡng sai số</a></nav>
+<main>
+<div><h1>Bộ đối soát</h1><p class="sub">Theo dõi và duyệt các bộ chứng từ PO, hóa đơn, phiếu nhập kho.</p></div>
+<div class="stats"><div class="card"><p>Chờ duyệt cuối</p><b>3</b></div><div class="card"><p>Lệch lớn</p><b>1</b></div><div class="card"><p>Đã lưu trữ (tháng 10)</p><b>24</b></div><div class="card"><p>Tỉ lệ khớp</p><b>91%</b></div></div>
+<div class="tb"><div class="tbh"><div class="in">Tìm bộ chứng từ…</div><span class="btn">Xuất báo cáo</span></div>
+<table><tr><th>Bộ chứng từ</th><th>Nhà cung cấp</th><th>Trạng thái</th><th>Người duyệt cấp 1</th><th class="n">Tổng tiền</th></tr>
+<tr><td><b>BATCH_25_10_2026_03</b></td><td>Hòa Phát Thành</td><td><span class="bd b">Chờ duyệt cuối</span></td><td>Chu Thanh Dũng</td><td class="n">259.740.000</td></tr>
+<tr><td><b>BATCH_25_10_2026_02</b></td><td>Thiên Long</td><td><span class="bd a">Lệch nhỏ</span></td><td>Chu Thanh Dũng</td><td class="n">48.215.640</td></tr>
+<tr><td><b>BATCH_24_10_2026_05</b></td><td>Sơn Hà Inox</td><td><span class="bd r">Lệch lớn</span></td><td>—</td><td class="n">131.900.000</td></tr>
+<tr><td><b>BATCH_24_10_2026_02</b></td><td>Hòa Phát Thành</td><td><span class="bd g">Đã lưu trữ</span></td><td>Chu Thanh Dũng</td><td class="n">235.400.000</td></tr>
+</table></div>
+</main>
+</body></html>

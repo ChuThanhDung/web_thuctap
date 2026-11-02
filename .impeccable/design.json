@@ -1,0 +1,560 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T00:00:00+07:00",
+  "title": "Design System: DocuSync AI",
+  "extensions": {
+    "colorMeta": {
+      "form-blue": {
+        "role": "primary",
+        "displayName": "Form Blue",
+        "canonical": "rgb(31 79 163)",
+        "cssVar": "--c-primary",
+        "dark": "#7aa6f0",
+        "tonalRamp": [
+          "#0a1730",
+          "#0f244b",
+          "#132f63",
+          "#173d80",
+          "#1f4fa3",
+          "#3a67b6",
+          "#8eaadb",
+          "#eef3fb"
+        ]
+      },
+      "form-blue-deep": {
+        "role": "primary",
+        "displayName": "Deep Form Blue",
+        "canonical": "rgb(23 61 128)",
+        "cssVar": "--c-primary-hover",
+        "dark": "#a0c0f6",
+        "tonalRamp": [
+          "#0a1730",
+          "#0f244b",
+          "#132f63",
+          "#173d80",
+          "#1f4fa3",
+          "#5f85c8",
+          "#b9cbea",
+          "#eef3fb"
+        ]
+      },
+      "copy-tint": {
+        "role": "primary",
+        "displayName": "Copy Tint",
+        "canonical": "rgb(232 239 250)",
+        "cssVar": "--c-accent-soft",
+        "dark": "#18284a",
+        "tonalRamp": [
+          "#173d80",
+          "#1f4fa3",
+          "#3a67b6",
+          "#5f85c8",
+          "#8eaadb",
+          "#b9cbea",
+          "#dde7f7",
+          "#e8effa"
+        ]
+      },
+      "ink-navy": {
+        "role": "neutral",
+        "displayName": "Ink Navy",
+        "canonical": "rgb(14 27 51)",
+        "cssVar": "--c-fg",
+        "dark": "#ecf1fa",
+        "tonalRamp": [
+          "#0e1b33",
+          "#1f2e4a",
+          "#3a4a66",
+          "#50607c",
+          "#788aa8",
+          "#a9b6cc",
+          "#d6e0f0",
+          "#f5f8fd"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "rgb(58 74 102)",
+        "cssVar": "--c-fg-muted",
+        "dark": "#b0bed6"
+      },
+      "ink-subtle": {
+        "role": "neutral",
+        "displayName": "Subtle Ink",
+        "canonical": "rgb(80 96 124)",
+        "cssVar": "--c-fg-subtle",
+        "dark": "#94a4c0"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "rgb(255 255 255)",
+        "cssVar": "--c-surface",
+        "dark": "#0f182b"
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "canonical": "rgb(242 246 252)",
+        "cssVar": "--c-canvas",
+        "dark": "#0f182b"
+      },
+      "surface-muted": {
+        "role": "neutral",
+        "displayName": "Pale Ledger",
+        "canonical": "rgb(234 240 249)",
+        "cssVar": "--c-surface-muted",
+        "dark": "#16223a"
+      },
+      "surface-sunken": {
+        "role": "neutral",
+        "displayName": "Sunken Ledger",
+        "canonical": "rgb(223 231 243)",
+        "cssVar": "--c-surface-sunken",
+        "dark": "#0c1425"
+      },
+      "rule-line": {
+        "role": "neutral",
+        "displayName": "Rule Line",
+        "canonical": "rgb(218 226 238)",
+        "cssVar": "--c-line",
+        "dark": "#243454"
+      },
+      "input-line": {
+        "role": "neutral",
+        "displayName": "Input Line",
+        "canonical": "rgb(120 138 168)",
+        "cssVar": "--c-line-input",
+        "dark": "#6e80a0"
+      },
+      "match-green": {
+        "role": "semantic",
+        "displayName": "Match Green",
+        "canonical": "rgb(10 107 72)",
+        "cssVar": "--c-tone-success-fg",
+        "dark": "#6ee7b7",
+        "tonalRamp": [
+          "#05372a",
+          "#0a6b48",
+          "#059669",
+          "#34d399",
+          "#6ee7b7",
+          "#aaddc4",
+          "#d3efe1",
+          "#e8f6ef"
+        ]
+      },
+      "match-green-bg": {
+        "role": "semantic",
+        "displayName": "Match Green Tint",
+        "canonical": "rgb(232 246 239)",
+        "cssVar": "--c-tone-success-bg",
+        "dark": "#0d2b22"
+      },
+      "match-green-line": {
+        "role": "semantic",
+        "displayName": "Match Green Line",
+        "canonical": "rgb(170 221 196)",
+        "cssVar": "--c-tone-success-line",
+        "dark": "#14513f"
+      },
+      "rounding-amber": {
+        "role": "semantic",
+        "displayName": "Rounding Amber",
+        "canonical": "rgb(138 75 0)",
+        "cssVar": "--c-tone-warning-fg",
+        "dark": "#fcd34d",
+        "tonalRamp": [
+          "#4a2800",
+          "#8a4b00",
+          "#c86e06",
+          "#fbbf24",
+          "#fcd34d",
+          "#f5d08c",
+          "#fbe6bd",
+          "#fff4dd"
+        ]
+      },
+      "rounding-amber-bg": {
+        "role": "semantic",
+        "displayName": "Rounding Amber Tint",
+        "canonical": "rgb(255 244 221)",
+        "cssVar": "--c-tone-warning-bg",
+        "dark": "#33260c"
+      },
+      "rounding-amber-line": {
+        "role": "semantic",
+        "displayName": "Rounding Amber Line",
+        "canonical": "rgb(245 208 140)",
+        "cssVar": "--c-tone-warning-line",
+        "dark": "#6b4e12"
+      },
+      "mismatch-red": {
+        "role": "semantic",
+        "displayName": "Mismatch Red",
+        "canonical": "rgb(168 22 38)",
+        "cssVar": "--c-tone-danger-fg",
+        "dark": "#fda4af",
+        "tonalRamp": [
+          "#5c0a14",
+          "#a81626",
+          "#c81e32",
+          "#fb7185",
+          "#fda4af",
+          "#f4c0c4",
+          "#f9d6d8",
+          "#fdebec"
+        ]
+      },
+      "mismatch-red-bg": {
+        "role": "semantic",
+        "displayName": "Mismatch Red Tint",
+        "canonical": "rgb(253 235 236)",
+        "cssVar": "--c-tone-danger-bg",
+        "dark": "#3a1320"
+      },
+      "mismatch-red-line": {
+        "role": "semantic",
+        "displayName": "Mismatch Red Line",
+        "canonical": "rgb(244 192 196)",
+        "cssVar": "--c-tone-danger-line",
+        "dark": "#7a2339"
+      },
+      "info-blue": {
+        "role": "semantic",
+        "displayName": "Info Blue",
+        "canonical": "rgb(29 78 216)",
+        "cssVar": "--c-tone-info-fg",
+        "dark": "#93c5fd"
+      },
+      "brand-line": {
+        "role": "primary",
+        "displayName": "Brand Line",
+        "canonical": "rgb(185 203 234)",
+        "cssVar": "--c-tone-brand-line",
+        "dark": "#2c4678"
+      },
+      "neutral-tone": {
+        "role": "neutral",
+        "displayName": "Neutral Tone",
+        "canonical": "rgb(51 65 90)",
+        "cssVar": "--c-tone-neutral-fg",
+        "dark": "#cbd5e1"
+      },
+      "chart-success": {
+        "role": "semantic",
+        "displayName": "Chart Green",
+        "canonical": "rgb(5 150 105)",
+        "cssVar": "--c-chart-success",
+        "dark": "#34d399"
+      },
+      "chart-warning": {
+        "role": "semantic",
+        "displayName": "Chart Amber",
+        "canonical": "rgb(200 110 6)",
+        "cssVar": "--c-chart-warning",
+        "dark": "#fbbf24"
+      },
+      "chart-danger": {
+        "role": "semantic",
+        "displayName": "Chart Red",
+        "canonical": "rgb(200 30 50)",
+        "cssVar": "--c-chart-danger",
+        "dark": "#fb7185"
+      },
+      "chart-neutral": {
+        "role": "neutral",
+        "displayName": "Chart Slate",
+        "canonical": "rgb(100 116 139)",
+        "cssVar": "--c-chart-neutral",
+        "dark": "#94a3b8"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Login headline only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "One page H1 per screen (20px below 640px); selected batch code in the detail pane at weight 700."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card and section headers; dialog titles at 18px."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Tables, lists, descriptions. Inputs at 16px below 640px."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Table header cells, badges, signature-strip labels; copy chips at 700."
+      },
+      "figure-lead": {
+        "displayName": "Lead Figure",
+        "purpose": "The user's own pending-work count in the summary line, in form blue."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Other summary-line counts, in ink."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 0 rgb(14 27 51 / 0.04)",
+        "dark": "0 1px 2px rgb(0 0 0 / 0.4)",
+        "cssVar": "--shadow-card",
+        "purpose": "Paper edge on cards, inputs and primary buttons; reads as an edge, not a lift."
+      },
+      {
+        "name": "pop",
+        "value": "0 12px 32px -8px rgb(14 27 51 / 0.22), 0 2px 6px rgb(14 27 51 / 0.08)",
+        "dark": "0 14px 34px -8px rgb(0 0 0 / 0.65), 0 2px 6px rgb(0 0 0 / 0.4)",
+        "cssVar": "--shadow-pop",
+        "purpose": "Only for things floating above the page: dialogs, toasts, popovers, menus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-colors",
+        "value": "color/background-color 150ms ease",
+        "purpose": "Hover and active colour changes on buttons, rows, nav items."
+      },
+      {
+        "name": "theme-swap",
+        "value": "background-color/color 200ms",
+        "purpose": "Body transition when switching light/dark."
+      },
+      {
+        "name": "fade-in",
+        "value": "fadeIn 0.2s ease-out",
+        "purpose": "Overlays and appearing panels."
+      },
+      {
+        "name": "slide-up",
+        "value": "slideUp 0.3s ease-out",
+        "purpose": "Bottom-sheet entry on mobile."
+      },
+      {
+        "name": "bell-ring",
+        "value": "bell-ring 0.8s ease-in-out 2",
+        "purpose": "Notification bell on a new realtime notification only."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Inputs drop to 14px; dialogs center instead of bottom sheet."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Sidebar becomes the 64px icon rail instead of a drawer."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Sidebar may be expanded to 260px (user choice, persisted)."
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "purpose": "Master-detail: 360px list column plus in-place detail pane."
+      }
+    ],
+    "radii": [
+      {
+        "name": "control",
+        "value": "4px",
+        "cssVar": "--radius-control"
+      },
+      {
+        "name": "card",
+        "value": "6px",
+        "cssVar": "--radius-card"
+      },
+      {
+        "name": "modal",
+        "value": "8px",
+        "cssVar": "--radius-modal"
+      }
+    ],
+    "focus": {
+      "value": "0 0 0 2px var(--surface), 0 0 0 4px rgb(var(--c-focus))",
+      "purpose": "2px form-blue ring with 2px offset on every interactive element; inputs use a 2px ring at 25% with a form-blue border."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single filled action per region (Duyệt, Lưu, Đăng nhập).",
+      "html": "<button class=\"ds-btn-primary\">Duyệt cuối</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-control, 4px); background: rgb(var(--c-primary, 31 79 163)); color: rgb(var(--c-primary-fg, 255 255 255)); font: 600 14px/20px Inter, system-ui, sans-serif; box-shadow: var(--shadow-card, 0 1px 0 rgb(14 27 51 / 0.04)); cursor: pointer; transition: background-color 150ms; } .ds-btn-primary:hover { background: rgb(var(--c-primary-hover, 23 61 128)); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(var(--c-focus, 31 79 163)); } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default button: paper fill with the stronger input-line stroke.",
+      "html": "<button class=\"ds-btn-secondary\">Lọc theo thời gian</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: 1px solid rgb(var(--c-line-input, 120 138 168)); border-radius: var(--radius-control, 4px); background: rgb(var(--c-surface, 255 255 255)); color: rgb(var(--c-fg, 14 27 51)); font: 600 14px/20px Inter, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms; } .ds-btn-secondary:hover { background: rgb(var(--c-surface-muted, 238 243 251)); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(var(--c-focus, 31 79 163)); }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Reject and delete: red tint with a 1px red line, never a filled red slab; kept apart from Approve.",
+      "html": "<button class=\"ds-btn-danger\">Từ chối</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: 1px solid rgb(var(--c-tone-danger-line, 244 192 196)); border-radius: var(--radius-control, 4px); background: rgb(var(--c-tone-danger-bg, 253 235 236)); color: rgb(var(--c-tone-danger-fg, 168 22 38)); font: 600 14px/20px Inter, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms; } .ds-btn-danger:hover { background: rgb(var(--c-tone-danger-bg, 253 235 236) / 0.7); } .ds-btn-danger:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(var(--c-focus, 31 79 163)); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Paper field with input-line stroke and form-blue focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Mã số thuế</span><input class=\"ds-input\" placeholder=\"0311892456\"></label>",
+      "css": ".ds-field { display: grid; gap: 6px; font-family: Inter, system-ui, sans-serif; } .ds-field-label { font: 500 14px/20px Inter, system-ui, sans-serif; color: rgb(var(--c-fg, 14 27 51)); } .ds-input { min-height: 40px; padding: 8px 12px; border: 1px solid rgb(var(--c-line-input, 120 138 168)); border-radius: var(--radius-control, 4px); background: rgb(var(--c-surface, 255 255 255)); color: rgb(var(--c-fg, 14 27 51)); font: 400 14px/20px Inter, system-ui, sans-serif; box-shadow: var(--shadow-card, 0 1px 0 rgb(14 27 51 / 0.04)); } .ds-input::placeholder { color: rgb(var(--c-fg-subtle, 80 96 124)); } .ds-input:focus-visible { outline: none; border-color: rgb(var(--c-primary, 31 79 163)); box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(var(--c-focus, 31 79 163)); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Square tone badge, always icon plus words.",
+      "html": "<span class=\"ds-badge ds-badge-success\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/></svg>Đã lưu trữ</span> <span class=\"ds-badge ds-badge-danger\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m15 9-6 6M9 9l6 6\"/></svg>Từ chối</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid; border-radius: var(--radius-control, 4px); font: 600 12px/1 Inter, system-ui, sans-serif; white-space: nowrap; } .ds-badge-success { background: rgb(var(--c-tone-success-bg, 232 246 239)); color: rgb(var(--c-tone-success-fg, 10 107 72)); border-color: rgb(var(--c-tone-success-line, 170 221 196)); } .ds-badge-danger { background: rgb(var(--c-tone-danger-bg, 253 235 236)); color: rgb(var(--c-tone-danger-fg, 168 22 38)); border-color: rgb(var(--c-tone-danger-line, 244 192 196)); }"
+    },
+    {
+      "name": "Copy Chip",
+      "kind": "chip",
+      "refersTo": "copy-chip",
+      "description": "PO / HĐ / GRN marker, always in that order.",
+      "html": "<span class=\"ds-copies\"><abbr class=\"ds-copy\" title=\"Đơn đặt hàng\">PO</abbr><abbr class=\"ds-copy\" title=\"Hóa đơn\">HĐ</abbr><abbr class=\"ds-copy\" title=\"Phiếu nhập kho\">GRN</abbr></span>",
+      "css": ".ds-copies { display: inline-flex; gap: 6px; } .ds-copy { display: inline-flex; justify-content: center; min-width: 2.5rem; padding: 2px 6px; border-radius: var(--radius-control, 4px); background: rgb(var(--c-accent-soft, 232 239 250)); color: rgb(var(--c-tone-brand-fg, 23 61 128)); font: 700 12px/16px Inter, system-ui, sans-serif; text-decoration: none; }"
+    },
+    {
+      "name": "Three-Copy Line Item",
+      "kind": "custom",
+      "refersTo": "table-header-cell",
+      "description": "Signature table: three stacked copy rows per item, 2px form-blue header rule, odd copy nudged out of its column, reason in words.",
+      "html": "<table class=\"ds-copies-table\"><thead><tr><th>Mặt hàng</th><th>Liên</th><th class=\"num\">SL</th><th class=\"num\">Đơn giá</th><th>Kết quả</th></tr></thead><tbody class=\"ds-bad\"><tr><th rowspan=\"3\" scope=\"rowgroup\">Lốp 90/90-14</th><td><span class=\"ds-copy\">PO</span></td><td class=\"num\">300</td><td class=\"num\">425.000</td><td rowspan=\"3\" class=\"ds-reason\">Đơn giá HĐ cao hơn PO 150.000 đ</td></tr><tr><td><span class=\"ds-copy\">HĐ</span></td><td class=\"num\">300</td><td class=\"num\"><span class=\"ds-off\">575.000</span></td></tr><tr><td><span class=\"ds-copy\">GRN</span></td><td class=\"num\">300</td><td class=\"num\">425.000</td></tr></tbody></table>",
+      "css": ".ds-copies-table { width: 100%; border-collapse: collapse; font: 400 14px/20px Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums; color: rgb(var(--c-fg, 14 27 51)); } .ds-copies-table thead tr { border-bottom: 2px solid rgb(var(--c-primary, 31 79 163)); } .ds-copies-table thead th { padding: 10px 12px; font-size: 12px; font-weight: 600; text-align: left; color: rgb(var(--c-fg-muted, 58 74 102)); } .ds-copies-table .num { text-align: right; } .ds-copies-table tbody { border-bottom: 2px solid rgb(var(--c-line, 214 224 240)); } .ds-copies-table tbody.ds-bad { background: rgb(var(--c-tone-danger-bg, 253 235 236) / 0.3); } .ds-copies-table tbody th { padding: 8px 12px; text-align: left; vertical-align: top; font-weight: 600; } .ds-copies-table td { padding: 6px 12px; } .ds-copies-table tbody tr + tr { border-top: 1px solid rgb(var(--c-line, 214 224 240) / 0.6); } .ds-copy { display: inline-flex; justify-content: center; min-width: 2.5rem; padding: 2px 6px; border-radius: var(--radius-control, 4px); background: rgb(var(--c-accent-soft, 232 239 250)); color: rgb(var(--c-tone-brand-fg, 23 61 128)); font-size: 12px; font-weight: 700; } .ds-off { display: inline-block; padding: 2px 6px; border-radius: var(--radius-control, 4px); background: rgb(var(--c-tone-danger-bg, 253 235 236)); color: rgb(var(--c-tone-danger-fg, 168 22 38)); font-weight: 600; box-shadow: 0 0 0 1px rgb(var(--c-tone-danger-line, 244 192 196)); transform: translateX(8px); } .ds-reason { vertical-align: top; font-weight: 600; color: rgb(var(--c-tone-danger-fg, 168 22 38)); }"
+    },
+    {
+      "name": "Signature Strip",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Voucher-foot approval block: Người lập · Duyệt cấp 1 · Duyệt cuối; signed names in form blue.",
+      "html": "<dl class=\"ds-sign\"><div><dt>Người lập</dt><dd class=\"signed\">Nguyễn Thị Lan</dd></div><div><dt>Duyệt cấp 1</dt><dd class=\"signed\">Nguyễn Thị Lan</dd></div><div><dt>Duyệt cuối</dt><dd>Chờ kế toán trưởng</dd></div></dl>",
+      "css": ".ds-sign { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; border: 1px solid rgb(var(--c-line-input, 120 138 168) / 0.6); border-radius: var(--radius-control, 4px); background: rgb(var(--c-surface, 255 255 255)); font-family: Inter, system-ui, sans-serif; overflow: hidden; } .ds-sign > div { padding: 8px 12px; } .ds-sign > div + div { border-left: 1px solid rgb(var(--c-line-input, 120 138 168) / 0.6); } .ds-sign dt { font-size: 12px; font-weight: 600; color: rgb(var(--c-fg-subtle, 80 96 124)); } .ds-sign dd { margin: 2px 0 0; font-size: 14px; color: rgb(var(--c-fg-subtle, 80 96 124)); } .ds-sign dd.signed { font-weight: 600; color: rgb(var(--c-primary, 31 79 163)); }"
+    },
+    {
+      "name": "Summary Line",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Overview figures in one ruled band instead of a KPI card grid; lead item in form blue.",
+      "html": "<dl class=\"ds-summary\"><button class=\"ds-sum lead\"><dt>Chờ bạn duyệt</dt><dd>4</dd></button><div class=\"ds-sum\"><dt>Đã duyệt</dt><dd>3</dd></div><div class=\"ds-sum\"><dt>Từ chối</dt><dd>0</dd></div></dl>",
+      "css": ".ds-summary { display: flex; flex-wrap: wrap; margin: 0; border-top: 1px solid rgb(var(--c-line, 214 224 240)); border-bottom: 1px solid rgb(var(--c-line, 214 224 240)); font-family: Inter, system-ui, sans-serif; } .ds-sum { display: block; padding: 16px 24px; text-align: left; background: none; border: 0; font: inherit; } .ds-sum + .ds-sum { border-left: 1px solid rgb(var(--c-line, 214 224 240)); } .ds-sum dt { font-size: 14px; color: rgb(var(--c-fg-muted, 58 74 102)); } .ds-sum dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: rgb(var(--c-fg, 14 27 51)); } .ds-sum.lead { padding-left: 0; cursor: pointer; transition: background-color 150ms; } .ds-sum.lead dt { font-weight: 600; color: rgb(var(--c-primary, 31 79 163)); } .ds-sum.lead dd { font-size: 36px; color: rgb(var(--c-primary, 31 79 163)); } .ds-sum.lead:hover { background: rgb(var(--c-surface-muted, 238 243 251)); } .ds-sum.lead:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(var(--c-focus, 31 79 163)); }"
+    },
+    {
+      "name": "Sidebar Rail",
+      "kind": "nav",
+      "refersTo": "sidebar-rail",
+      "description": "64px form-blue icon rail; active item deep blue with a faint inset ring.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Điều hướng chính\"><a class=\"ds-rail-item\" href=\"#\" aria-label=\"Tổng quan\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/></svg></a><a class=\"ds-rail-item active\" href=\"#\" aria-current=\"page\" aria-label=\"Bộ đối soát\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"8\" y=\"2\" width=\"8\" height=\"4\" rx=\"1\"/><path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\"/></svg></a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 4px; width: 64px; padding: 16px 10px; background: rgb(var(--c-sidebar, 31 79 163)); } .ds-rail-item { display: flex; align-items: center; justify-content: center; height: 44px; border-radius: var(--radius-control, 4px); color: rgb(var(--c-sidebar-muted, 220 230 248)); transition: background-color 150ms, color 150ms; } .ds-rail-item:hover { background: rgb(var(--c-sidebar-hover, 42 92 178)); color: rgb(var(--c-sidebar-fg, 255 255 255)); } .ds-rail-item.active { background: rgb(var(--c-sidebar-active, 23 61 128)); color: rgb(var(--c-sidebar-fg, 255 255 255)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25); } .ds-rail-item:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(var(--c-sidebar, 31 79 163)), 0 0 0 4px rgb(var(--c-sidebar-accent, 255 255 255)); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Paper container, 6px, 1px rule, ruled header.",
+      "html": "<section class=\"ds-card\"><header class=\"ds-card-head\"><h2>Cần xử lý ngay</h2><p>Bộ chờ bạn duyệt, chờ lâu nhất lên trước.</p></header><div class=\"ds-card-body\">BATCH_24_10_2026_02 · 258.940.000 đ</div></section>",
+      "css": ".ds-card { border: 1px solid rgb(var(--c-line, 214 224 240)); border-radius: var(--radius-card, 6px); background: rgb(var(--c-surface, 255 255 255)); box-shadow: var(--shadow-card, 0 1px 0 rgb(14 27 51 / 0.04)); font-family: Inter, system-ui, sans-serif; color: rgb(var(--c-fg, 14 27 51)); } .ds-card-head { padding: 16px 20px; border-bottom: 1px solid rgb(var(--c-line, 214 224 240)); } .ds-card-head h2 { margin: 0; font-size: 16px; font-weight: 600; } .ds-card-head p { margin: 2px 0 0; font-size: 14px; color: rgb(var(--c-fg-muted, 58 74 102)); } .ds-card-body { padding: 16px 20px; font-size: 14px; font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Three Carbon Copies",
+    "overview": "A purchase order, an invoice and a goods receipt note are three copies of one transaction. The interface lays them on top of each other and shows exactly where they fail to register, the way a misaligned carbon copy shows its offset. Everything else is the plain apparatus of an accounting form: white paper, navy ink, a single form blue for structure and signature, ruled lines doing the work of separation.\n\nThe system is dense and calm. It is built for accountants working at office desktops every day, so it favours tabular reading, right-aligned tabular figures, stable column order and in-place detail over decoration. Depth is almost absent; 1px rules and a 2px blue header rule carry hierarchy. Colour is spent on meaning: blue for structure and the human signature, green for agreement, amber only for rounding-level (minor) differences, neutral grey for missing or incomplete data, red for real mismatch and refusal.\n\nIt explicitly rejects the default SaaS admin dashboard: no grid of same-size KPI cards, no pill badges scattered everywhere, no modal for every detail, no coloured side stripes.",
+    "keyCharacteristics": [
+      "Three copies in fixed order PO · HĐ · GRN, on every surface that compares them.",
+      "Square, form-like geometry: 4px controls, 6px cards, 8px dialogs.",
+      "Rules over shadows: 1px lines everywhere, one 2px form-blue rule under comparison table headers.",
+      "Tabular, right-aligned figures in every table.",
+      "Severity colour is semantic and scarce; neutral blue-white carries the rest.",
+      "Master-detail in place at wide widths; the dialog is the narrow-screen fallback, not the default."
+    ],
+    "rules": [
+      {
+        "name": "The Severity Means One Thing Rule",
+        "body": "Red marks a real mismatch (major_diff), a rejection or a destructive action, never emphasis. Amber marks a rounding-level difference only, never missing data and never a hard mismatch; missing data is neutral grey. Green marks agreement. If a colour is on screen, a reader can say what went wrong without reading the label, and the label is still there.",
+        "section": "colors"
+      },
+      {
+        "name": "The Form Blue Is Structure Rule",
+        "body": "Form blue draws the frame (rail, header rule, primary action, signature ink). It is not a decoration fill for large panels; large areas stay paper or pale ledger.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Ledger Rule",
+        "body": "Every table sets `font-variant-numeric: tabular-nums` globally, and numeric columns are right-aligned, so money compares down a column across the three copies.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence-Case Rule",
+        "body": "App chrome is sentence case at normal tracking. Capitals belong only inside document facsimiles (the invoice preview and printed reconciliation report) where the paper form itself uses them.",
+        "section": "typography"
+      },
+      {
+        "name": "The In-Place Detail Rule",
+        "body": "On wide screens a selected record is read beside its list, never over it. Dialogs are for confirmation, preview, and narrow screens.",
+        "section": "layout"
+      },
+      {
+        "name": "The Fixed Copy Order Rule",
+        "body": "PO, then HĐ (invoice), then GRN, in every table, chip stack, card row, column and sentence. The order is never sorted by severity or by which copy differs.",
+        "section": "layout"
+      },
+      {
+        "name": "The Rules Not Shadows Rule",
+        "body": "Hierarchy is drawn with 1px lines and the 2px header rule. If something needs to feel more important, give it weight or form blue, not a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Header Rule Rule",
+        "body": "A table that compares or lists records carries a 2px form-blue rule under its header row. It is the form's printed rule; nothing else in the system is 2px blue.",
+        "section": "shapes"
+      },
+      {
+        "name": "The No Side Stripe Rule",
+        "body": "Selection, severity and emphasis are never a coloured bar on one side of a card, row or callout. Use a tinted fill, a full 1px ring, or weight.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep the copy order PO · HĐ · GRN on every surface, in every table, chip stack and sentence.",
+      "Do describe differences neutrally (\"HĐ khác PO và GRN\", \"Ba liên khác nhau\"); when two copies agree, mark only the odd one; when none agree, mark all present copies.",
+      "Do use amber only for differences within the 1,000 VND rounding tolerance, neutral for missing data, and red only for major differences, rejection and destructive actions.",
+      "Do put a 2px form-blue rule under the header of every comparison or record table, and right-align tabular figures.",
+      "Do use 4px corners on controls and chips, 6px on cards, 8px on dialogs.",
+      "Do separate with 1px rule lines; reserve the pop shadow for things floating above the page.",
+      "Do read records in place beside the list at 1280px and wider.",
+      "Do pair every status colour with an icon and words."
+    ],
+    "donts": [
+      "Don't colour or label any copy as \"correct\" or \"wrong\"; the interface does not know which copy was misread.",
+      "Don't use side stripes (a thick coloured border on one side) for selection, severity or callouts.",
+      "Don't build overviews from a grid of same-size KPI cards; use the summary line.",
+      "Don't use pill-shaped badges or chips; round shapes are for avatars, dots, tracks and charts.",
+      "Don't add resting drop shadows, gradients or glows to cards or buttons.",
+      "Don't introduce a second typeface, uppercase letter-spaced labels or eyebrow lines above headings in app chrome.",
+      "Don't open a modal for record detail on wide screens.",
+      "Don't hard-code palette colours (Tailwind gray, blue, red scales) in components; use the semantic tokens so dark mode follows."
+    ]
+  }
+}

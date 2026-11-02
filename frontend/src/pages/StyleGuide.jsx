@@ -29,12 +29,23 @@ import {
 } from '../ui/index.js';
 import { APPROVAL_STATUSES, RECONCILIATION_STATUSES } from '../lib/status.js';
 import { formatDateTime, formatVND } from '../lib/format.js';
+import LineItemCopies from '../components/LineItemCopies.jsx';
+import SignatureStrip from '../components/SignatureStrip.jsx';
 
 const ROLE_OPTIONS = [
   { value: 'all', label: 'Tất cả vai trò' },
   { value: 'accountant', label: 'Kế toán viên' },
   { value: 'chief_accountant', label: 'Kế toán trưởng' },
 ];
+
+
+// Dữ liệu minh họa (không phải dữ liệu thật) để xem bảng ba liên ở mọi trạng thái.
+const SAMPLE_LINE_ITEMS = [
+  { sku: 'SH-1500N', name: 'Bồn inox 1500L ngang', unit: 'Cái', poQty: '12', invoiceQty: '12', grnQty: '12', poPrice: '4.750.000', invoicePrice: '4.900.000', grnPrice: '', poAmount: '57.000.000', invoiceAmount: '58.800.000', grnAmount: '', severity: 'danger', qtySeverity: 'ok', priceSeverity: 'danger', amountSeverity: 'danger' },
+  { sku: 'SH-CB10', name: 'Chân bồn inox 1000L', unit: 'Bộ', poQty: '20', invoiceQty: '20', grnQty: '18', poPrice: '205.000', invoicePrice: '205.000', grnPrice: '', poAmount: '4.100.000', invoiceAmount: '4.100.000', grnAmount: '', severity: 'danger', qtySeverity: 'danger', priceSeverity: 'ok', amountSeverity: 'ok' },
+  { sku: 'SH-1000D', name: 'Bồn inox 1000L đứng', unit: 'Cái', poQty: '20', invoiceQty: '20', grnQty: '20', poPrice: '3.450.000', invoicePrice: '3.450.000', grnPrice: '', poAmount: '69.000.000', invoiceAmount: '69.000.000', grnAmount: '', severity: 'ok', qtySeverity: 'ok', priceSeverity: 'ok', amountSeverity: 'ok' },
+];
+const SAMPLE_BATCH = { owner: 'Nguyễn Thị Lan', approvedBy: 'Chu Thanh Dũng', chiefApprovedBy: null, rawStatus: 'approved' };
 
 const TONES = ['success', 'warning', 'danger', 'info', 'neutral', 'brand'];
 
@@ -63,6 +74,11 @@ export default function StyleGuide() {
           Token, trạng thái và component nền tảng. Đổi giao diện Sáng/Tối ở thanh bên để kiểm tra cả hai chế độ.
         </p>
       </header>
+
+      <Section title="Ba liên chứng từ" description="Bảng hàng hóa PO · HĐ · GRN và khối chữ ký. Dữ liệu minh họa.">
+        <SignatureStrip batch={SAMPLE_BATCH} className="max-w-3xl" />
+        <LineItemCopies items={SAMPLE_LINE_ITEMS} emptyText="Chưa có dữ liệu hàng hóa." />
+      </Section>
 
       <Section title="Hệ trạng thái" description="Mỗi badge luôn có icon và chữ. Hai nhóm tách bạch: đối soát (AI) và duyệt (con người).">
         <div>

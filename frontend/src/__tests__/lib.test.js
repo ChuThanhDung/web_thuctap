@@ -89,7 +89,7 @@ describe('reconciliation status (AI)', () => {
   it('uses the backend verdict instead of recomputing it', () => {
     expect(getReconciliationStatus(batch())).toBe('matched');
     expect(getReconciliationStatus(batch({ reconciliation_status: 'major_diff' }))).toBe('mismatch');
-    expect(getReconciliationStatus(batch({ reconciliation_status: 'minor_diff' }))).toBe('mismatch');
+    expect(getReconciliationStatus(batch({ reconciliation_status: 'minor_diff' }))).toBe('minor');
   });
 
   it('reports missing documents and in-flight extraction before any verdict', () => {
@@ -145,7 +145,8 @@ describe('status metadata', () => {
   });
 
   it('uses the agreed Vietnamese labels', () => {
-    expect(getReconciliationMeta('mismatch').label).toBe('Có chênh lệch');
+    expect(getReconciliationMeta('mismatch').label).toBe('Lệch lớn');
+    expect(getReconciliationMeta('minor').label).toBe('Lệch nhỏ');
     expect(getApprovalMeta('pending_chief').label).toBe('Chờ kế toán trưởng duyệt');
   });
 

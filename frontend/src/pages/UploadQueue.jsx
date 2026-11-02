@@ -31,10 +31,14 @@ import {
   subscribeBatchCache,
   updateCachedBatchItem,
 } from '../services/batchCache.js';
+import { useToast } from '../ui/Toast.jsx';
+import { Button, PageHeader } from '../ui/index.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { EXPORT_FONT_STACK } from '../lib/exportStyles.js';
 
 const DOC_TYPES = [
   { value: 'po', label: 'Đơn đặt hàng (PO)', icon: ShoppingCart },
-  { value: 'invoice', label: 'Hóa đơn (Invoice)', icon: FileText },
+  { value: 'invoice', label: 'Hóa đơn (HĐ)', icon: FileText },
   { value: 'grn', label: 'Phiếu nhập kho (GRN)', icon: PackageCheck },
 ];
 const MAX_PARALLEL_UPLOADS = 3;
@@ -144,7 +148,7 @@ function buildXmlPreviewHtml(filename, xmlText) {
       margin: 0;
       background: #f6f9fc;
       color: #0d253d;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: ${EXPORT_FONT_STACK};
     }
     header {
       position: sticky;
@@ -184,6 +188,9 @@ function buildXmlPreviewHtml(filename, xmlText) {
 }
 
 export default function UploadQueue({ token }) {
+  const toast = useToast();
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [isDeletingPending, setIsDeletingPending] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedBatchId = searchParams.get('batchId');
@@ -377,7 +384,7 @@ export default function UploadQueue({ token }) {
       if (requestedBatchId) {
         const requestedBatch = items.find((batch) => String(batch.id) === String(requestedBatchId));
         if (!requestedBatch) {
-          throw new Error('Không tìm thấy batch cần tải bổ sung hoặc bạn không còn quyền truy cập.');
+          throw new Error('Không tìm thấy bộ chứng từ cần tải bổ sung hoặc bạn không còn quyền truy cập.');
         }
         const nextId = requestedBatch.id;
         setBatches(items);
@@ -545,7 +552,7 @@ export default function UploadQueue({ token }) {
       documentTypesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return batch;
     } catch (err) {
-      alert(err.message || 'Không thể tạo bộ đối soát mới.');
+      toast.error(err.message || 'Không thể tạo bộ đối soát mới.');
     }
   };
 
@@ -708,7 +715,7 @@ export default function UploadQueue({ token }) {
 
     const previewTab = window.open('', '_blank');
     if (!previewTab) {
-      alert('Trình duyệt đang chặn tab mới. Vui lòng cho phép pop-up để xem file.');
+      toast.error('Trình duyệt đang chặn tab mới. Vui lòng cho phép pop-up để xem file.');
       return;
     }
 
@@ -731,16 +738,16 @@ export default function UploadQueue({ token }) {
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     } catch (err) {
       previewTab.close();
-      alert(err.message || 'Không thể mở file này. Vui lòng thử lại.');
+      toast.error(err.message || 'Không thể mở file này. Vui lòng thử lại.');
     }
   };
 
-  const handleDeleteUploadedFile = async (file) => {
+  const handleDeleteUploadedFile = (file) => {
     if (!file.id || file.status !== 'completed') return;
+    setPendingDelete({ kind: 'file', item: file });
+  };
 
-    const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa file "${file.filename}" không?`);
-    if (!confirmed) return;
-
+  const deleteFileNow = async (file) => {
     try {
       await deleteUploadedFile(token, file.id);
       setBatches((prev) =>
@@ -766,16 +773,28 @@ export default function UploadQueue({ token }) {
       );
       await fetchBatches(false, true);
     } catch (err) {
-      alert(err.message || 'Không thể xóa file này. Vui lòng thử lại.');
+      toast.error(err.message || 'Không thể xóa file này. Vui lòng thử lại.');
     }
   };
 
-  const handleDeleteBatch = async (batch) => {
+  const handleDeleteBatch = (batch) => {
     if (!batch?.id || (batch.files || []).length > 0 || deletingBatchIds.includes(batch.id)) return;
+    setPendingDelete({ kind: 'batch', item: batch });
+  };
 
-    const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa batch "${batch.batch_number}" không?`);
-    if (!confirmed) return;
+  const confirmPendingDelete = async () => {
+    if (!pendingDelete || isDeletingPending) return;
+    setIsDeletingPending(true);
+    try {
+      if (pendingDelete.kind === 'file') await deleteFileNow(pendingDelete.item);
+      else await deleteBatchNow(pendingDelete.item);
+    } finally {
+      setIsDeletingPending(false);
+      setPendingDelete(null);
+    }
+  };
 
+  const deleteBatchNow = async (batch) => {
     setDeletingBatchIds((prev) => [...prev, batch.id]);
     try {
       await deleteDocumentBatch(token, batch.id);
@@ -789,7 +808,7 @@ export default function UploadQueue({ token }) {
         return nextId;
       });
     } catch (err) {
-      alert(err.message || 'Không thể xóa batch này. Vui lòng thử lại.');
+      toast.error(err.message || 'Không thể xóa bộ chứng từ này. Vui lòng thử lại.');
     } finally {
       setDeletingBatchIds((prev) => prev.filter((id) => id !== batch.id));
     }
@@ -808,28 +827,23 @@ export default function UploadQueue({ token }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-end">
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleCreateBatch}
-            disabled={!uploadWorkspaceReady}
-            className="btn-primary inline-flex !min-h-9 items-center gap-1.5 !px-3 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Plus size={13} />
+      <PageHeader
+        title="Tải chứng từ"
+        description="Tải PO, hóa đơn và phiếu nhập kho cho một bộ. XML được đọc cục bộ; PDF và ảnh qua AI trích xuất."
+        actions={
+          <Button variant="primary" leadingIcon={Plus} onClick={handleCreateBatch} disabled={!uploadWorkspaceReady}>
             Tạo bộ mới
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {!uploadWorkspaceReady && (
         <div
           role={uploadWorkspaceError ? 'alert' : 'status'}
-          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-card border px-4 py-3 text-sm ${
             uploadWorkspaceError
-              ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300'
-              : 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
+              ? 'border-tone-danger-line bg-tone-danger-bg text-tone-danger-fg'
+              : 'border-tone-brand-line bg-tone-brand-bg text-tone-brand-fg'
           }`}
         >
           <span className="inline-flex items-center gap-2 font-semibold">
@@ -851,22 +865,22 @@ export default function UploadQueue({ token }) {
 
       {/* Selected Batch Status Banner */}
       {uploadWorkspaceReady && (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+          <span className="text-sm font-semibold text-fg-muted">
             Đang tải cho bộ:
           </span>
-          <span className="rounded-md bg-brand-50 px-2.5 py-1 font-mono text-sm font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+          <span className="rounded-control bg-tone-brand-bg px-2.5 py-1 font-mono text-sm font-bold text-tone-brand-fg">
             {selectedBatch?.batch_number || 'Chưa chọn bộ'}
           </span>
           {selectedBatch && (
             isBatchReady(selectedBatch) ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              <span className="inline-flex items-center gap-1.5 rounded-control bg-tone-success-bg px-2.5 py-0.5 text-xs font-semibold text-tone-success-fg">
                 <CheckCircle2 size={12} />
                 Đã đủ chứng từ & hoàn tất bóc tách
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+              <span className="inline-flex items-center gap-1.5 rounded-control bg-tone-neutral-bg px-2.5 py-0.5 text-xs font-semibold text-tone-neutral-fg">
                 <AlertCircle size={12} />
                 Cần bổ sung chứng từ
               </span>
@@ -878,7 +892,7 @@ export default function UploadQueue({ token }) {
             <button
               type="button"
               onClick={() => handleViewReconciliation(selectedBatch)}
-              className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-4 font-semibold shadow-sm"
+              className="btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-4 font-semibold shadow-card"
             >
               <Eye size={14} />
               Xem đối soát ngay
@@ -896,9 +910,9 @@ export default function UploadQueue({ token }) {
         onDragOver={(event) => handleTypeDragOver(event, AUTO_DOC_TYPE)}
         onDragLeave={handleTypeDragLeave}
         onDrop={(event) => handleDrop(event, AUTO_DOC_TYPE)}
-        className={`highlight-box-info space-y-3.5 scroll-mt-6 rounded-2xl transition-all ${
+        className={`space-y-3.5 scroll-mt-6 rounded-card transition-all ${
           isAutoDropActive
-            ? 'ring-2 ring-brand-400 bg-brand-50/20 dark:ring-brand-500'
+            ? 'ring-2 ring-focus bg-tone-brand-bg'
             : ''
         }`}
       >
@@ -912,32 +926,32 @@ export default function UploadQueue({ token }) {
               <div
                 key={type.value}
                 data-testid={`card-${type.value}`}
-                className={`flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all ${
+                className={`flex flex-col items-start rounded-card border-2 p-4 text-left transition-all ${
                   isReadingThisType
-                    ? 'border-slate-300 bg-slate-50/80 shadow-sm ring-2 ring-slate-100 dark:border-slate-700 dark:bg-slate-900/80 dark:ring-slate-800'
-                    : 'border-slate-200/80 bg-white/70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
+                    ? 'border-tone-neutral-line bg-surface-muted shadow-card ring-2 ring-line'
+                    : 'border-line bg-surface hover:border-tone-neutral-line'
                 }`}
               >
               <div className="flex w-full items-center justify-between">
-                <div className={`p-2 rounded-lg transition-colors ${
+                <div className={`p-2 rounded-control transition-colors ${
                   isReadingThisType
-                    ? 'bg-brand-600 text-white dark:bg-brand-500 animate-pulse'
-                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    ? 'bg-primary text-primary-fg animate-pulse'
+                    : 'bg-surface-muted text-fg-subtle'
                 }`}>
                   <Icon size={18} />
                 </div>
                 {isReadingThisType && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  <span className="inline-flex items-center gap-1 rounded-control bg-tone-brand-bg px-2 py-0.5 text-xs font-bold text-tone-brand-fg">
                     <Loader2 size={11} className="animate-spin" />
                     Đang đọc file
                   </span>
                 )}
               </div>
 
-              <span className="mt-3 font-bold text-sm text-slate-900 dark:text-slate-100">{type.label}</span>
+              <span className="mt-3 font-bold text-sm text-fg">{type.label}</span>
 
               {uploadedFiles.length > 0 && (
-                <div className="mt-3 w-full border-t border-slate-200/80 pt-2.5 dark:border-slate-700">
+                <div className="mt-3 w-full border-t border-line pt-2.5">
                   <div className="space-y-1.5">
                     {uploadedFiles.map((file, index) => {
                       const fileBeingRead = isFileBeingRead(file);
@@ -946,23 +960,23 @@ export default function UploadQueue({ token }) {
                         return (
                           <div
                             key={file.id || `${file.filename}-${index}`}
-                            className="flex w-full flex-col gap-1.5 rounded-lg border border-brand-200 bg-brand-50/90 p-2.5 dark:border-brand-800 dark:bg-brand-950/40"
+                            className="flex w-full flex-col gap-1.5 rounded-control border border-tone-brand-line bg-tone-brand-bg p-2.5"
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex min-w-0 items-center gap-2">
-                                <Loader2 size={13} className="shrink-0 animate-spin text-brand-600 dark:text-brand-400" />
-                                <span className="truncate text-xs font-semibold text-brand-950 dark:text-brand-100" title={file.filename}>
+                                <Loader2 size={13} className="shrink-0 animate-spin text-primary" />
+                                <span className="truncate text-xs font-semibold text-tone-brand-fg" title={file.filename}>
                                   {file.filename}
                                 </span>
                               </div>
                               {file.size && (
-                                <span className="shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">
+                                <span className="shrink-0 rounded bg-tone-brand-bg px-1.5 py-0.5 text-[10px] font-bold text-tone-brand-fg">
                                   {file.size}
                                 </span>
                               )}
                             </div>
-                            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
-                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-500 animate-ping" />
+                            <p className="flex items-center gap-1.5 text-xs font-semibold text-tone-brand-fg">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
                               Đang đọc và bóc tách dữ liệu AI...
                             </p>
                           </div>
@@ -973,23 +987,23 @@ export default function UploadQueue({ token }) {
                         return (
                           <div
                             key={file.id || `${file.filename}-${index}`}
-                            className="flex w-full flex-col gap-1 rounded-lg border border-rose-200 bg-rose-50 p-2.5 dark:border-rose-900 dark:bg-rose-950/30"
+                            className="flex w-full flex-col gap-1 rounded-control border border-tone-danger-line bg-tone-danger-bg p-2.5"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="truncate text-xs font-semibold text-rose-800 dark:text-rose-200">{file.filename}</span>
+                              <span className="truncate text-xs font-semibold text-tone-danger-fg">{file.filename}</span>
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDismissInFlightError(file.id);
                                 }}
-                                className="text-rose-600 hover:text-rose-800"
+                                className="text-tone-danger-fg hover:text-tone-danger-fg"
                                 title="Đóng thông báo"
                               >
                                 <X size={13} />
                               </button>
                             </div>
-                            <p className="text-[11px] font-medium text-rose-600 dark:text-rose-300">
+                            <p className="text-xs font-medium text-tone-danger-fg">
                               {file.error_message || 'Tải lên hoặc đọc file thất bại'}
                             </p>
                           </div>
@@ -1004,10 +1018,10 @@ export default function UploadQueue({ token }) {
                       return (
                         <div
                           key={file.id || `${file.filename}-${index}`}
-                          className={`flex w-full flex-col gap-2 rounded-lg border px-2.5 py-2 ${
+                          className={`flex w-full flex-col gap-2 rounded-control border px-2.5 py-2 ${
                             isLowQualityFile
-                              ? 'border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30'
-                              : 'border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900'
+                              ? 'border-tone-warning-line bg-tone-warning-bg'
+                              : 'border-line bg-surface-muted'
                           }`}
                         >
                           <div className="flex w-full items-center justify-between gap-2">
@@ -1017,12 +1031,12 @@ export default function UploadQueue({ token }) {
                                 event.stopPropagation();
                                 handleOpenUploadedFile(file);
                               }}
-                              className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-semibold text-fg transition-colors hover:text-primary"
                               title="Bấm để mở xem file"
                             >
-                              <CheckCircle2 size={14} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                              <CheckCircle2 size={14} className="shrink-0 text-tone-success-fg" />
                               <span className="truncate">{file.filename}</span>
-                              <ExternalLink size={12} className="shrink-0 text-slate-400" />
+                              <ExternalLink size={12} className="shrink-0 text-fg-subtle" />
                             </button>
                             <button
                               type="button"
@@ -1030,14 +1044,14 @@ export default function UploadQueue({ token }) {
                                 event.stopPropagation();
                                 handleDeleteUploadedFile(file);
                               }}
-                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
+                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-control text-fg-subtle hover:bg-tone-danger-bg hover:text-tone-danger-fg"
                               title="Xóa file"
                             >
                               <X size={13} />
                             </button>
                           </div>
                           {isLowQualityFile && (
-                            <p className="flex items-start gap-1.5 text-[11px] font-semibold leading-4 text-amber-700 dark:text-amber-300">
+                            <p className="flex items-start gap-1.5 text-xs font-semibold leading-4 text-tone-warning-fg">
                               <AlertCircle size={13} className="mt-0.5 shrink-0" />
                               <span>{lowQualityMessage}</span>
                             </p>
@@ -1058,6 +1072,7 @@ export default function UploadQueue({ token }) {
           role="button"
           tabIndex={uploadWorkspaceReady ? 0 : -1}
           aria-disabled={!uploadWorkspaceReady}
+          aria-label="Kéo thả hoặc chọn file PO, hóa đơn, phiếu nhập kho (XML, PDF, JPG, PNG)"
           data-testid="drop-zone-auto"
           onClick={() => handleChooseFiles(AUTO_DOC_TYPE)}
           onKeyDown={(event) => {
@@ -1070,50 +1085,51 @@ export default function UploadQueue({ token }) {
           onDragOver={(event) => handleTypeDragOver(event, AUTO_DOC_TYPE)}
           onDragLeave={handleTypeDragLeave}
           onDrop={(event) => handleDrop(event, AUTO_DOC_TYPE)}
-          className={`flex min-h-[128px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-all ${
+          className={`flex min-h-[128px] cursor-pointer flex-col items-center justify-center rounded-card border-2 border-dashed p-4 text-center transition-all ${
             !uploadWorkspaceReady ? 'pointer-events-none opacity-60 ' : ''
           }${
             isAutoDropActive
-              ? 'border-brand-500 bg-brand-50 shadow-md ring-4 ring-brand-100 dark:border-brand-400 dark:bg-brand-950/30 dark:ring-brand-950'
+              ? 'border-primary bg-tone-brand-bg shadow-card ring-4 ring-focus'
               : isAutoReading
-              ? 'border-brand-400 bg-brand-50/60 shadow-sm ring-2 ring-brand-100 dark:border-brand-500 dark:bg-brand-950/20 dark:ring-brand-950'
-              : 'border-slate-300 bg-white/70 hover:border-brand-300 hover:bg-brand-50/40 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-brand-600 dark:hover:bg-brand-950/20'
+              ? 'border-primary bg-tone-brand-bg shadow-card ring-2 ring-focus'
+              : 'border-tone-neutral-line bg-surface hover:border-tone-brand-line hover:bg-tone-brand-bg'
           }`}
         >
           <div className="flex flex-col items-center justify-center gap-2">
-            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-card ${
               isAutoReading || isAutoDropActive
-                ? 'bg-brand-600 text-white dark:bg-brand-500'
-                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                ? 'bg-primary text-primary-fg'
+                : 'bg-surface-muted text-fg-subtle'
             }`}>
               {isAutoReading ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={21} />}
             </div>
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Tải nhanh các chứng từ</p>
+            <p className="text-sm font-bold text-fg">Kéo thả hoặc chọn file chứng từ</p>
+            <p className="text-xs text-fg-muted">PO, hóa đơn, phiếu nhập kho · XML, PDF, JPG, PNG · hệ thống tự nhận loại</p>
           </div>
 
           {autoUploadFiles.length > 0 && (
-            <div className="mt-3 grid gap-2 border-t border-slate-200/80 pt-3 dark:border-slate-700 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-3 grid gap-2 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-3">
               {autoUploadFiles.map((file) => {
                 const isProcessing = file.status === 'processing';
                 return (
                   <div
                     key={file.tempId}
-                    className={`flex min-w-0 flex-col gap-1.5 rounded-lg border p-2.5 ${
+                    className={`flex min-w-0 flex-col gap-1.5 rounded-control border p-2.5 ${
                       isProcessing
-                        ? 'border-brand-200 bg-brand-50/90 dark:border-brand-800 dark:bg-brand-950/40'
-                        : 'border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/30'
+                        ? 'border-tone-brand-line bg-tone-brand-bg'
+                        : 'border-tone-danger-line bg-tone-danger-bg'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         {isProcessing ? (
-                          <Loader2 size={13} className="shrink-0 animate-spin text-brand-600 dark:text-brand-400" />
+                          <Loader2 size={13} className="shrink-0 animate-spin text-primary" />
                         ) : (
-                          <AlertCircle size={13} className="shrink-0 text-rose-600 dark:text-rose-300" />
+                          <AlertCircle size={13} className="shrink-0 text-tone-danger-fg" />
                         )}
                         <span
                           className={`truncate text-xs font-semibold ${
-                            isProcessing ? 'text-brand-950 dark:text-brand-100' : 'text-rose-800 dark:text-rose-200'
+                            isProcessing ? 'text-tone-brand-fg' : 'text-tone-danger-fg'
                           }`}
                           title={file.filename}
                         >
@@ -1127,7 +1143,7 @@ export default function UploadQueue({ token }) {
                             event.stopPropagation();
                             handleDismissInFlightError(file.tempId);
                           }}
-                          className="text-rose-600 hover:text-rose-800"
+                          className="text-tone-danger-fg hover:text-tone-danger-fg"
                           title="Đóng thông báo"
                         >
                           <X size={13} />
@@ -1135,8 +1151,8 @@ export default function UploadQueue({ token }) {
                       )}
                     </div>
                     <p
-                      className={`text-[11px] font-semibold ${
-                        isProcessing ? 'text-brand-700 dark:text-brand-300' : 'text-rose-600 dark:text-rose-300'
+                      className={`text-xs font-semibold ${
+                        isProcessing ? 'text-tone-brand-fg' : 'text-tone-danger-fg'
                       }`}
                     >
                       {isProcessing
@@ -1161,14 +1177,14 @@ export default function UploadQueue({ token }) {
         />
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="rounded-card border border-line bg-surface p-3.5 shadow-card">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <label htmlFor="batch-note" className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              Note
+            <label htmlFor="batch-note" className="text-sm font-bold text-fg">
+              Ghi chú
             </label>
           </div>
-          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+          <span className="text-xs font-semibold text-fg-subtle">
             {batchNoteDraft.length}/{BATCH_NOTE_MAX_LENGTH}
           </span>
         </div>
@@ -1180,42 +1196,42 @@ export default function UploadQueue({ token }) {
           disabled={!selectedBatch}
           rows={2}
           maxLength={BATCH_NOTE_MAX_LENGTH}
-          placeholder="Ví dụ: Batch đối chiếu hóa đơn công ty A..."
-          className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:bg-slate-900 dark:focus:ring-brand-950"
+          placeholder="Ví dụ: Bộ chứng từ đối chiếu hóa đơn công ty A..."
+          className="mt-2 w-full resize-none rounded-control border border-line bg-surface-muted px-3 py-2 text-sm text-fg outline-none transition focus:border-primary focus:bg-surface focus:ring-2 focus:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div className="mt-2 min-h-[18px] text-xs">
           {batchNoteError ? (
-            <span className="font-semibold text-rose-600 dark:text-rose-300">{batchNoteError}</span>
+            <span className="font-semibold text-tone-danger-fg">{batchNoteError}</span>
           ) : batchNoteSaving ? (
-            <span className="inline-flex items-center gap-1.5 font-semibold text-brand-600 dark:text-brand-300">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
               <Loader2 size={12} className="animate-spin" />
               Đang lưu ghi chú...
             </span>
           ) : selectedBatch && batchNoteDraft === lastSavedBatchNote ? (
-            <span className="font-medium text-slate-400 dark:text-slate-500">Ghi chú được tự động lưu.</span>
+            <span className="font-medium text-fg-subtle">Ghi chú được tự động lưu.</span>
           ) : null}
         </div>
       </div>
 
       {/* Batches Queue Table */}
       <div className="card overflow-hidden">
-        <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-b border-line px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            <h2 className="text-sm font-bold text-fg">
               Danh sách bộ đối soát ({batches.length} bộ)
-            </h3>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            </h2>
+            <p className="mt-0.5 text-xs text-fg-subtle">
               Chọn một bộ để bổ sung PO, hóa đơn hoặc phiếu nhập kho còn thiếu.
             </p>
           </div>
-          <div className="flex items-center gap-1.5 self-start sm:self-center bg-slate-100 p-1 rounded-lg dark:bg-slate-800">
+          <div className="flex items-center gap-1.5 self-start sm:self-center bg-surface-muted p-1 rounded-control">
             <button
               type="button"
               onClick={() => { setBatchFilterTab('incomplete'); setBatchPage(1); }}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs font-semibold rounded-control transition-colors ${
                 batchFilterTab === 'incomplete'
-                  ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-300'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'bg-surface text-tone-brand-fg shadow-card'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
               Chờ xử lý ({activeBatches.length})
@@ -1223,10 +1239,10 @@ export default function UploadQueue({ token }) {
             <button
               type="button"
               onClick={() => { setBatchFilterTab('ready'); setBatchPage(1); }}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs font-semibold rounded-control transition-colors ${
                 batchFilterTab === 'ready'
-                  ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-300'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'bg-surface text-tone-brand-fg shadow-card'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
               Đã hoàn tất ({readyBatches.length})
@@ -1234,10 +1250,10 @@ export default function UploadQueue({ token }) {
             <button
               type="button"
               onClick={() => { setBatchFilterTab('all'); setBatchPage(1); }}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs font-semibold rounded-control transition-colors ${
                 batchFilterTab === 'all'
-                  ? 'bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-300'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'bg-surface text-tone-brand-fg shadow-card'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
               Tất cả ({batches.length})
@@ -1247,19 +1263,19 @@ export default function UploadQueue({ token }) {
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <Loader2 className="animate-spin text-brand-600 dark:text-brand-400" size={24} />
-            <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">Đang tải danh sách...</span>
+            <Loader2 className="animate-spin text-primary" size={24} />
+            <span className="text-xs text-fg-subtle ml-2">Đang tải danh sách...</span>
           </div>
         ) : filteredBatches.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
+          <div className="text-center py-12 text-fg-subtle text-xs">
             {batchFilterTab === 'incomplete'
               ? 'Không có bộ nào đang chờ bổ sung chứng từ.'
               : batchFilterTab === 'ready'
               ? 'Chưa có bộ nào hoàn tất đủ 3 chứng từ.'
-              : 'Chưa có bộ đối soát nào. Hãy kéo file vào vùng Tải nhanh các chứng từ để tạo bộ đầu tiên.'}
+              : 'Chưa có bộ đối soát nào. Hãy kéo file vào vùng tải chứng từ để tạo bộ đầu tiên.'}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto dark:divide-slate-800">
+          <div className="divide-y divide-line max-h-[480px] overflow-y-auto">
             {paginatedBatches.map((batch) => {
               const isSelectedBatch = selectedBatch?.id === batch.id;
               const filesByType = (batch.files || []).reduce((acc, file) => {
@@ -1287,40 +1303,40 @@ export default function UploadQueue({ token }) {
                       handleSelectBatch(batch.id);
                     }
                   }}
-                  className={`block w-full px-5 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset ${
+                  className={`block w-full px-5 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset ${
                     isSelectedBatch
-                      ? 'bg-brand-50/80 ring-1 ring-inset ring-brand-300 shadow-[inset_4px_0_0_#4f46e5] dark:bg-brand-950/30 dark:ring-brand-700/80 dark:shadow-[inset_4px_0_0_#818cf8]'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                      ? 'bg-tone-brand-bg ring-1 ring-inset ring-focus shadow-card'
+                      : 'hover:bg-surface-muted'
                   } group relative cursor-pointer pr-14`}
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0 shrink-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        <p className="text-sm font-bold text-fg">
                           {batch.batch_number}
                         </p>
                         {!isReady && (
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            className={`rounded-control px-2 py-0.5 text-xs font-semibold ${
                               hasInFlight
-                                ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
-                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                                ? 'bg-tone-brand-bg text-tone-brand-fg'
+                                : 'bg-tone-warning-bg text-tone-warning-fg'
                             }`}
                           >
                             {hasInFlight ? 'Đang đọc file...' : `Cần bổ sung ${missingCount} chứng từ`}
                           </span>
                         )}
                         {isReady && batchFilterTab !== 'incomplete' && (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          <span className="rounded-control bg-tone-success-bg px-2 py-0.5 text-xs font-semibold text-tone-success-fg">
                             Đã hoàn tất
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                      <p className="mt-1 text-xs text-fg-subtle">
                         Cập nhật: {batch.updated_at || batch.created_at}
                       </p>
                       {batch.note && (
-                        <p className="mt-1 max-w-sm truncate text-xs font-medium text-slate-600 dark:text-slate-300" title={batch.note}>
+                        <p className="mt-1 max-w-sm truncate text-xs font-medium text-fg-muted" title={batch.note}>
                           {batch.note}
                         </p>
                       )}
@@ -1338,33 +1354,33 @@ export default function UploadQueue({ token }) {
                         return (
                           <span
                             key={type.value}
-                            className={`min-w-0 rounded-lg border px-3 py-2 text-xs transition-colors ${
+                            className={`min-w-0 rounded-control border px-3 py-2 text-xs transition-colors ${
                               fileBeingRead
-                                ? 'border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-300'
+                                ? 'border-tone-brand-line bg-tone-brand-bg text-tone-brand-fg'
                                 : isWrongType
-                                ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300'
+                                ? 'border-tone-warning-line bg-tone-warning-bg text-tone-warning-fg'
                                 : file
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
-                                : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'
+                                ? 'border-tone-success-line bg-tone-success-bg text-tone-success-fg'
+                                : 'border-line bg-surface-muted text-fg-subtle'
                             }`}
                             title={typeInFlight?.filename || fileLabel || 'Chưa có chứng từ'}
                           >
                             <span className="block font-semibold whitespace-nowrap truncate">{type.label}</span>
-                            <span className="mt-0.5 block truncate text-[11px]">
+                            <span className="mt-0.5 block truncate text-xs">
                               {typeInFlight?.filename || fileLabel || (fileBeingRead ? 'Đã nhận file' : 'Chưa có chứng từ')}
                             </span>
                             {fileBeingRead ? (
-                              <span className="mt-1 flex items-center gap-1 font-semibold text-brand-600 dark:text-brand-300 whitespace-nowrap">
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-primary whitespace-nowrap">
                                 <Loader2 size={11} className="animate-spin" />
                                 Đang đọc file
                               </span>
                             ) : isWrongType ? (
-                              <span className="mt-1 flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-tone-warning-fg whitespace-nowrap">
                                 <AlertCircle size={11} />
                                 Sai loại file
                               </span>
                             ) : file ? (
-                              <span className="mt-1 flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-tone-success-fg whitespace-nowrap">
                                 <CheckCircle2 size={11} />
                                 Đã bóc tách
                               </span>
@@ -1383,9 +1399,9 @@ export default function UploadQueue({ token }) {
                         handleDeleteBatch(batch);
                       }}
                       disabled={isDeletingBatch}
-                      className="absolute right-4 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 opacity-0 transition-all hover:bg-rose-50 hover:text-rose-600 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-50 group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
-                      title="Xóa batch"
-                      aria-label={`Xóa batch ${batch.batch_number}`}
+                      className="absolute right-4 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-control text-fg-subtle opacity-0 transition-all hover:bg-tone-danger-bg hover:text-tone-danger-fg focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50 group-hover:opacity-100"
+                      title="Xóa bộ chứng từ"
+                      aria-label={`Xóa bộ chứng từ ${batch.batch_number}`}
                     >
                       {isDeletingBatch ? <Loader2 size={14} className="animate-spin" /> : <X size={15} />}
                     </button>
@@ -1397,8 +1413,8 @@ export default function UploadQueue({ token }) {
         )}
 
         {filteredBatches.length > BATCHES_PER_PAGE && (
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-col gap-3 border-t border-line px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-fg-subtle">
               Hiển thị {batchStartIndex}-{batchEndIndex} / {filteredBatches.length} bộ
             </p>
             <div className="flex items-center justify-end gap-2">
@@ -1406,18 +1422,18 @@ export default function UploadQueue({ token }) {
                 type="button"
                 onClick={() => setBatchPage((page) => Math.max(1, page - 1))}
                 disabled={safeBatchPage === 1}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                className="rounded-control border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Trước
               </button>
-              <span className="min-w-[72px] text-center text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span className="min-w-[72px] text-center text-xs font-semibold text-fg-muted">
                 {safeBatchPage} / {totalBatchPages}
               </span>
               <button
                 type="button"
                 onClick={() => setBatchPage((page) => Math.min(totalBatchPages, page + 1))}
                 disabled={safeBatchPage === totalBatchPages}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                className="rounded-control border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Sau
               </button>
@@ -1425,6 +1441,23 @@ export default function UploadQueue({ token }) {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        tone="danger"
+        title={pendingDelete?.kind === 'file' ? 'Xóa file chứng từ' : 'Xóa bộ chứng từ trống'}
+        description={
+          pendingDelete?.kind === 'file'
+            ? `File "${pendingDelete.item.filename}" sẽ bị xóa khỏi bộ và kết quả đối soát được tính lại.`
+            : pendingDelete
+              ? `Bộ "${pendingDelete.item.batch_number}" sẽ bị xóa. Thao tác này không hoàn tác được.`
+              : ''
+        }
+        confirmLabel="Xóa"
+        loading={isDeletingPending}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmPendingDelete}
+      />
     </div>
   );
 }
