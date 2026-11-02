@@ -27,7 +27,7 @@ frontend/.env
 frontend/.env.*
 
 docs
-presentation
+hidden
 eval
 Report
 data

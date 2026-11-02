@@ -138,7 +138,7 @@ crontab -e
 ```
 
 Thêm một lớp nữa: **Compute Engine → Snapshots → Create snapshot schedule** cho ổ đĩa máy ảo (hằng ngày, giữ 7 bản).
-Mỗi tháng thử khôi phục một bản theo [DEPLOYMENT.md](../../DEPLOYMENT.md#5-sao-lưu-và-khôi-phục).
+Mỗi tháng thử khôi phục một bản theo [DEPLOYMENT.md](../../docs/DEPLOYMENT.md#5-sao-lưu-và-khôi-phục).
 
 ## 7. Cập nhật bản mới và quay lại bản cũ
 

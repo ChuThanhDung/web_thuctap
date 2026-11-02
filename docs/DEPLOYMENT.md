@@ -13,7 +13,7 @@ Có hai cách chạy: **dev** (nhanh, có dữ liệu demo) và **production** (
 
 > Luôn chỉ định `-f docker-compose.yml` khi chạy production, vì Compose tự nạp `docker-compose.override.yml` nếu không có `-f`.
 
-Hướng dẫn từng bước cho Google Cloud (máy ảo e2-medium, HTTPS, backup lên Cloud Storage): [deploy/gcp/README.md](deploy/gcp/README.md).
+Hướng dẫn từng bước cho Google Cloud (máy ảo e2-medium, HTTPS, backup lên Cloud Storage): [deploy/gcp/README.md](../deploy/gcp/README.md).
 
 ## 1. Chuẩn bị môi trường
 
@@ -194,4 +194,4 @@ Trong Nhật ký thao tác, action `DOCUMENT_BATCH_REJECTED` có `notification_e
 - [ ] Đã chạy `scripts/backup_db.sh` thành công và thử khôi phục vào DB tạm.
 - [ ] Đã cấu hình SMTP và gửi thử email từ chối batch.
 - [ ] Đã điền `OPENAI_API_KEY` hoặc `GEMINI_API_KEY` nếu cần bóc tách PDF và ảnh.
-- [ ] Đã xem [eval/results/report.md](eval/results/report.md) để nắm rõ phần nào đã và chưa được đo.
+- [ ] Đã xem [eval/results/report.md](../eval/results/report.md) để nắm rõ phần nào đã và chưa được đo.

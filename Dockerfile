@@ -23,7 +23,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY src ./src
-COPY raw_data ./raw_data
+COPY dataset/raw_data ./dataset/raw_data
 COPY scripts ./scripts
 
 RUN mkdir -p /app/storage/upload /app/storage/avatars /app/invoice && \

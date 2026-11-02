@@ -67,3 +67,9 @@ backups/
 *.zip
 frontend/.vite/
 src/crash.txt
+
+# Claude Code local config (Impeccable skill, agents, hooks)
+.claude/
+
+# Ghi chép cá nhân, báo cáo thực tập, tài liệu khóa học (không đưa lên repo)
+hidden/

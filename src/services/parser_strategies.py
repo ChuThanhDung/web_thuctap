@@ -301,7 +301,7 @@ class LocalOcrParserStrategy(BaseParserStrategy):
         elif "grn" in filename.lower() or "receipt" in filename.lower() or doc_type == "grn":
             target_type = "grn"
 
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "raw_data"))
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "dataset", "raw_data"))
 
         if clean_num:
             if target_type == "invoice":

@@ -15,7 +15,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./storage:/app/storage
-      - ./invoice:/app/invoice
+      - ./dataset/samples/invoices:/app/invoice
 
   frontend:
     build:

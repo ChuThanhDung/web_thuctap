@@ -33,18 +33,17 @@ Tài khoản demo được cấp riêng cho từng người đánh giá; liên h
 │   └── main.py             # FastAPI entry point, seed dữ liệu ban đầu, middleware
 ├── migrations/             # Alembic: mỗi thay đổi schema là một revision
 ├── tests/                  # Backend tests (API, service, migration, bảo mật)
-├── dataset/                # Bộ chứng từ mẫu
+├── dataset/                # Chứng từ mẫu: golden (test/eval), raw_data (fallback offline), samples
 ├── storage/upload/         # File upload khi dùng local storage
 ├── eval/                   # Báo cáo đánh giá và script đo (run_eval.py, measure_api_latency.py)
 ├── scripts/                # Backup/restore DB, reset mật khẩu, kiểm tra SMTP
 ├── deploy/                 # Caddyfile cho HTTPS
-├── docs/                   # Tài liệu bổ sung
-├── presentation/           # Video demo và tài liệu thuyết trình
+├── docs/                   # Kiến trúc, triển khai, quy tắc dự án (rules/)
 ├── docker-compose.yml          # Cấu hình production-safe
 └── docker-compose.override.yml # Tiện ích dev, tự nạp khi chạy `docker compose up`
 ```
 
-Xem thêm [ARCHITECTURE.md](ARCHITECTURE.md) (kiến trúc, luồng nghiệp vụ, bảo mật) và [DEPLOYMENT.md](DEPLOYMENT.md) (triển khai production, HTTPS, sao lưu).
+Xem thêm [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (kiến trúc, luồng nghiệp vụ, bảo mật) và [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (triển khai production, HTTPS, sao lưu).
 
 ## Yêu cầu hệ thống
 
@@ -135,7 +134,7 @@ Production (không mount mã nguồn, không mở cổng backend và DB, không 
 docker compose -f docker-compose.yml up -d --build
 ```
 
-Hướng dẫn đầy đủ gồm HTTPS, sao lưu và danh sách kiểm tra: [DEPLOYMENT.md](DEPLOYMENT.md).
+Hướng dẫn đầy đủ gồm HTTPS, sao lưu và danh sách kiểm tra: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 Dừng services:
 
