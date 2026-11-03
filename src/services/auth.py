@@ -3,7 +3,7 @@ from hashlib import sha256
 from secrets import randbelow, token_urlsafe
 
 from passlib.context import CryptContext
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
@@ -40,7 +40,9 @@ def hash_token(token: str) -> str:
 
 
 def next_public_user_id(db: Session) -> int:
-    return (db.scalar(select(func.max(User.public_id))) or 0) + 1
+    # Mã người dùng duy nhất toàn hệ thống. Không dùng MAX(public_id) + 1: dưới Row-Level Security, MAX chỉ thấy người
+    # dùng của công ty hiện tại nên sinh mã trùng với công ty khác.
+    return db.scalar(text("SELECT nextval('users_public_id_seq')"))
 
 
 def get_employee_code_prefix(role_code: str) -> str:
@@ -356,8 +358,12 @@ def write_audit_log(
     target_id: str | None = None,
 ) -> None:
     resolved_target_id = target_id if target_id else (str(user.id) if user else None)
+    # Nhật ký thuộc công ty của người thực hiện. Sự kiện chưa gắn người (đăng nhập sai…) lấy công ty của phiên, hoặc
+    # để trống khi chưa đăng nhập.
+    org_kwargs = {"organization_id": user.organization_id} if user and user.organization_id else {}
     db.add(
         AuditLog(
+            **org_kwargs,
             user_id=user.id if user else None,
             action=action,
             target_type=target_type,

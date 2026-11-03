@@ -2,7 +2,7 @@ from alembic import context
 from sqlalchemy import text
 
 import src.models  # noqa: F401  (đăng ký toàn bộ model vào Base.metadata)
-from src.database import Base, engine
+from src.database import Base, admin_engine
 
 target_metadata = Base.metadata
 
@@ -11,7 +11,7 @@ MIGRATION_LOCK_ID = 727_274_001
 
 
 def run_migrations_online() -> None:
-    with engine.connect() as connection:
+    with admin_engine.connect() as connection:
         is_postgres = connection.dialect.name == "postgresql"
         if is_postgres:
             connection.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": MIGRATION_LOCK_ID})

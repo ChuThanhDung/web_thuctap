@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
-from src.database import get_db
+from src.database import get_db, set_organization_context
 from src.models.role import Role
 from src.models.schemas import (
     AuthUser,
@@ -80,6 +80,8 @@ def get_current_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Phiên đăng nhập đã hết hạn.")
 
+    # Từ đây phiên DB chỉ thấy và chỉ ghi được dữ liệu công ty của người dùng (Row-Level Security).
+    set_organization_context(db, user.organization_id)
     return user
 
 

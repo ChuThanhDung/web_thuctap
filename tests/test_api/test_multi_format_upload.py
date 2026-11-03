@@ -10,6 +10,7 @@ import src.api.uploads as uploads_api
 from src.api.auth import get_current_user
 from src.database import get_db
 from src.main import app
+from src.models.organization import DEMO_ORGANIZATION_ID
 from src.models.user import User
 from tests.conftest import purge_batch_tables
 
@@ -87,7 +88,7 @@ async def test_upload_png_po_duplicate_content_returns_conflict(client):
     first_data = response.json()
     assert first_data["status"] == "completed"
     assert_stored_filename(first_data, "po", "png")
-    assert first_data["storage_key"].startswith("storage/upload/po/")
+    assert first_data["storage_key"].startswith(f"storage/upload/{DEMO_ORGANIZATION_ID}/po/")
     assert Path(uploads_api.PROJECT_ROOT / first_data["storage_key"]).exists()
     assert "đã được tải lên" in dup_response.json()["detail"]
 
@@ -114,6 +115,6 @@ async def test_upload_pdf_grn_duplicate_content_returns_conflict(client):
     first_data = response.json()
     assert first_data["status"] == "completed"
     assert_stored_filename(first_data, "grn", "pdf")
-    assert first_data["storage_key"].startswith("storage/upload/grn/")
+    assert first_data["storage_key"].startswith(f"storage/upload/{DEMO_ORGANIZATION_ID}/grn/")
     assert Path(uploads_api.PROJECT_ROOT / first_data["storage_key"]).exists()
     assert "đã được tải lên" in dup_response.json()["detail"]

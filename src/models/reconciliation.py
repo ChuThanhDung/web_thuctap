@@ -2,19 +2,24 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+from src.models.organization import organization_fk
 from src.models.user import User
 
 
 class ReconciliationCase(Base):
     __tablename__ = "reconciliation_cases"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "case_number", name="uq_reconciliation_cases_org_case_number"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    case_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
+    case_number: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
 
     # Số hiệu 3 chứng từ
     invoice_number: Mapped[str | None] = mapped_column(String(50))
@@ -71,6 +76,7 @@ class LineItem(Base):
     __tablename__ = "line_items"
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     case_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("reconciliation_cases.id", ondelete="CASCADE"),
@@ -107,9 +113,11 @@ class LineItem(Base):
 
 class Threshold(Base):
     __tablename__ = "thresholds"
+    __table_args__ = (UniqueConstraint("organization_id", "category", name="uq_thresholds_org_category"),)
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    category: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
     percent_threshold: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     absolute_threshold: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
 
@@ -126,6 +134,7 @@ class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     batch_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("document_batches.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -153,6 +162,7 @@ class UploadedDocumentExtraction(Base):
     __tablename__ = "uploaded_document_extractions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     upload_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("uploaded_files.id", ondelete="CASCADE"),
@@ -190,9 +200,11 @@ class UploadedDocumentExtraction(Base):
 
 class DocumentBatch(Base):
     __tablename__ = "document_batches"
+    __table_args__ = (UniqueConstraint("organization_id", "batch_number", name="uq_document_batches_org_batch_number"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    batch_number: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
+    batch_number: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     created_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.public_id", ondelete="SET NULL"), nullable=True
     )
@@ -234,6 +246,7 @@ class DocumentBatchHistory(Base):
     __tablename__ = "document_batch_histories"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     batch_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("document_batches.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -261,9 +274,11 @@ class DocumentBatchHistory(Base):
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
+    __table_args__ = (UniqueConstraint("organization_id", "po_number", name="uq_purchase_orders_org_po_number"),)
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    po_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
+    po_number: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     supplier_name: Mapped[str | None] = mapped_column(String(255))
     supplier_tax_id: Mapped[str | None] = mapped_column(String(20))
     buyer_name: Mapped[str | None] = mapped_column(String(255))
@@ -280,6 +295,7 @@ class PurchaseOrderItem(Base):
     __tablename__ = "purchase_order_items"
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     po_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True), ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -294,9 +310,11 @@ class PurchaseOrderItem(Base):
 
 class GoodsReceiptNote(Base):
     __tablename__ = "goods_receipt_notes"
+    __table_args__ = (UniqueConstraint("organization_id", "grn_number", name="uq_goods_receipt_notes_org_grn_number"),)
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    grn_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
+    grn_number: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     po_number: Mapped[str | None] = mapped_column(String(50), index=True)
     supplier_name: Mapped[str | None] = mapped_column(String(255))
     supplier_tax_id: Mapped[str | None] = mapped_column(String(20))
@@ -312,6 +330,7 @@ class GoodsReceiptNoteItem(Base):
     __tablename__ = "goods_receipt_note_items"
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     grn_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("goods_receipt_notes.id", ondelete="CASCADE"),

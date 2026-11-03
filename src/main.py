@@ -43,18 +43,24 @@ def secure_default_password_accounts() -> None:
             ", ".join(emails),
         )
     else:
-        logger.warning("Các tài khoản đang dùng mật khẩu mặc định (chỉ chấp nhận ngoài production): %s", ", ".join(emails))
+        logger.warning(
+            "Các tài khoản đang dùng mật khẩu mặc định (chỉ chấp nhận ngoài production): %s", ", ".join(emails)
+        )
 
 
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
-    from src.models.reconciliation import Threshold
+    from src.database import use_system_context
+    from src.models.organization import DEMO_ORGANIZATION_ID
     from src.models.role import Role
     from src.models.user import User
-    from src.services.auth import hash_password
+    from src.services.auth import hash_password, next_public_user_id
+    from src.services.organizations import ensure_default_thresholds
 
     with Session(engine) as db:
+        # Tài khoản seed và ngưỡng mặc định thuộc công ty Demo (migration 0003 tạo công ty này).
+        use_system_context(db, DEMO_ORGANIZATION_ID)
         try:
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             if not acc_role:
@@ -85,23 +91,7 @@ def seed_initial_data_if_needed() -> None:
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
 
-            default_thresholds = [
-                {
-                    "category": "Đơn giá & Tổng tiền",
-                    "percent_threshold": "0",
-                    "absolute_threshold": "1000",
-                },
-                {
-                    "category": "Số lượng",
-                    "percent_threshold": "0",
-                    "absolute_threshold": "0",
-                },
-            ]
-
-            for threshold_data in default_thresholds:
-                threshold = db.query(Threshold).filter(Threshold.category == threshold_data["category"]).first()
-                if not threshold:
-                    db.add(Threshold(**threshold_data))
+            ensure_default_thresholds(db, DEMO_ORGANIZATION_ID)
 
             created_emails: list[str] = []
             seed_password = settings.seed_default_password or token_urlsafe(12)
@@ -128,7 +118,8 @@ def seed_initial_data_if_needed() -> None:
                 user = db.query(User).filter(User.email == udata["email"]).first()
                 if not user:
                     user = User(
-                        public_id=(db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1),
+                        organization_id=DEMO_ORGANIZATION_ID,
+                        public_id=next_public_user_id(db),
                         email=udata["email"],
                         password_hash=default_password_hash,
                         full_name=udata["full_name"],
@@ -140,7 +131,7 @@ def seed_initial_data_if_needed() -> None:
                     db.add(user)
                     created_emails.append(udata["email"])
                 elif user.public_id is None:
-                    user.public_id = db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1
+                    user.public_id = next_public_user_id(db)
 
             db.commit()
             print("Seed initial users & roles successfully.")
@@ -162,6 +153,8 @@ async def lifespan(app: FastAPI):
     ensure_database_timezone()
     if settings.run_migrations_on_startup:
         run_migrations()
+    # Kết nối mở trước khi migration tạo role docusync_app vẫn là tài khoản chủ DB (bỏ qua RLS): bỏ hết để mở lại.
+    engine.dispose()
     seed_initial_data_if_needed()
     secure_default_password_accounts()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")

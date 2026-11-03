@@ -6,12 +6,14 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
+from src.models.organization import organization_fk
 
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    organization_id: Mapped[uuid.UUID | None] = organization_fk(nullable=True)
     user_id: Mapped[uuid.UUID | None] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(String(80), nullable=False)
     target_type: Mapped[str | None] = mapped_column(String(80))

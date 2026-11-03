@@ -9,7 +9,8 @@ from sqlalchemy.engine import Connection
 
 import src.models  # noqa: F401
 from src.config import get_settings
-from src.database import Base, engine
+from src.database import Base
+from src.database import admin_engine as engine
 
 
 def ensure_database_timezone() -> None:

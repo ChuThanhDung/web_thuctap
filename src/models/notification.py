@@ -6,12 +6,14 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
+from src.models.organization import organization_fk
 
 
 class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[uuid.UUID] = organization_fk()
     recipient_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

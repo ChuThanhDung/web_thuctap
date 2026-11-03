@@ -1,28 +1,34 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+from src.models.organization import organization_fk
 from src.models.role import Role
 
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "employee_code", name="uq_users_org_employee_code"),
+        UniqueConstraint("organization_id", "citizen_id", name="uq_users_org_citizen_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID | None] = organization_fk(nullable=True)
     public_id: Mapped[int | None] = mapped_column(Integer, unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
     role_id: Mapped[uuid.UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
     department: Mapped[str | None] = mapped_column(String(100))
-    employee_code: Mapped[str | None] = mapped_column(String(50), unique=True)
+    employee_code: Mapped[str | None] = mapped_column(String(50))
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     address: Mapped[str | None] = mapped_column(String(255))
-    citizen_id: Mapped[str | None] = mapped_column(String(20), unique=True)
+    citizen_id: Mapped[str | None] = mapped_column(String(20))
     phone: Mapped[str | None] = mapped_column(String(20))
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")

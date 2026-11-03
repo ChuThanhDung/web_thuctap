@@ -70,6 +70,12 @@ def init_db():
 
     assert engine.url.database.endswith("_test"), "Test phải chạy trên database *_test"
 
+    import src.database as database
+    from src.models.organization import DEMO_ORGANIZATION_ID
+
+    # Fixture ghi thẳng vào DB (không qua request đã đăng nhập) thuộc công ty Demo, giống dữ liệu seed.
+    database.default_organization_id = DEMO_ORGANIZATION_ID
+
     import src.api.uploads as uploads_api
 
     # File upload và avatar của test ghi vào thư mục tạm, không lẫn với storage thật.

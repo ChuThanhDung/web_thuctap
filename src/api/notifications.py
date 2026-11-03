@@ -7,7 +7,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from src.api.auth import get_current_user
-from src.database import SessionLocal, get_db
+from src.database import SessionLocal, get_db, set_organization_context
 from src.models.notification import Notification
 from src.models.schemas import MessageResponse, NotificationListResponse, NotificationOut
 from src.models.user import User
@@ -114,6 +114,7 @@ async def notification_websocket(websocket: WebSocket) -> None:
                 await websocket.close(code=4401)
                 return
             user_id = user.id
+            set_organization_context(db, user.organization_id)
             cutoff = notification_visibility_cutoff()
             unread_count = (
                 db.scalar(
