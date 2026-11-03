@@ -19,6 +19,8 @@ export function getBatchResult(batch) {
     || (batch.lineItems?.some((item) => item.qtySeverity === 'danger') && 'số lượng')
     || (batch.lineItems?.some((item) => item.amountSeverity === 'danger') && 'thành tiền');
   const reason = firstDiff ? ` · ${String(firstDiff).toLowerCase()}` : '';
+  // Thiếu tổng tiền trên hóa đơn/PO: backend chặn duyệt bằng major_diff, nhưng không có trường nào lệch thật.
+  if (batch.reconciliationStatus === 'major_diff' && batch.status === 'missing') return { tone: 'neutral', label: 'Thiếu dữ liệu · cần kiểm tra' };
   if (batch.reconciliationStatus === 'major_diff') return { tone: 'danger', label: `Lệch lớn${reason}` };
   if (batch.reconciliationStatus === 'minor_diff') return { tone: 'warning', label: `Lệch nhỏ${reason}` };
   if (batch.reconciliationStatus === 'matched') return { tone: 'success', label: 'Ba liên khớp' };

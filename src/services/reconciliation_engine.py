@@ -473,6 +473,16 @@ def reconcile_documents(
     )
     diff_amount = calculate_total_diff(invoice_total, po_total, grn_total_for_matching)
 
+    # Hóa đơn và PO luôn phải ghi tổng tiền: đó là lớp kiểm tra cuối phát hiện số bị sửa, và thiếu thường là do đọc sót.
+    # GRN được phép không ghi tổng (nhiều phiếu nhập chỉ ghi số lượng); khi đó tổng GRN đã được tính từ các dòng hàng.
+    missing_totals = [label for label, total in (("Hóa đơn", invoice_total), ("PO", po_total)) if total <= 0]
+    if missing_totals:
+        all_matched = False
+        threshold_exceeded = True
+        discrepancy_details.append(
+            f"{' và '.join(missing_totals)} không ghi tổng tiền, chưa đối chiếu được tổng; kiểm tra lại chứng từ"
+        )
+
     # Đánh giá trạng thái dựa trên cấu hình ngưỡng chênh lệch
     if all_matched and diff_amount == 0:
         status = "matched"

@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import pytest
+
 from src.services.reconciliation_engine import reconcile_documents
 
 
@@ -227,3 +229,25 @@ def test_reconcile_rejects_invoice_and_po_vat_mismatch(db_session):
     assert result["status"] == "major_diff"
     assert result["diff_type"] == "MISMATCH_TAX"
     assert "VAT lệch" in result["ai_summary"]
+
+
+def _three_copies(invoice_total=110, po_total=110, grn_total=100):
+    line = {"row_index": 1, "item_name": "Steel bolt", "sku": "BOLT-001", "qty": 10, "price": 10, "amount": 100}
+    common = {"supplier_tax_id": "0101234567", "vat_rate_pct": 10, "line_items": [dict(line, vat_rate_pct=10)]}
+    invoice = {"type": "invoice", "invoice_number": "INV-T", "total_amount": invoice_total, **common}
+    po = {"type": "po", "po_number": "PO-T", "total_amount": po_total, **common}
+    grn = {"type": "grn", "grn_number": "GRN-T", "total_amount": grn_total, "line_items": [line]}
+    return invoice, po, grn
+
+
+def test_reconcile_still_matches_when_only_the_grn_has_no_total(db_session):
+    invoice, po, grn = _three_copies(grn_total=None)
+    assert reconcile_documents(invoice, po, grn, db_session)["status"] == "matched"
+
+
+@pytest.mark.parametrize(("missing", "label"), [("invoice", "Hóa đơn"), ("po", "PO")])
+def test_reconcile_does_not_match_when_invoice_or_po_has_no_total(db_session, missing, label):
+    invoice, po, grn = _three_copies(**{f"{missing}_total": None})
+    result = reconcile_documents(invoice, po, grn, db_session)
+    assert result["status"] == "major_diff"
+    assert f"{label} không ghi tổng tiền" in result["ai_summary"]

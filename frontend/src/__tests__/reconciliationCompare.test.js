@@ -89,8 +89,14 @@ describe('compareTotalAmount', () => {
     expect(compareTotalAmount({ po, invoice: doc({ total_amount: 125000000 }), grn: doc({ total_amount: 119240000 }) })).toBe('mismatch');
   });
 
-  it('reports missing when the GRN has no total', () => {
-    expect(compareTotalAmount({ po, invoice, grn: doc({}) })).toBe('missing');
+  it('still matches when only the GRN has no total', () => {
+    expect(compareTotalAmount({ po, invoice, grn: doc({}) })).toBe('matched');
+  });
+
+  it('reports missing when the invoice or PO has no total', () => {
+    const grn = doc({ total_amount: 119240000 });
+    expect(compareTotalAmount({ po, invoice: doc({}), grn })).toBe('missing');
+    expect(compareTotalAmount({ po: doc({ vat_rate_pct: 10 }), invoice, grn })).toBe('missing');
   });
 
   it('classifies a rounding difference up to 1,000 đ as minor, beyond it as mismatch', () => {
@@ -130,6 +136,8 @@ describe('minor differences in the batch summary', () => {
     expect(resolveMatchStatus('minor_diff', 'mismatch')).toBe('minor');
     expect(resolveMatchStatus('major_diff', 'matched')).toBe('mismatch');
     expect(resolveMatchStatus(null, 'missing')).toBe('missing');
+    // Thiếu tổng tiền trên hóa đơn/PO: backend chặn bằng major_diff, giao diện ghi là thiếu dữ liệu.
+    expect(resolveMatchStatus('major_diff', 'missing')).toBe('missing');
   });
 });
 

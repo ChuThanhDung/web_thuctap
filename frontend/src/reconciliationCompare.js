@@ -135,10 +135,11 @@ export function compareTotalAmount(docs) {
   const invoiceTotal = toNumber(rawValue(docs.invoice, 'total_amount'));
   const grnTotal = toNumber(rawValue(docs.grn, 'total_amount'));
 
+  // Hóa đơn và PO phải ghi tổng tiền; GRN được phép không ghi (nhiều phiếu nhập chỉ ghi số lượng), giống engine ở backend.
   if (poTotal === null || invoiceTotal === null) return 'missing';
   const poInvoice = compareAmounts([poTotal, invoiceTotal]);
   if (poInvoice === 'mismatch') return 'mismatch';
-  if (grnTotal === null) return 'missing';
+  if (grnTotal === null) return poInvoice;
 
   let grnInvoice = compareAmounts([grnTotal, invoiceTotal]);
   if (grnInvoice === 'mismatch') {
@@ -337,7 +338,9 @@ export function calculateMatchSummary(docs) {
 export function resolveMatchStatus(backendStatus, computedStatus) {
   if (backendStatus === 'matched') return 'matched';
   if (backendStatus === 'minor_diff') return 'minor';
-  if (backendStatus === 'major_diff') return 'mismatch';
+  // Backend xếp "thiếu tổng tiền trên hóa đơn/PO" vào major_diff để chặn duyệt; khi không có trường nào lệch thật,
+  // đó là thiếu dữ liệu chứ không phải lệch lớn.
+  if (backendStatus === 'major_diff') return computedStatus === 'missing' ? 'missing' : 'mismatch';
   return computedStatus;
 }
 
