@@ -83,7 +83,8 @@ def main() -> int:
         return 1
 
     api = args.base_url.rstrip("/") + "/api/v1"
-    with httpx.Client(timeout=120) as client:
+    # AI đọc một PDF lớn có thể mất vài phút (gọi lại khi tổng không khớp), nên chờ lâu cho mỗi file.
+    with httpx.Client(timeout=httpx.Timeout(600, connect=30)) as client:
         # Dùng lại phiên đăng nhập có sẵn (UPLOAD_TOKEN) nếu có; không thì đăng nhập bằng mật khẩu.
         token = os.environ.get("UPLOAD_TOKEN")
         if not token:
@@ -112,20 +113,39 @@ def main() -> int:
             print(f"Đã xử lý {len(targets)} bộ mẫu.")
             return 0
 
+        # Bỏ qua bộ đã tải ở lần chạy trước (cùng tên thư mục và đã có file đúng định dạng), để chạy lại không tạo trùng.
+        existing: dict[str, dict] = {}
+        for item in client.get(f"{api}/uploads/batches").json().get("items", []):
+            note = item.get("note") or ""
+            extensions = {Path(f.get("filename") or "").suffix.lower().lstrip(".") for f in item.get("files") or []}
+            if note.startswith(NOTE_PREFIX) and extensions & formats:
+                existing[note[len(NOTE_PREFIX) :].split(" [")[0]] = item
+
         uploaded: dict[int, tuple[str, str | None]] = {}
         for index, folder in enumerate(sets, start=1):
+            if folder.name in existing:
+                item = existing[folder.name]
+                uploaded[item["id"]] = (folder.name, expected_status(folder))
+                print(f"[{index}/{len(sets)}] {folder.name} -> {item['batch_number']} (đã có từ lần trước, bỏ qua)")
+                continue
             batch = client.post(f"{api}/uploads/batches").json()
-            client.patch(f"{api}/uploads/batches/{batch['id']}", json={"note": f"{NOTE_PREFIX}{folder.name}"})
+            note = f"{NOTE_PREFIX}{folder.name} [{','.join(sorted(formats))}]"
+            client.patch(f"{api}/uploads/batches/{batch['id']}", json={"note": note})
             failures = []
             for doc_type, path in set_files(folder, formats):
-                with path.open("rb") as handle:
-                    response = client.post(
-                        f"{api}/uploads",
-                        data={"doc_type": doc_type, "batch_id": str(batch["id"])},
-                        files={"file": (path.name, handle)},
-                    )
+                try:
+                    with path.open("rb") as handle:
+                        response = client.post(
+                            f"{api}/uploads",
+                            data={"doc_type": doc_type, "batch_id": str(batch["id"])},
+                            files={"file": (path.name, handle)},
+                        )
+                except httpx.TimeoutException:
+                    failures.append(f"{path.name}: hết thời gian chờ (server có thể vẫn đang đọc)")
+                    continue
                 if response.status_code != 200:
-                    failures.append(f"{path.name}: {response.status_code} {response.text[:120]}")
+                    detail = response.json().get("detail") if "json" in response.headers.get("content-type", "") else ""
+                    failures.append(f"{path.name}: {response.status_code} {detail or response.text[:120]}")
             uploaded[batch["id"]] = (folder.name, expected_status(folder))
             status_text = "lỗi: " + "; ".join(failures) if failures else "đã tải"
             print(f"[{index}/{len(sets)}] {folder.name} -> {batch['batch_number']} ({status_text})")
