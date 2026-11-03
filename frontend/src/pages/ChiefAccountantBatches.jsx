@@ -949,6 +949,11 @@ export default function ChiefAccountantBatches({ token }) {
 
   const isWide = useMediaQuery('(min-width: 1280px)');
   const listRef = useRef(null);
+  const detailScrollRef = useRef(null);
+  // Chọn bộ khác thì khung chi tiết (cuộn riêng) về đầu, không giữ vị trí cuộn của bộ trước.
+  useEffect(() => {
+    if (detailScrollRef.current) detailScrollRef.current.scrollTop = 0;
+  }, [detailBatchId]);
 
   useEffect(() => {
     if (!isWide) return;
@@ -1058,7 +1063,7 @@ export default function ChiefAccountantBatches({ token }) {
   const detailView = detailBatch ? (
     <>
             {/* Panel Header */}
-            <div className={cn('border-b border-line bg-surface px-4 py-4 sm:px-6 sm:py-5', !isWide && 'sticky top-0 z-10')}>
+            <div className="sticky top-0 z-10 border-b border-line bg-surface px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <DetailTitle className="break-words text-lg font-bold text-fg sm:text-2xl">
@@ -1193,7 +1198,7 @@ export default function ChiefAccountantBatches({ token }) {
   ) : null;
 
   return (
-    <div className="-mx-4 -my-5 flex min-h-screen flex-col bg-surface text-fg md:-mx-6 md:-my-6">
+    <div className="-mx-4 -my-5 flex min-h-screen flex-col bg-surface text-fg md:-mx-6 md:-my-6 xl:h-screen xl:min-h-0 xl:overflow-hidden">
       {/* Header */}
       <div className="border-b border-line bg-surface px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex items-center justify-between">
@@ -1326,9 +1331,9 @@ export default function ChiefAccountantBatches({ token }) {
         )}
       </div>
 
-      <div className="flex-1 xl:grid xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="flex-1 xl:grid xl:min-h-0 xl:grid-cols-[360px_minmax(0,1fr)]">
       {/* Batch List */}
-      <div className="bg-surface-muted xl:border-r xl:border-line xl:px-0 xl:py-0">
+      <div className="bg-surface-muted xl:relative xl:overflow-y-auto xl:overscroll-contain xl:border-r xl:border-line xl:px-0 xl:py-0">
         <div role="group" aria-label={vi.batchFilters.groupLabel} className="sticky top-0 z-10 flex flex-wrap gap-0.5 border-b border-line bg-surface-muted px-2 py-2">
           {STATUS_TABS.map((tab) => (
             <button
@@ -1399,7 +1404,7 @@ export default function ChiefAccountantBatches({ token }) {
       </div>
       </div>
       {isWide && (
-        <section aria-label="Chi tiết bộ chứng từ" className="min-w-0 bg-surface">
+        <section ref={detailScrollRef} aria-label="Chi tiết bộ chứng từ" className="min-w-0 bg-surface xl:relative xl:overflow-y-auto xl:overscroll-contain">
           {detailView || (
             <p className="px-6 py-16 text-center text-sm text-fg-subtle">Chọn một bộ ở danh sách bên trái để xem ba liên chứng từ.</p>
           )}

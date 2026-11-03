@@ -844,6 +844,11 @@ export default function AuditTrail({ token, role, currentUser }) {
 
   const isWide = useMediaQuery('(min-width: 1280px)');
   const listRef = useRef(null);
+  const detailScrollRef = useRef(null);
+  // Chọn bộ khác thì khung chi tiết (cuộn riêng) về đầu, không giữ vị trí cuộn của bộ trước.
+  useEffect(() => {
+    if (detailScrollRef.current) detailScrollRef.current.scrollTop = 0;
+  }, [modalBatchId]);
   const tabCounts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const base = batches.filter((batch) => {
@@ -1041,7 +1046,7 @@ export default function AuditTrail({ token, role, currentUser }) {
   const AuditTitle = isWide ? 'h2' : DialogTitle;
   const auditDetailView = modalBatch ? (
     <>
-            <div className={cn('flex flex-col gap-3 border-b border-line bg-surface px-5 py-4 lg:flex-row lg:items-start lg:justify-between', !isWide && 'sticky top-0 z-10')}>
+            <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-line bg-surface px-5 py-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <AuditTitle className="text-2xl font-bold text-fg">
@@ -1146,7 +1151,7 @@ export default function AuditTrail({ token, role, currentUser }) {
   ) : null;
 
   return (
-    <div className="-mx-4 -my-5 min-h-screen space-y-5 bg-surface px-4 pt-5 md:-mx-6 md:-my-6 md:px-6 md:pt-6">
+    <div className="-mx-4 -my-5 min-h-screen space-y-5 bg-surface px-4 pt-5 md:-mx-6 md:-my-6 md:px-6 md:pt-6 xl:flex xl:h-screen xl:min-h-0 xl:flex-col xl:overflow-hidden">
       <PageHeader
         title="Bộ đối soát"
         description={
@@ -1197,8 +1202,8 @@ export default function AuditTrail({ token, role, currentUser }) {
         </div>
       </div>
 
-      <div className="-mx-4 grid border-t border-line md:-mx-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="min-w-0 bg-surface-muted xl:border-r xl:border-line">
+      <div className="-mx-4 grid border-t border-line md:-mx-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="min-w-0 bg-surface-muted xl:relative xl:overflow-y-auto xl:overscroll-contain xl:border-r xl:border-line">
           <h2 className="sr-only">Danh sách bộ chứng từ ({filteredBatches.length})</h2>
           <div role="group" aria-label={vi.batchFilters.groupLabel} className="sticky top-0 z-10 flex flex-wrap gap-0.5 border-b border-line bg-surface-muted px-2 py-2">
             {AUDIT_STATUS_TABS.map((tab) => {
@@ -1296,7 +1301,7 @@ export default function AuditTrail({ token, role, currentUser }) {
         </div>
 
         {isWide && (
-          <section aria-label="Chi tiết bộ chứng từ" className="min-w-0 bg-surface">
+          <section ref={detailScrollRef} aria-label="Chi tiết bộ chứng từ" className="min-w-0 bg-surface xl:relative xl:overflow-y-auto xl:overscroll-contain">
             {auditDetailView || (
               <p className="px-6 py-16 text-center text-sm text-fg-subtle">Chọn một bộ ở danh sách bên trái để xem ba liên chứng từ.</p>
             )}
