@@ -53,9 +53,14 @@ def set_files(folder: Path, formats: set[str]) -> list[tuple[str, Path]]:
 
 def expected_status(folder: Path) -> str | None:
     truth = folder / "ground_truth.json"
-    if not truth.exists():
-        return None
-    return json.loads(truth.read_text(encoding="utf-8")).get("expected_status")
+    if truth.exists():
+        return json.loads(truth.read_text(encoding="utf-8")).get("expected_status")
+    # Bộ không có đáp án riêng: tên thư mục nói kết quả (batch_01_match, batch_03_mismatch).
+    if folder.name.endswith("_mismatch"):
+        return "major_diff"
+    if folder.name.endswith("_match"):
+        return "matched"
+    return None
 
 
 def main() -> int:

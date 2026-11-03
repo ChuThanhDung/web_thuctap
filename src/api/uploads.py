@@ -651,12 +651,15 @@ def aggregate_line_items(line_items: list[dict]) -> list[dict]:
                 **item,
                 "qty": qty,
                 "amount": amount,
+                "_prices": {price} if price is not None else set(),
                 "_weighted_price_amount": amount or Decimal("0"),
                 "_weighted_price_qty": qty if amount is not None else Decimal("0"),
             }
             continue
 
         current = grouped[key]
+        if price is not None:
+            current["_prices"].add(price)
         current["qty"] = (to_decimal_or_none(current.get("qty")) or Decimal("0")) + qty
         current_amount = to_decimal_or_none(current.get("amount"))
         if current_amount is not None or amount is not None:
@@ -672,7 +675,14 @@ def aggregate_line_items(line_items: list[dict]) -> list[dict]:
     for idx, item in enumerate(aggregated, 1):
         weighted_qty = item.pop("_weighted_price_qty", Decimal("0"))
         weighted_amount = item.pop("_weighted_price_amount", Decimal("0"))
-        if weighted_qty > 0:
+        prices = item.pop("_prices", set())
+        # Đơn giá ghi trên chứng từ là số thỏa thuận: giữ nguyên khi mọi dòng của mặt hàng cùng một giá.
+        # Chỉ tính bình quân (thành tiền / số lượng) khi gộp nhiều dòng có giá khác nhau hoặc không ghi giá;
+        # trước đây luôn chia lại, nên một dòng thành tiền làm tròn (4.059.504 thay vì 4.060.000) biến đơn giá
+        # 14.000 thành 13.998,29 và bị chấm lệch lớn.
+        if len(prices) == 1:
+            item["price"] = next(iter(prices))
+        elif weighted_qty > 0:
             item["price"] = weighted_amount / weighted_qty
         item["row_index"] = idx
     return aggregated

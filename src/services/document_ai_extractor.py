@@ -171,6 +171,11 @@ Nhiem vu:
    - Danh sach hang hoa: SKU/ma hang, ten hang, don vi tinh, so luong, don gia, thue, thanh tien.
    - BAT BUOC trich DAY DU TAT CA cac dong hang tren MOI TRANG, dung thu tu, khong bo dong, khong tom tat, khong dung
      giua chung du bang dai hang tram dong. row_index la so thu tu (STT) ghi tren chung tu.
+   - Nha cung cap (supplier_name, supplier_tax_id) la BEN BAN / don vi ban hang / ben giao hang, KHONG phai don vi
+     mua hay ben nhan hang (buyer_name). Tren phieu nhap kho, nha cung cap la ben giao hang.
+   - So viet theo kieu Viet Nam: dau cham phan cach hang nghin, dau phay la phan thap phan.
+     Vi du "10.997.100" = 10997100; "83.500" = 83500; "1.234,5" = 1234.5. Tra ve so thuan, khong dau phan cach.
+   - Ma so thue chi gom chu so (giu dau gach noi ma chi nhanh neu co), bo chu "MST:".
 4. Khong tu bia du lieu. Truong khong thay thi de null hoac mang rong.
 5. validation_message phai ngan gon bang tieng Viet, noi ro dung loai hay upload nham loai nao.
 """.strip()
