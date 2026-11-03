@@ -566,6 +566,32 @@ def _xml_analysis(content: bytes, filename: str, expected_doc_type: str) -> dict
     }
 
 
+def _ai_failure_message(exc: Exception) -> str:
+    """Lý do bằng lời khi OpenAI không đọc được file, để người dùng biết phải làm gì."""
+    text = f"{type(exc).__name__} {exc}".lower()
+    if "insufficient_quota" in text or "quota" in text or "billing" in text:
+        return (
+            "Tài khoản OpenAI đã hết hạn mức (hết tiền) nên AI chưa đọc được file PDF/ảnh này. "
+            "Nạp thêm tiền cho khóa OpenAI, hoặc tải bản XML của chứng từ (XML không cần AI)."
+        )
+    if "invalid_api_key" in text or "incorrect api key" in text or "authentication" in text or "401" in text:
+        return "Khóa OpenAI trên máy chủ không hợp lệ nên AI chưa đọc được file. Kiểm tra OPENAI_API_KEY, hoặc tải bản XML."
+    if "rate limit" in text or "ratelimit" in text or "429" in text:
+        return "OpenAI đang giới hạn số yêu cầu. Thử tải lại file sau ít phút, hoặc tải bản XML."
+    if "timeout" in text or "connection" in text:
+        return "Máy chủ không kết nối được OpenAI. Thử tải lại sau ít phút, hoặc tải bản XML."
+    return f"AI chưa đọc được chứng từ. Thử tải lại hoặc tải bản XML. Chi tiết: {exc}"
+
+
+def _allow_demo_fallback(settings) -> bool:
+    """Dữ liệu demo bịa sẵn (LocalOcrParserStrategy) chỉ được dùng ngoài production.
+
+    Trên production, khi AI không đọc được file thì từ chối kèm lý do: không bao giờ đối soát trên số liệu bịa
+    (PRODUCT.md: dữ liệu tiền không bao giờ bị thay âm thầm).
+    """
+    return settings.app_env != "production" and not settings.document_ai_validation_required
+
+
 def _should_use_openai_document_analysis(settings) -> bool:
     if not settings.openai_api_key:
         return False
@@ -597,16 +623,16 @@ def analyze_uploaded_document(
             _correct_misread_line_amounts(raw_response)
         except Exception as exc:
             logger.exception("OpenAI document analysis failed for %s", filename)
-            if settings.document_ai_validation_required:
-                raise ValueError(
-                    f"AI chua doc duoc chung tu. Vui long thu lai hoac kiem tra OPENAI_API_KEY. Chi tiet: {exc}"
-                ) from exc
+            if not _allow_demo_fallback(settings):
+                raise ValueError(_ai_failure_message(exc)) from exc
             raw_response = _offline_analysis(content, filename, expected_doc_type)
             raw_response["validation_message"] = (
                 f"AI dang tam thoi khong doc duoc file ({exc}), he thong dung che do offline de tiep tuc upload."
             )
             raw_response["fallback_error"] = str(exc)
             model_name = "offline-fallback"
+    elif not _allow_demo_fallback(settings):
+        raise ValueError("Máy chủ chưa cấu hình AI (OPENAI_API_KEY) nên chỉ nhận chứng từ XML. Hãy tải bản XML.")
     else:
         raw_response = _offline_analysis(content, filename, expected_doc_type)
         model_name = "offline-fallback"

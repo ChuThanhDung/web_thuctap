@@ -1,3 +1,4 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -163,3 +164,65 @@ def test_misread_line_amount_is_replaced_by_qty_times_price_but_rounding_is_kept
     assert items[1]["amount"] == 100_000
     assert items[2]["amount"] == 50_000
     assert result["corrected_line_amounts"] == [{"row_index": 55, "read": 91_220_000, "used": 91_120_000}]
+
+
+# --- Khi AI không đọc được file: production từ chối kèm lý do, không bao giờ bịa dữ liệu demo ---
+
+MINIMAL_PDF = b"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>
+endobj
+startxref
+0
+%%EOF
+"""
+
+
+def fail_openai(monkeypatch, message):
+    def boom(*args, **kwargs):
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(extractor, "_run_openai_analysis", boom)
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        ("Error code: 429 - {'error': {'code': 'insufficient_quota'}}", "hết hạn mức"),
+        ("Error code: 401 - {'error': {'code': 'invalid_api_key'}}", "không hợp lệ"),
+        ("Rate limit reached for gpt-4o-mini", "giới hạn số yêu cầu"),
+        ("Connection error.", "không kết nối được OpenAI"),
+    ],
+)
+def test_production_refuses_with_a_reason_when_ai_fails(monkeypatch, error, expected):
+    use_settings(monkeypatch, app_env="production", openai_api_key="sk-test", document_ai_validation_required=False)
+    fail_openai(monkeypatch, error)
+    with pytest.raises(ValueError, match=expected):
+        extractor.analyze_uploaded_document(MINIMAL_PDF, "po.pdf", "application/pdf", "po")
+
+
+def test_production_without_api_key_accepts_only_xml(monkeypatch):
+    use_settings(monkeypatch, app_env="production", openai_api_key="", document_ai_validation_required=False)
+    with pytest.raises(ValueError, match="chỉ nhận chứng từ XML"):
+        extractor.analyze_uploaded_document(MINIMAL_PDF, "po.pdf", "application/pdf", "po")
+
+
+def test_production_still_reads_xml_without_ai(monkeypatch):
+    use_settings(monkeypatch, app_env="production", openai_api_key="", document_ai_validation_required=False)
+    xml = (Path(__file__).resolve().parents[2] / "dataset" / "xml" / "batch_01_match").glob("*invoice*.xml")
+    path = next(iter(sorted(xml)))
+    analysis = extractor.analyze_uploaded_document(path.read_bytes(), path.name, "application/xml", "invoice")
+    assert analysis.model_name == "local-xml-parser"
+
+
+def test_development_keeps_the_demo_fallback(monkeypatch):
+    use_settings(monkeypatch, app_env="development", openai_api_key="sk-test", document_ai_validation_required=False)
+    fail_openai(monkeypatch, "Error code: 429 - insufficient_quota")
+    analysis = extractor.analyze_uploaded_document(MINIMAL_PDF, "po.pdf", "application/pdf", "po")
+    assert analysis.model_name == "offline-fallback"
