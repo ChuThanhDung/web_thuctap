@@ -35,7 +35,7 @@ Batch lifecycle: `incomplete` → `ready` → `approved` → `final_approved` or
 ## Evidence on Hand
 
 - Golden dataset in `dataset/golden/` with `ground_truth.json`; eval reports in `eval/`.
-- Live demo at https://c3-app-007.docusyncai.asia/ (accounts issued per reviewer).
+- Live demo at https://docusyncai.duckdns.org/ (GCP VM, redeployed on every push to main; accounts issued per reviewer).
 - No customer testimonials, case studies or pricing exist; do not fabricate them.
 
 ## Product Principles

@@ -4,7 +4,7 @@ DocuSyncAI là hệ thống quản lý chứng từ và đối soát ba bên gi�
 
 ## Live demo
 
-Demo: <https://c3-app-007.docusyncai.asia/>
+Demo: <https://docusyncai.duckdns.org/> (máy ảo GCP, tự cập nhật mỗi lần push lên `main`)
 
 Tài khoản demo được cấp riêng cho từng người đánh giá; liên hệ nhóm phát triển để nhận thông tin đăng nhập.
 
