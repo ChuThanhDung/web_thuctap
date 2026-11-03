@@ -56,7 +56,9 @@ SEED_DEFAULT_USERS=false
 
 # AI đọc chứng từ
 OPENAI_API_KEY=$OPENAI_KEY
-OPENAI_DOCUMENT_MODEL=gpt-4o-mini
+OPENAI_DOCUMENT_MODEL=gpt-5.6-luna
+# Model mạnh đọc PDF/ảnh lâu hơn: cho mỗi lần đọc tối đa 3 phút
+OPENAI_TIMEOUT_SECONDS=180
 
 # Email thông báo từ chối bộ chứng từ (Gmail + mật khẩu ứng dụng)
 SMTP_HOST=smtp.gmail.com
