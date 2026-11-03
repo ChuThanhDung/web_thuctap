@@ -54,8 +54,10 @@ def set_files(folder: Path, formats: set[str]) -> list[tuple[str, Path]]:
 def expected_status(folder: Path) -> str | None:
     truth = folder / "ground_truth.json"
     if truth.exists():
-        return json.loads(truth.read_text(encoding="utf-8")).get("expected_status")
-    # Bộ không có đáp án riêng: tên thư mục nói kết quả (batch_01_match, batch_03_mismatch).
+        status = json.loads(truth.read_text(encoding="utf-8")).get("expected_status")
+        if status:
+            return status
+    # Bộ không ghi đáp án: tên thư mục nói kết quả (batch_01_match, batch_03_mismatch).
     if folder.name.endswith("_mismatch"):
         return "major_diff"
     if folder.name.endswith("_match"):
@@ -174,7 +176,10 @@ def main() -> int:
         actual = item.get("reconciliation_status") or (
             "thiếu " + ",".join(item["missing_doc_types"]) if item.get("missing_doc_types") else "chưa có"
         )
-        verdict = "OK" if expected is None or expected == actual else "SAI"
+        if expected is None:
+            verdict = "?"
+        else:
+            verdict = "OK" if expected == actual else "SAI"
         wrong += verdict == "SAI"
         print(f"  {verdict:3} {name:42} {expected or '-':12} → {actual}  ({item.get('batch_number', '?')})")
     checked = sum(1 for _, expected in uploaded.values() if expected)
