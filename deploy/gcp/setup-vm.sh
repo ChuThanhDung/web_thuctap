@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Chuẩn bị máy ảo GCP (Ubuntu 24.04) để chạy DocuSyncAI bằng Docker Compose. Chạy một lần, bằng sudo:
+# Chuẩn bị máy ảo GCP (Ubuntu 24.04, e2-micro Always Free 1 GB RAM) để chạy DocuSyncAI bằng Docker Compose.
+# Chạy một lần, bằng sudo:
 #   sudo bash deploy/gcp/setup-vm.sh
-# Việc làm: cài Docker + Compose plugin, tạo swap 2 GB, bật tự cập nhật bảo mật, chuẩn bị /opt/docusyncai.
+# Việc làm: cài Docker + Compose plugin, tạo swap 2 GB, bật tự cập nhật bảo mật, chuẩn bị /opt/docusyncai,
+# /var/backups/docusyncai và /var/log/docusyncai (log của cron sao lưu, cảnh báo). Chạy lại nhiều lần không sao.
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
@@ -27,14 +29,18 @@ if ! command -v docker >/dev/null; then
 fi
 usermod -aG docker "$APP_USER"
 
-# Swap 2 GB: lúc build frontend (npm) hoặc khi AI xử lý nhiều file cùng lúc không bị hết RAM.
+# Swap 2 GB: e2-micro chỉ có 1 GB RAM; khi AI xử lý nhiều file cùng lúc hoặc lúc pull image, phần dư tràn sang swap
+# thay vì bị kernel giết tiến trình (OOM). Kiểm tra: free -h, swapon --show.
 if ! swapon --show | grep -q /swapfile; then
   fallocate -l 2G /swapfile
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
-  echo '/swapfile none swap sw 0 0' >> /etc/fstab
 fi
+grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+# Ưu tiên giữ tiến trình đang chạy trong RAM, chỉ đẩy sang swap khi thật sự thiếu (mặc định 60 làm web chậm hơn).
+echo 'vm.swappiness=10' > /etc/sysctl.d/99-docusyncai.conf
+sysctl -p /etc/sysctl.d/99-docusyncai.conf
 
 # Giới hạn log Docker để không đầy ổ đĩa.
 cat > /etc/docker/daemon.json <<'EOF'
@@ -44,7 +50,10 @@ systemctl restart docker
 
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
-mkdir -p "$APP_DIR" /var/backups/docusyncai
-chown "$APP_USER":"$APP_USER" "$APP_DIR" /var/backups/docusyncai
+mkdir -p "$APP_DIR" /var/backups/docusyncai /var/log/docusyncai
+chown "$APP_USER":"$APP_USER" "$APP_DIR" /var/backups/docusyncai /var/log/docusyncai
+
+# Script sao lưu dùng gcloud (có sẵn trên image Ubuntu của GCP dạng snap).
+command -v gcloud >/dev/null || echo "Chú ý: chưa có gcloud, cài bằng: snap install google-cloud-cli --classic" >&2
 
 echo "Xong. Đăng xuất rồi SSH lại để dùng docker không cần sudo, sau đó clone mã nguồn vào $APP_DIR."

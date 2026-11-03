@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["text", "json"] = "text"
+    # Sentry (gói free) bắt lỗi backend. Để trống DSN thì tắt hẳn, không nạp thư viện.
+    sentry_dsn: str = ""
+    sentry_release: str = ""
+    # Tỉ lệ request được đo hiệu năng (0 = chỉ gửi lỗi, tiết kiệm hạn mức gói free).
+    sentry_traces_sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     cors_origins: str = (
         "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,https://docusyncai-frontend.vercel.app"
     )

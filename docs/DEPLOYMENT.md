@@ -4,16 +4,19 @@ Có hai cách chạy: **dev** (nhanh, có dữ liệu demo) và **production** (
 
 | | Dev | Production |
 |---|---|---|
-| Lệnh | `docker compose up -d --build` | `docker compose -f docker-compose.yml up -d --build` |
+| Lệnh | `docker compose up -d --build` | Máy ảo: `deploy/gcp/update.sh` (pull image build sẵn). Máy khác: `docker compose -f docker-compose.yml up -d --build` |
 | Mã nguồn | Mount `./src` vào container | Đóng gói trong image |
 | Cổng backend, DB | Mở (`BACKEND_PORT`, DB bind `127.0.0.1`) | Không mở ra ngoài |
 | Dữ liệu demo | Nạp từ `scripts/002_seed_data.sql` khi volume trống | Không nạp |
 | File upload | Thư mục `./storage`, `./invoice` | Docker volume |
 | Swagger `/docs` | Bật | Tắt |
+| Web (Caddy) | `http://localhost:3000`, chỉ HTTP | Cổng 80/443, HTTPS tự động khi đặt `DOMAIN` |
 
 > Luôn chỉ định `-f docker-compose.yml` khi chạy production, vì Compose tự nạp `docker-compose.override.yml` nếu không có `-f`.
 
-Hướng dẫn từng bước cho Google Cloud (máy ảo e2-medium, HTTPS, backup lên Cloud Storage): [deploy/gcp/README.md](../deploy/gcp/README.md).
+Hướng dẫn từng bước cho Google Cloud (máy ảo e2-micro Always Free, HTTPS, backup lên Cloud Storage, giám sát): [deploy/gcp/README.md](../deploy/gcp/README.md). Chuyển từ máy e2-medium cũ sang: [deploy/gcp/MIGRATE_TO_FREE_TIER.md](../deploy/gcp/MIGRATE_TO_FREE_TIER.md).
+
+Container chạy production: `postgres`, `backend` (1 worker uvicorn) và `web` (Caddy: phục vụ file tĩnh của frontend, proxy `/api`, `/health` và WebSocket, tự xin HTTPS). Cấu hình đã làm gọn cho máy 1 GB RAM: Postgres `shared_buffers=64MB`, `max_connections=40`. Máy dev đang chạy bản cũ: sau khi kéo bản này về, chạy `docker compose up -d --build --remove-orphans` để bỏ container `frontend` (nginx) cũ.
 
 ## 1. Chuẩn bị môi trường
 
@@ -58,20 +61,15 @@ Muốn không tạo tài khoản seed (khi đã có người dùng thật): `SEE
 
 ### HTTPS
 
-Đặt domain đã trỏ về server vào `.env`, rồi bật profile `https` (Caddy tự xin và gia hạn chứng chỉ Let's Encrypt):
+Đặt domain đã trỏ về server vào `.env`; container `web` (Caddy) tự xin và gia hạn chứng chỉ Let's Encrypt. Để trống `DOMAIN` thì chỉ chạy HTTP ở cổng 80.
 
 ```env
 DOMAIN=app.example.com
-FRONTEND_BIND=127.0.0.1
 CORS_ORIGINS=https://app.example.com
 APP_FRONTEND_URL=https://app.example.com
 ```
 
-```bash
-docker compose -f docker-compose.yml --profile https up -d --build
-```
-
-Mở cổng 80 và 443 trên firewall. `FRONTEND_BIND=127.0.0.1` để chỉ Caddy truy cập được frontend.
+Mở cổng 80 và 443 trên firewall. Đổi cổng bằng `HTTP_PORT`, `HTTPS_PORT`, `HTTP_BIND` nếu máy đã có dịch vụ khác chiếm.
 
 ## 3. Kiểm tra sức khỏe
 
@@ -80,7 +78,7 @@ Mở cổng 80 và 443 trên firewall. `FRONTEND_BIND=127.0.0.1` để chỉ Cad
 | `/health` | Tiến trình còn sống (liveness) |
 | `/health/ready` | Kết nối được tới database (trả 503 nếu DB lỗi) |
 
-Healthcheck của Compose dùng `/health/ready`. Mọi phản hồi có header `X-Request-ID`; với `LOG_FORMAT=json`, mỗi dòng log là một JSON kèm `request_id`, `method`, `path`, `status`, `duration_ms` để gom vào hệ thống log tập trung.
+Caddy chuyển `/health` và `/health/ready` tới backend, nên kiểm tra được từ ngoài: `https://<domain>/health` (GCP Uptime Check dùng địa chỉ này, xem [deploy/gcp/README.md](../deploy/gcp/README.md#8-giám-sát-miễn-phí)). Healthcheck của Compose dùng `/health/ready`. Mọi phản hồi có header `X-Request-ID`; với `LOG_FORMAT=json`, mỗi dòng log là một JSON kèm `request_id`, `method`, `path`, `status`, `duration_ms` để gom vào hệ thống log tập trung.
 
 ## 4. Migration cơ sở dữ liệu
 
@@ -123,6 +121,8 @@ docker compose -f docker-compose.yml restart backend
 ```
 
 Giải nén file upload khi cần: `tar xzf backups/storage_YYYYMMDD_HHMMSS.tar.gz` rồi chép vào volume `storage_data` và `invoice_data`. Nên copy thư mục `backups/` sang nơi lưu khác (object storage hoặc máy khác); sao lưu cùng ổ đĩa với server không bảo vệ được khi mất ổ đĩa. Nên thử khôi phục định kỳ vào một database tạm.
+
+Trên máy ảo GCP: `deploy/gcp/backup-to-gcs.sh` đẩy bản sao lưu lên Cloud Storage (giữ 7 bản ngày, 4 bản tuần), `deploy/gcp/restore-from-gcs.sh` khôi phục lại, kể cả chế độ `--drill` để diễn tập hằng tháng mà không đụng dữ liệu đang chạy. Xem [deploy/gcp/README.md](../deploy/gcp/README.md#6-sao-lưu-tự-động-lên-cloud-storage).
 
 ## 6. Chạy dev không qua Docker cho backend và frontend
 
@@ -191,7 +191,8 @@ Trong Nhật ký thao tác, action `DOCUMENT_BATCH_REJECTED` có `notification_e
 - [ ] Đã đổi mật khẩu các tài khoản ban đầu; không còn tài khoản dùng mật khẩu mặc định.
 - [ ] HTTPS hoạt động; cổng backend và DB không truy cập được từ ngoài.
 - [ ] `/health/ready` trả 200; healthcheck các container đều `healthy`.
-- [ ] Đã chạy `scripts/backup_db.sh` thành công và thử khôi phục vào DB tạm.
+- [ ] Đã chạy `scripts/backup_db.sh` (hoặc `backup-to-gcs.sh`) thành công và diễn tập khôi phục (`restore-from-gcs.sh --drill`).
+- [ ] Uptime Check gọi `/health` đang bật và gửi email; đã đặt `SENTRY_DSN` / `VITE_SENTRY_DSN` nếu dùng Sentry.
 - [ ] Đã cấu hình SMTP và gửi thử email từ chối batch.
 - [ ] Đã điền `OPENAI_API_KEY` hoặc `GEMINI_API_KEY` nếu cần bóc tách PDF và ảnh.
 - [ ] Đã xem [eval/results/report.md](../eval/results/report.md) để nắm rõ phần nào đã và chưa được đo.

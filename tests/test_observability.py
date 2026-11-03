@@ -47,3 +47,30 @@ async def test_json_formatter_includes_request_id_and_fields():
     assert payload["request_id"] == "req-1"
     assert payload["status"] == 200
     assert payload["level"] == "INFO"
+
+
+async def test_sentry_stays_off_without_dsn(monkeypatch):
+    import sentry_sdk
+
+    import src.main
+
+    calls = []
+    monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr(src.main.settings, "sentry_dsn", "")
+    assert src.main.init_sentry() is False
+    assert calls == []
+
+
+async def test_sentry_starts_with_dsn_and_sends_no_personal_data(monkeypatch):
+    import sentry_sdk
+
+    import src.main
+
+    calls = []
+    monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr(src.main.settings, "sentry_dsn", "https://key@o0.ingest.sentry.io/1")
+    monkeypatch.setattr(src.main.settings, "sentry_release", "abc123")
+    assert src.main.init_sentry() is True
+    assert calls[0]["dsn"] == "https://key@o0.ingest.sentry.io/1"
+    assert calls[0]["release"] == "abc123"
+    assert calls[0]["send_default_pii"] is False

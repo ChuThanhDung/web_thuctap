@@ -1,4 +1,41 @@
-{$DOMAIN} {
-	encode gzip
-	reverse_proxy frontend:80
+# Caddy: HTTPS tự động (Let's Encrypt), phục vụ file tĩnh của frontend (/srv) và proxy backend.
+# SITE_ADDRESS do docker-compose.yml đặt: tên miền (DOMAIN) thì có HTTPS, ":80" thì chỉ HTTP (dev).
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Font lấy từ Google Fonts; file đính kèm có thể đến từ object storage (https); Sentry gửi lỗi qua https.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: ws: wss:; frame-src 'self' blob: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	}
+
+	# API, WebSocket thông báo (/api/v1/notifications/ws) và health check (/health, /health/ready).
+	# Caddy tự chuyển tiếp WebSocket và gắn X-Forwarded-For/Proto; không giới hạn thời gian chờ nên AI đọc lâu vẫn ổn.
+	@backend path /api/* /health /health/*
+	handle @backend {
+		# Hơi cao hơn MAX_UPLOAD_BYTES của backend (20 MB) để backend trả lỗi 413 có thông điệp rõ ràng.
+		request_body {
+			max_size 25MB
+		}
+		reverse_proxy backend:8000
+	}
+
+	# Asset đã băm tên bởi Vite: cache dài hạn; thiếu file thì 404, không trả index.html.
+	handle /assets/* {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Trang SPA: đường dẫn không phải file thì trả index.html, luôn hỏi lại máy chủ để nhận bản mới.
+	handle {
+		root * /srv
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
 }
