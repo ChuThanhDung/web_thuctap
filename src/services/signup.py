@@ -28,6 +28,7 @@ from src.services.auth import (
 )
 from src.services.email import is_smtp_configured, send_invitation_email, send_signup_otp_email
 from src.services.organizations import create_organization
+from src.services.plans import PlanLimitError, ensure_can_add_user
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +245,12 @@ def create_invitation(
     for invitation in pending:
         if invitation.email == email:
             invitation.revoked_at = now
+    db.flush()
+    try:
+        ensure_can_add_user(db, inviter.organization)
+    except PlanLimitError:
+        db.rollback()
+        raise
 
     token = token_urlsafe(32)
     invitation = UserInvitation(

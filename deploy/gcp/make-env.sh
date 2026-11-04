@@ -33,6 +33,10 @@ ask SMTP_PASS "Mật khẩu ứng dụng Gmail (16 ký tự)" "$(old SMTP_PASSWO
 SMTP_PASS=${SMTP_PASS// /}  # Google hiển thị mã có dấu cách
 ask SENTRY_DSN "SENTRY_DSN của backend (Sentry gói free, để trống = tắt)" "$(old SENTRY_DSN)"
 ask ALERT_EMAIL "Email nhận cảnh báo RAM/ổ đĩa (để trống = Gmail gửi thông báo)" "$(old ALERT_EMAIL)"
+ask SEPAY_BANK_CODE "SePay: mã ngân hàng nhận tiền (vd MBBank; để trống = tắt thanh toán)" "$(old SEPAY_BANK_CODE)"
+ask SEPAY_BANK_ACCOUNT "SePay: số tài khoản nhận tiền" "$(old SEPAY_BANK_ACCOUNT)"
+ask SEPAY_ACCOUNT_NAME "SePay: tên chủ tài khoản" "$(old SEPAY_ACCOUNT_NAME)"
+ask SEPAY_WEBHOOK_API_KEY "SePay: API key của webhook" "$(old SEPAY_WEBHOOK_API_KEY)" secret
 # Phiên bản image đang chạy do update.sh ghi; giữ nguyên để không đổi bản đang chạy.
 IMAGE_REGISTRY=$(old IMAGE_REGISTRY)
 IMAGE_TAG=$(old IMAGE_TAG)
@@ -76,6 +80,12 @@ SMTP_TLS=true
 SENTRY_DSN=$SENTRY_DSN
 # Email nhận cảnh báo của deploy/gcp/check-resources.sh
 ALERT_EMAIL=$ALERT_EMAIL
+
+# Thanh toán chuyển khoản qua SePay; webhook: https://$DOMAIN/api/v1/billing/webhook (xác thực API Key)
+SEPAY_BANK_CODE=$SEPAY_BANK_CODE
+SEPAY_BANK_ACCOUNT=$SEPAY_BANK_ACCOUNT
+SEPAY_ACCOUNT_NAME=$SEPAY_ACCOUNT_NAME
+SEPAY_WEBHOOK_API_KEY=$SEPAY_WEBHOOK_API_KEY
 
 # Image đang chạy (deploy/gcp/update.sh tự cập nhật hai dòng này)
 IMAGE_REGISTRY=$IMAGE_REGISTRY

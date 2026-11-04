@@ -38,6 +38,8 @@ class Organization(Base):
     # active | suspended
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="active")
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Hạn của gói đã trả tiền; NULL = không hết hạn (gói free, hoặc admin cấp không thời hạn).
+    plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

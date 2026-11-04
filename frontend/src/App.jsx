@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar.jsx';
 import TrialBanner from './components/TrialBanner.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
 import AdminConsole from './pages/AdminConsole.jsx';
+import Billing from './pages/Billing.jsx';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import AccountantOverview from './pages/AccountantOverview.jsx';
@@ -259,6 +260,14 @@ export default function App() {
               element={
                 <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
                   <ThresholdConfig token={auth.access_token} />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path={ROUTES.billing}
+              element={
+                <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
+                  <Billing token={auth.access_token} onUserUpdate={handleUserUpdate} />
                 </RoleRoute>
               }
             />

@@ -42,12 +42,14 @@ from src.services.document_ai_extractor import (
     UnreadableDocumentError,
     analyze_uploaded_document,
 )
+from src.services.document_ai_extractor import _is_xml_upload as is_xml_upload
 from src.services.email import is_smtp_configured, send_batch_rejected_email
 from src.services.notifications import (
     create_notification,
     create_notifications_for_role,
     publish_notifications,
 )
+from src.services.plans import ensure_can_create_batch, ensure_can_upload, record_usage
 from src.services.reconciliation_engine import reconcile_documents
 from src.services.s3_service import (
     delete_file_from_object_storage,
@@ -975,7 +977,9 @@ async def create_upload_batch(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DocumentBatchOut:
+    ensure_can_create_batch(db, current_user.organization)
     batch = create_document_batch(db, current_user)
+    record_usage(db, batch.organization_id, batches=1)
     db.commit()
     db.refresh(batch)
     return to_document_batch_out(batch, db)
@@ -1478,11 +1482,19 @@ async def upload_document(
             detail=f"File vượt quá dung lượng tối đa {max_upload_bytes // (1024 * 1024)} MB.",
         )
 
+    organization = current_user.organization
+    content_type = file.content_type or "application/octet-stream"
+    # XML đọc bằng parser cục bộ, không tính lượt AI.
+    uses_ai = not is_xml_upload(filename, content_type)
+    creates_batch = batch_id is None
+    if creates_batch:
+        ensure_can_create_batch(db, organization)
+    ensure_can_upload(db, organization, size_bytes=len(content), uses_ai=uses_ai)
+
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
     ensure_batch_unlocked(batch)
 
-    content_type = file.content_type or "application/octet-stream"
     content_hash = calculate_content_hash(content)
     # Kiểm tra trùng sớm để không tốn một lần gọi AI cho file đã có; kiểm tra lại sau khi khóa batch (bên dưới).
     if find_duplicate_upload_by_content(batch, content_hash) is not None:
@@ -1561,9 +1573,11 @@ async def upload_document(
         doc_type=selected_doc_type,
         storage_key=storage_key,
         version=batch.version or 1,
+        file_size_bytes=len(content),
     )
     db.add(db_upload)
     db.flush()
+    record_usage(db, batch.organization_id, batches=1 if creates_batch else 0, ai_files=1 if uses_ai else 0)
     create_ai_extraction_record(db, db_upload, ai_analysis)
     db.flush()
     update_batch_status(db, batch)

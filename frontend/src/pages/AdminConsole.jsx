@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Building2, Clock3, FileStack, Search, ShieldOff, Users } from 'lucide-react';
+import { Banknote, Building2, Clock3, FileStack, Search, ShieldOff } from 'lucide-react';
 import { getAdminOrganization, getAdminOrganizations, getAdminOverview, updateAdminOrganization } from '../api.js';
 import { vi } from '../i18n/vi.js';
-import { formatDate, formatDateTime } from '../lib/format.js';
+import { formatDate, formatDateTime, formatVND } from '../lib/format.js';
 import {
   Badge,
   Button,
@@ -24,6 +24,11 @@ import {
 
 const PLAN_OPTIONS = ['free', 'pro', 'ultra'].map((value) => ({ value, label: vi.plans[value] }));
 const PLAN_TONE = { free: 'neutral', pro: 'brand', ultra: 'info' };
+const PLAN_DAYS_OPTIONS = [
+  { value: '', label: 'Không thời hạn' },
+  { value: '30', label: '30 ngày' },
+  { value: '365', label: '365 ngày' },
+];
 
 function inTrial(organization) {
   return organization.trial_ends_at && new Date(organization.trial_ends_at) > new Date();
@@ -54,6 +59,7 @@ function OrganizationModal({ token, organizationId, onClose, onChanged }) {
   const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [plan, setPlan] = useState('free');
+  const [planDays, setPlanDays] = useState('');
   const [saving, setSaving] = useState('');
   const [confirmStatus, setConfirmStatus] = useState(false);
 
@@ -74,6 +80,7 @@ function OrganizationModal({ token, organizationId, onClose, onChanged }) {
       const result = await updateAdminOrganization(token, organizationId, changes);
       setDetail(result);
       setPlan(result.plan);
+      setPlanDays('');
       onChanged();
       toast.success(message);
     } catch (err) {
@@ -111,6 +118,10 @@ function OrganizationModal({ token, organizationId, onClose, onChanged }) {
                 <dd><PlanBadge organization={detail} /></dd>
               </div>
               <div>
+                <dt className="text-fg-muted">Gói trả phí hết hạn</dt>
+                <dd className="font-medium">{detail.plan === 'free' ? 'Không áp dụng' : detail.plan_expires_at ? formatDate(detail.plan_expires_at) : 'Không thời hạn'}</dd>
+              </div>
+              <div>
                 <dt className="text-fg-muted">Bộ tháng này / tổng</dt>
                 <dd className="font-medium tabular-nums">{detail.batches_this_month} / {detail.batch_count}</dd>
               </div>
@@ -127,11 +138,23 @@ function OrganizationModal({ token, organizationId, onClose, onChanged }) {
                   <span className="mb-1.5 block text-xs font-medium text-fg-muted">Gói đã trả tiền</span>
                   <Select value={plan} onChange={setPlan} options={PLAN_OPTIONS} aria-label="Gói đã trả tiền" />
                 </div>
+                {plan !== 'free' && (
+                  <div className="sm:w-44">
+                    <span className="mb-1.5 block text-xs font-medium text-fg-muted">Thời hạn</span>
+                    <Select value={planDays} onChange={setPlanDays} options={PLAN_DAYS_OPTIONS} aria-label="Thời hạn gói" />
+                  </div>
+                )}
                 <Button
                   variant="primary"
                   loading={saving === 'plan'}
-                  disabled={plan === detail.plan}
-                  onClick={() => apply({ plan }, 'plan', `Đã đổi sang gói ${vi.plans[plan]}.`)}
+                  disabled={plan === detail.plan && !planDays}
+                  onClick={() =>
+                    apply(
+                      { plan, ...(planDays && plan !== 'free' ? { plan_days: Number(planDays) } : {}) },
+                      'plan',
+                      `Đã cấp gói ${vi.plans[plan]}${planDays && plan !== 'free' ? ` ${planDays} ngày` : ''}.`,
+                    )
+                  }
                 >
                   Lưu gói
                 </Button>
@@ -256,7 +279,13 @@ export default function AdminConsole({ token }) {
             icon={Clock3}
             tone="info"
           />
-          <StatCard label="Người dùng" value={overview.users} icon={Users} />
+          <StatCard
+            label="Doanh thu tháng này"
+            value={formatVND(overview.revenue_this_month)}
+            hint={`Tổng ${formatVND(overview.revenue_total)} · ${overview.users} người dùng`}
+            icon={Banknote}
+            tone="success"
+          />
           <StatCard
             label="Bộ đối soát tháng này"
             value={overview.batches_this_month}

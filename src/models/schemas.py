@@ -35,6 +35,7 @@ class OrganizationSummary(BaseModel):
     plan: str
     effective_plan: str
     trial_ends_at: datetime | None = None
+    plan_expires_at: datetime | None = None
     status: str
 
 
@@ -234,6 +235,7 @@ class AdminOrganizationRow(BaseModel):
     effective_plan: str
     status: str
     trial_ends_at: datetime | None
+    plan_expires_at: datetime | None = None
     created_at: datetime | None
     user_count: int
     batch_count: int
@@ -266,6 +268,8 @@ class AdminOrganizationUpdate(BaseModel):
     status: str | None = Field(default=None, pattern="^(active|suspended)$")
     # Số ngày dùng thử tính từ hôm nay; 0 = kết thúc dùng thử ngay.
     trial_days: int | None = Field(default=None, ge=0, le=90)
+    # Khi đổi gói: số ngày hiệu lực tính từ hôm nay; bỏ trống = không hết hạn (cấp tay, ví dụ khách trả ngoài hệ thống).
+    plan_days: int | None = Field(default=None, ge=1, le=3660)
 
 
 class AdminOverview(BaseModel):
@@ -278,6 +282,9 @@ class AdminOverview(BaseModel):
     signups_last_30_days: int
     batches_this_month: int
     files_this_month: int
+    # Doanh thu (đ) từ các đơn đã thanh toán.
+    revenue_this_month: int = 0
+    revenue_total: int = 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -568,3 +575,72 @@ class NotificationOut(BaseModel):
 class NotificationListResponse(BaseModel):
     items: list[NotificationOut]
     unread_count: int
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BILLING SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class PlanOut(BaseModel):
+    code: str
+    name: str
+    monthly_price: int
+    yearly_price: int
+    users: int | None
+    batches_per_month: int
+    ai_files_per_month: int
+    storage_bytes: int
+    retention_months: int
+    support: str
+
+
+class UsageOut(BaseModel):
+    period: str
+    users: int
+    batches: int
+    ai_files: int
+    storage_bytes: int
+
+
+class BillingOverview(BaseModel):
+    organization: OrganizationSummary
+    limits: PlanOut
+    usage: UsageOut
+    plans: list[PlanOut]
+    billing_enabled: bool
+
+
+class CheckoutRequest(BaseModel):
+    plan: str = Field(..., pattern="^(pro|ultra)$")
+    months: int = Field(..., description="1 hoặc 12 tháng")
+
+    @field_validator("months")
+    @classmethod
+    def months_supported(cls, value: int) -> int:
+        if value not in (1, 12):
+            raise ValueError("Kỳ hạn chỉ có 1 tháng hoặc 12 tháng.")
+        return value
+
+
+class BankTransferOut(BaseModel):
+    bank_code: str
+    account_number: str
+    account_name: str
+    amount: int
+    content: str
+    qr_url: str
+
+
+class PaymentOut(BaseModel):
+    id: str
+    code: str
+    plan: str
+    months: int
+    amount: int
+    status: str
+    created_at: datetime | None
+    expires_at: datetime
+    paid_at: datetime | None
+    period_end: datetime | None
+    transfer: BankTransferOut | None = None

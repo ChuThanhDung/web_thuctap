@@ -11,6 +11,7 @@ import src.models  # noqa: F401
 from src.api.admin import router as admin_router
 from src.api.audit_logs import router as audit_logs_router
 from src.api.auth import router as auth_router
+from src.api.billing import router as billing_router
 from src.api.notifications import router as notifications_router
 from src.api.reconciliations import router as reconciliations_router
 from src.api.routes import router
@@ -22,6 +23,7 @@ from src.database import engine
 from src.db_migrations import run_migrations
 from src.logging_config import configure_logging, install_request_logging
 from src.schema_bootstrap import ensure_database_timezone
+from src.services.plans import PlanLimitError
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -216,6 +218,15 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(PlanLimitError)
+async def plan_limit_exception_handler(request: Request, exc: PlanLimitError):
+    # 402: vượt hạn mức gói. Giao diện hiện thông báo và đưa tới trang nâng cấp.
+    return JSONResponse(
+        status_code=402,
+        content={"detail": str(exc), "code": "plan_limit", "resource": exc.resource},
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled server exception at %s: %s", request.url.path, exc)
@@ -229,6 +240,7 @@ app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(signup_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(billing_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(reconciliations_router, prefix="/api/v1")
 app.include_router(audit_logs_router, prefix="/api/v1")

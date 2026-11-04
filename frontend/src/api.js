@@ -379,3 +379,23 @@ export async function updateAdminOrganization(token, organizationId, changes) {
     await authFetch(`/admin/organizations/${organizationId}`, token, { method: 'PATCH', body: JSON.stringify(changes) }),
   );
 }
+
+// --- Gói và thanh toán -----------------------------------------------------------------------------------------
+
+export async function getBillingOverview(token) {
+  return parseResponse(await authFetch('/billing/overview', token));
+}
+
+export async function getPayments(token) {
+  return parseResponse(await authFetch('/billing/payments', token));
+}
+
+export async function getPayment(token, paymentId) {
+  return parseResponse(await authFetch(`/billing/payments/${paymentId}`, token));
+}
+
+export async function createCheckout(token, plan, months) {
+  return parseResponse(
+    await authFetch('/billing/checkout', token, { method: 'POST', body: JSON.stringify({ plan, months }) }),
+  );
+}

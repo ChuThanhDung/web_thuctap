@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.api.auth import PLATFORM_ADMIN, get_current_user
 from src.database import get_db, use_system_context
+from src.models.billing import Payment
 from src.models.organization import Organization
 from src.models.reconciliation import DocumentBatch, UploadedFile
 from src.models.role import Role
@@ -32,6 +33,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 # Ngày tạo bộ và file lưu theo giờ Việt Nam, không có múi giờ.
 MONTH_START = text("date_trunc('month', timezone('Asia/Ho_Chi_Minh', now()))")
+# Cùng mốc đầu tháng nhưng cho cột có múi giờ (thời điểm thanh toán).
+MONTH_START_TZ = text("timezone('Asia/Ho_Chi_Minh', date_trunc('month', timezone('Asia/Ho_Chi_Minh', now())))")
 
 
 def require_platform_admin(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
@@ -101,6 +104,7 @@ def _rows(db: Session, organizations: list[Organization]) -> list[AdminOrganizat
             effective_plan=effective_plan(organization),
             status=organization.status,
             trial_ends_at=organization.trial_ends_at,
+            plan_expires_at=organization.plan_expires_at,
             created_at=organization.created_at,
             user_count=users.get(organization.id, 0),
             batch_count=batches.get(organization.id, 0),
@@ -165,6 +169,14 @@ async def admin_overview(_: User = Depends(require_platform_admin), db: Session 
         or 0,
         files_this_month=db.scalar(select(func.count(UploadedFile.id)).where(UploadedFile.created_at >= MONTH_START))
         or 0,
+        revenue_this_month=db.scalar(
+            select(func.coalesce(func.sum(Payment.paid_amount), 0)).where(
+                Payment.status == "paid", Payment.paid_at >= MONTH_START_TZ
+            )
+        )
+        or 0,
+        revenue_total=db.scalar(select(func.coalesce(func.sum(Payment.paid_amount), 0)).where(Payment.status == "paid"))
+        or 0,
     )
 
 
@@ -203,9 +215,18 @@ async def update_organization(
 ) -> AdminOrganizationDetail:
     organization = _get_organization(db, organization_id)
     changes: dict[str, object] = {}
-    if payload.plan is not None and payload.plan != organization.plan:
+    if payload.plan is not None and (payload.plan != organization.plan or payload.plan_days is not None):
+        # Admin cấp gói tay (khách trả ngoài hệ thống, đối tác...): có số ngày thì hết hạn sau số ngày đó, không thì
+        # không hết hạn. Gói free không có hạn.
+        new_expiry = (
+            datetime.now(UTC) + timedelta(days=payload.plan_days)
+            if payload.plan_days and payload.plan != "free"
+            else None
+        )
         changes["plan"] = [organization.plan, payload.plan]
+        changes["plan_expires_at"] = new_expiry.isoformat() if new_expiry else None
         organization.plan = payload.plan
+        organization.plan_expires_at = new_expiry
     if payload.status is not None and payload.status != organization.status:
         changes["status"] = [organization.status, payload.status]
         organization.status = payload.status

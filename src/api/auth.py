@@ -48,6 +48,7 @@ from src.services.avatar import (
     validate_avatar_metadata,
 )
 from src.services.organizations import effective_plan
+from src.services.plans import ensure_can_add_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -72,6 +73,7 @@ def to_organization_summary(organization: Organization | None) -> OrganizationSu
         plan=organization.plan,
         effective_plan=effective_plan(organization),
         trial_ends_at=organization.trial_ends_at,
+        plan_expires_at=organization.plan_expires_at,
         status=organization.status,
     )
 
@@ -373,6 +375,7 @@ async def create_user_account(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Chỉ Kế toán trưởng mới có quyền tạo tài khoản người dùng mới.",
         )
+    ensure_can_add_user(db, current_user.organization)
 
     try:
         new_user = create_user_by_admin(db, payload)
@@ -569,6 +572,8 @@ async def activate_user_account(
 ) -> AuthUser:
     require_chief_accountant(current_user)
     target_user = get_managed_user(db, user_id)
+    if target_user.status.upper() != "ACTIVE":
+        ensure_can_add_user(db, current_user.organization)
     target_user.status = "ACTIVE"
     db.commit()
     db.refresh(target_user)

@@ -28,8 +28,9 @@ def ensure_default_thresholds(db: Session, organization_id: uuid.UUID) -> None:
 
 
 # --- Gói dịch vụ ---------------------------------------------------------------------------------------------------
-# plan là gói công ty đang trả tiền (mặc định free). Trong thời gian dùng thử (trial_ends_at chưa qua), công ty dùng
-# gói Pro; hết hạn thì tự về gói đã trả, không cần tác vụ nền.
+# plan là gói công ty đã trả tiền (mặc định free), có hạn tới plan_expires_at (NULL = không hết hạn, ví dụ admin cấp
+# tay). Trong thời gian dùng thử (trial_ends_at chưa qua), công ty dùng gói Pro. Hết hạn thì tự về gói thấp hơn lúc
+# đọc, không cần tác vụ nền và không xóa dữ liệu.
 
 PLANS = ("free", "pro", "ultra")
 PLAN_NAMES = {"free": "Free", "pro": "Pro", "ultra": "Ultra"}
@@ -41,10 +42,19 @@ def is_in_trial(organization: Organization, now: datetime | None = None) -> bool
     return organization.trial_ends_at is not None and (now or datetime.now(UTC)) < organization.trial_ends_at
 
 
-def effective_plan(organization: Organization, now: datetime | None = None) -> str:
-    if is_in_trial(organization, now) and PLANS.index(TRIAL_PLAN) > PLANS.index(organization.plan):
-        return TRIAL_PLAN
+def paid_plan(organization: Organization, now: datetime | None = None) -> str:
+    """Gói đã trả tiền còn hạn; hết hạn thì là free."""
+    expires_at = organization.plan_expires_at
+    if expires_at is not None and (now or datetime.now(UTC)) >= expires_at:
+        return "free"
     return organization.plan
+
+
+def effective_plan(organization: Organization, now: datetime | None = None) -> str:
+    plan = paid_plan(organization, now)
+    if is_in_trial(organization, now) and PLANS.index(TRIAL_PLAN) > PLANS.index(plan):
+        return TRIAL_PLAN
+    return plan
 
 
 def create_organization(db: Session, name: str, tax_id: str | None = None) -> Organization:

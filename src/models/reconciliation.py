@@ -2,7 +2,20 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func, text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -143,6 +156,8 @@ class UploadedFile(Base):
     )
     doc_type: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    # Dung lượng file (tính hạn mức lưu trữ theo gói). File tải lên trước migration 0005 để trống.
+    file_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),

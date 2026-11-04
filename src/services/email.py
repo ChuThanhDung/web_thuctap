@@ -209,3 +209,48 @@ def send_invitation_email(
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
+
+
+def _format_vnd(amount: int) -> str:
+    return f"{amount:,}".replace(",", ".") + " đ"
+
+
+def send_payment_confirmed_email(to_email: str, company_name: str, plan_name: str, amount: int, expires_at) -> bool:
+    settings = get_settings()
+    until = expires_at.strftime("%d/%m/%Y")
+    subject = f"[{settings.app_name}] Đã nhận thanh toán gói {plan_name}"
+    text_body = (
+        f"Đã nhận {_format_vnd(amount)} cho gói {plan_name} của {company_name}.\n"
+        f"Gói có hiệu lực đến hết ngày {until}. Cảm ơn bạn đã sử dụng {settings.app_name}."
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+      <h2>Đã nhận thanh toán</h2>
+      <p>Đã nhận <strong>{_format_vnd(amount)}</strong> cho gói <strong>{escape(plan_name)}</strong> của
+         <strong>{escape(company_name)}</strong>.</p>
+      <p>Gói có hiệu lực đến hết ngày <strong>{until}</strong>.</p>
+      <p style="color:#64748d">Cảm ơn bạn đã sử dụng {escape(settings.app_name)}.</p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_renewal_reminder_email(to_email: str, company_name: str, plan_name: str, expires_at, renew_url: str) -> bool:
+    settings = get_settings()
+    until = expires_at.strftime("%d/%m/%Y")
+    subject = f"[{settings.app_name}] Gói {plan_name} sắp hết hạn ({until})"
+    text_body = (
+        f"Gói {plan_name} của {company_name} hết hạn ngày {until}. Sau đó công ty chuyển về gói Free; dữ liệu vẫn giữ "
+        f"nguyên nhưng hạn mức thấp hơn.\nGia hạn tại: {renew_url}"
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+      <h2>Gói {escape(plan_name)} sắp hết hạn</h2>
+      <p>Gói của <strong>{escape(company_name)}</strong> hết hạn ngày <strong>{until}</strong>. Sau đó công ty chuyển
+         về gói Free: dữ liệu vẫn giữ nguyên nhưng hạn mức thấp hơn.</p>
+      <p style="margin:24px 0;text-align:center">
+        <a href="{escape(renew_url, quote=True)}" style="display:inline-block;padding:13px 22px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700">Gia hạn gói</a>
+      </p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)

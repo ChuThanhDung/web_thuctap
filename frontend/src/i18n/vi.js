@@ -76,6 +76,7 @@ export const vi = {
     users: 'Quản lý tài khoản',
     settings: 'Ngưỡng sai số',
     admin: 'Công ty khách hàng',
+    billing: 'Gói & thanh toán',
   },
 
   shell: {

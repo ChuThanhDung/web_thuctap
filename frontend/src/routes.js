@@ -6,6 +6,7 @@ export const ROUTES = {
   signup: '/dang-ky',
   acceptInvite: '/nhan-loi-moi',
   admin: '/admin',
+  billing: '/goi-dich-vu',
   overview: '/accountant',
   upload: '/upload',
   batches: '/audit-trail',

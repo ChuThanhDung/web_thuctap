@@ -1,4 +1,5 @@
 from src.models.audit_log import AuditLog
+from src.models.billing import Payment, UsageCounter
 from src.models.notification import Notification
 from src.models.organization import Organization
 from src.models.password_reset_otp import PasswordResetOtp
@@ -28,6 +29,7 @@ __all__ = [
     "Notification",
     "Organization",
     "PasswordResetOtp",
+    "Payment",
     "PurchaseOrder",
     "PurchaseOrderItem",
     "ReconciliationCase",
@@ -36,6 +38,7 @@ __all__ = [
     "Threshold",
     "UploadedDocumentExtraction",
     "UploadedFile",
+    "UsageCounter",
     "User",
     "UserInvitation",
     "UserSession",

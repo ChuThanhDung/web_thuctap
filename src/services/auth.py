@@ -371,11 +371,13 @@ def write_audit_log(
     user_agent: str | None,
     target_type: str = "USER",
     target_id: str | None = None,
+    organization_id=None,
 ) -> None:
     resolved_target_id = target_id if target_id else (str(user.id) if user else None)
     # Nhật ký thuộc công ty của người thực hiện. Sự kiện chưa gắn người (đăng nhập sai…) lấy công ty của phiên, hoặc
     # để trống khi chưa đăng nhập.
-    org_kwargs = {"organization_id": user.organization_id} if user and user.organization_id else {}
+    org_id = organization_id or (user.organization_id if user else None)
+    org_kwargs = {"organization_id": org_id} if org_id else {}
     db.add(
         AuditLog(
             **org_kwargs,
