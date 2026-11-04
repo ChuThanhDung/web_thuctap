@@ -3,6 +3,9 @@
 
 export const ROUTES = {
   login: '/login',
+  signup: '/dang-ky',
+  acceptInvite: '/nhan-loi-moi',
+  admin: '/admin',
   overview: '/accountant',
   upload: '/upload',
   batches: '/audit-trail',

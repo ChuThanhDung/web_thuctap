@@ -16,7 +16,7 @@ from src.models.organization import DEMO_ORGANIZATION_ID, Organization
 from src.models.reconciliation import DocumentBatch, Threshold
 from src.models.role import Role
 from src.models.user import User
-from src.services.auth import hash_password
+from src.services.auth import hash_password, next_public_user_id
 from src.services.organizations import ensure_default_thresholds
 from tests.conftest import purge_batch_tables
 
@@ -34,14 +34,14 @@ def organization_b():
             db.add(Organization(id=ORG_B_ID, name="Công ty B (test)", plan="pro"))
             db.flush()
             roles = {role.code: role for role in db.query(Role).all()}
-            next_id = db.scalar(text("SELECT COALESCE(MAX(public_id), 0) FROM users"))
-            for offset, (email, role) in enumerate(
-                (("b.accountant@isolation.test", "accountant"), ("b.chief@isolation.test", "chief_accountant")), 1
+            for email, role in (
+                ("b.accountant@isolation.test", "accountant"),
+                ("b.chief@isolation.test", "chief_accountant"),
             ):
                 db.add(
                     User(
                         organization_id=ORG_B_ID,
-                        public_id=next_id + offset,
+                        public_id=next_public_user_id(db),
                         email=email,
                         password_hash=hash_password(PASSWORD),
                         full_name=f"B {role}",

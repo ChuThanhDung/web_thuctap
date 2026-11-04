@@ -1,9 +1,11 @@
 """Thao tác trên công ty khách hàng dùng chung cho seed, đăng ký và trang quản trị nền tảng."""
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from src.models.organization import Organization
 from src.models.reconciliation import Threshold
 
 # Ngưỡng mặc định của mỗi công ty mới (đúng quy tắc trong PRODUCT.md): số tiền lệch tối đa 1.000 đ do làm tròn,
@@ -23,3 +25,42 @@ def ensure_default_thresholds(db: Session, organization_id: uuid.UUID) -> None:
     for data in DEFAULT_THRESHOLDS:
         if data["category"] not in existing:
             db.add(Threshold(organization_id=organization_id, **data))
+
+
+# --- Gói dịch vụ ---------------------------------------------------------------------------------------------------
+# plan là gói công ty đang trả tiền (mặc định free). Trong thời gian dùng thử (trial_ends_at chưa qua), công ty dùng
+# gói Pro; hết hạn thì tự về gói đã trả, không cần tác vụ nền.
+
+PLANS = ("free", "pro", "ultra")
+PLAN_NAMES = {"free": "Free", "pro": "Pro", "ultra": "Ultra"}
+TRIAL_PLAN = "pro"
+TRIAL_DAYS = 14
+
+
+def is_in_trial(organization: Organization, now: datetime | None = None) -> bool:
+    return organization.trial_ends_at is not None and (now or datetime.now(UTC)) < organization.trial_ends_at
+
+
+def effective_plan(organization: Organization, now: datetime | None = None) -> str:
+    if is_in_trial(organization, now) and PLANS.index(TRIAL_PLAN) > PLANS.index(organization.plan):
+        return TRIAL_PLAN
+    return organization.plan
+
+
+def create_organization(db: Session, name: str, tax_id: str | None = None) -> Organization:
+    """Tạo công ty mới đang dùng thử gói Pro, kèm bộ ngưỡng mặc định. Không commit.
+
+    Phiên phải ở chế độ hệ thống (công ty chưa tồn tại thì chưa có ngữ cảnh công ty).
+    """
+    organization = Organization(
+        id=uuid.uuid4(),
+        name=name,
+        tax_id=tax_id,
+        plan="free",
+        status="active",
+        trial_ends_at=datetime.now(UTC) + timedelta(days=TRIAL_DAYS),
+    )
+    db.add(organization)
+    db.flush()
+    ensure_default_thresholds(db, organization.id)
+    return organization

@@ -7,6 +7,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
+from src.database import SessionLocal, use_system_context
 from src.models.audit_log import AuditLog
 from src.models.password_reset_otp import PasswordResetOtp
 from src.models.role import Role
@@ -43,6 +44,21 @@ def next_public_user_id(db: Session) -> int:
     # Mã người dùng duy nhất toàn hệ thống. Không dùng MAX(public_id) + 1: dưới Row-Level Security, MAX chỉ thấy người
     # dùng của công ty hiện tại nên sinh mã trùng với công ty khác.
     return db.scalar(text("SELECT nextval('users_public_id_seq')"))
+
+
+def normalize_email(email: str) -> str:
+    return email.lower().strip()
+
+
+def email_in_use(email: str, exclude_user_id=None) -> bool:
+    """Email đăng nhập là duy nhất toàn hệ thống. Kiểm tra bằng phiên hệ thống riêng, vì phiên của người dùng chỉ thấy
+    tài khoản trong công ty mình (RLS) nên sẽ bỏ sót email đã dùng ở công ty khác."""
+    with SessionLocal() as system_db:
+        use_system_context(system_db)
+        stmt = select(User.id).where(func.lower(User.email) == normalize_email(email))
+        if exclude_user_id is not None:
+            stmt = stmt.where(User.id != exclude_user_id)
+        return system_db.scalar(stmt.limit(1)) is not None
 
 
 def get_employee_code_prefix(role_code: str) -> str:
@@ -247,9 +263,8 @@ def initiate_password_change(
 
 
 def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
-    email_clean = payload.email.lower().strip()
-    existing_user = db.scalars(select(User).where(User.email == email_clean)).first()
-    if existing_user:
+    email_clean = normalize_email(payload.email)
+    if email_in_use(email_clean):
         raise ValueError("Email này đã được sử dụng bởi tài khoản khác trong hệ thống.")
 
     citizen_id_clean = payload.citizen_id.strip() if payload.citizen_id else None

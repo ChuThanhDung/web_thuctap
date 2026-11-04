@@ -6,7 +6,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
-from src.models.organization import organization_fk
+from src.models.organization import Organization, organization_fk
 from src.models.role import Role
 
 
@@ -41,3 +41,5 @@ class User(Base):
     )
 
     role: Mapped[Role] = relationship(back_populates="users")
+    # NULL với admin nền tảng (không thuộc công ty nào).
+    organization: Mapped[Organization | None] = relationship()

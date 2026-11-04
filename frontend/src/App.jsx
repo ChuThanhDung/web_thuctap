@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AppHeader from './components/AppHeader.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import TrialBanner from './components/TrialBanner.jsx';
+import AcceptInvite from './pages/AcceptInvite.jsx';
+import AdminConsole from './pages/AdminConsole.jsx';
 import Login from './pages/Login.jsx';
+import Signup from './pages/Signup.jsx';
 import AccountantOverview from './pages/AccountantOverview.jsx';
 import ChiefOverview from './pages/ChiefOverview.jsx';
 import UploadQueue from './pages/UploadQueue.jsx';
@@ -11,6 +15,7 @@ import ChiefAccountantBatches from './pages/ChiefAccountantBatches.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
 import UserManagement from './pages/UserManagement.jsx';
 import StyleGuide from './pages/StyleGuide.jsx';
+import { AuthenticationError, getCurrentUser } from './api.js';
 import { vi } from './i18n/vi.js';
 import useMediaQuery from './lib/useMediaQuery.js';
 import { ROUTES } from './routes.js';
@@ -41,8 +46,8 @@ function getInitialTheme() {
   }
 }
 
-function getHomePath() {
-  return ROUTES.overview;
+function getHomePath(role) {
+  return role === 'platform_admin' ? ROUTES.admin : ROUTES.overview;
 }
 
 function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
@@ -96,6 +101,22 @@ export default function App() {
     }
   }, [theme]);
 
+  // Mỗi lần mở app, lấy lại thông tin tài khoản và công ty (gói, hạn dùng thử) thay vì tin bản lưu trong trình duyệt.
+  // Công ty bị tạm khóa thì đăng xuất kèm lý do.
+  const accessToken = auth?.access_token;
+  useEffect(() => {
+    if (!accessToken) return;
+    getCurrentUser(accessToken)
+      .then((user) => handleUserUpdate(user))
+      .catch((err) => {
+        if (err instanceof AuthenticationError || err instanceof TypeError) return;
+        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        invalidateBatchCache();
+        setAuth(null);
+        toast.error(err.message);
+      });
+  }, [accessToken]);
+
   // Đổi kích thước từ màn hình hẹp sang rộng thì đóng menu trượt còn mở.
   useEffect(() => {
     if (!useDrawer) setMobileMenuOpen(false);
@@ -134,6 +155,8 @@ export default function App() {
     return (
       <Routes>
         <Route path={ROUTES.login} element={<Login onLogin={handleLogin} />} />
+        <Route path={ROUTES.signup} element={<Signup onLogin={handleLogin} />} />
+        <Route path={ROUTES.acceptInvite} element={<AcceptInvite onLogin={handleLogin} />} />
         <Route path="*" element={<Navigate to={ROUTES.login} replace />} />
       </Routes>
     );
@@ -185,6 +208,13 @@ export default function App() {
           <AppHeader token={auth.access_token} menuOpen={mobileMenuOpen} onOpenMenu={() => setMobileMenuOpen(true)} />
         )}
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1480px] flex-1 px-4 py-5 focus:outline-none md:px-6 md:py-6">
+          <TrialBanner organization={auth.user.organization} />
+          {role === 'platform_admin' ? (
+            <Routes>
+              <Route path={ROUTES.admin} element={<AdminConsole token={auth.access_token} />} />
+              <Route path="*" element={<Navigate to={ROUTES.admin} replace />} />
+            </Routes>
+          ) : (
           <Routes>
             <Route path="/" element={<Navigate to={homePath} replace />} />
             <Route path={ROUTES.login} element={<Navigate to={homePath} replace />} />
@@ -235,6 +265,7 @@ export default function App() {
             {SHOW_STYLEGUIDE && <Route path={ROUTES.styleguide} element={<StyleGuide />} />}
             <Route path="*" element={<Navigate to={homePath} replace />} />
           </Routes>
+          )}
         </main>
       </div>
     </div>

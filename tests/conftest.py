@@ -158,7 +158,7 @@ def other_accountant(db_session):
     from src.services.auth import hash_password
 
     role = db_session.query(Role).filter(Role.code == "accountant").one()
-    next_public_id = db_session.execute(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")).scalar()
+    next_public_id = db_session.execute(text("SELECT nextval('users_public_id_seq')")).scalar()
     user = User(
         public_id=next_public_id,
         email=f"other-accountant-{uuid.uuid4().hex[:8]}@example.com",

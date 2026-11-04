@@ -8,11 +8,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 import src.models  # noqa: F401
+from src.api.admin import router as admin_router
 from src.api.audit_logs import router as audit_logs_router
 from src.api.auth import router as auth_router
 from src.api.notifications import router as notifications_router
 from src.api.reconciliations import router as reconciliations_router
 from src.api.routes import router
+from src.api.signup import router as signup_router
 from src.api.thresholds import router as thresholds_router
 from src.api.uploads import router as uploads_router
 from src.config import get_settings
@@ -104,6 +106,16 @@ def seed_initial_data_if_needed() -> None:
             else:
                 chief_role.name = "Kế toán trưởng"
                 chief_role.description = "Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình."
+
+            # Vai trò admin nền tảng (migration 0004 cũng tạo). Tài khoản tạo bằng scripts/create_platform_admin.py.
+            if not db.query(Role).filter(Role.code == "platform_admin").first():
+                db.add(
+                    Role(
+                        code="platform_admin",
+                        name="Quản trị nền tảng",
+                        description="Quản lý công ty khách hàng, gói dịch vụ và mức sử dụng. Không xem chứng từ của khách.",
+                    )
+                )
 
             db.commit()
 
@@ -215,6 +227,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(signup_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(reconciliations_router, prefix="/api/v1")
 app.include_router(audit_logs_router, prefix="/api/v1")

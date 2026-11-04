@@ -16,5 +16,7 @@ describe('routes', () => {
       ROUTES.users,
       ROUTES.settings,
     ]);
+    // Admin nền tảng chỉ có trang quản trị công ty, không có menu nghiệp vụ.
+    expect(getNavItems('platform_admin').map((item) => item.to)).toEqual([ROUTES.admin]);
   });
 });

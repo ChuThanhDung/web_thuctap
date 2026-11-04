@@ -86,6 +86,11 @@ class Settings(BaseSettings):
     password_otp_max_attempts: int = Field(default=5, ge=1, le=10)
     password_otp_max_requests: int = Field(default=3, ge=1, le=20)
     password_otp_request_window_minutes: int = Field(default=15, ge=1, le=1440)
+    # Tự đăng ký công ty: tắt được khi chỉ muốn bán qua tư vấn. Giới hạn số lần đăng ký trong một giờ để chống spam.
+    signup_enabled: bool = True
+    signup_max_per_ip_per_hour: int = Field(default=5, ge=1, le=100)
+    signup_max_per_email_per_hour: int = Field(default=3, ge=1, le=20)
+    invitation_ttl_days: int = Field(default=7, ge=1, le=30)
 
     # Login brute-force protection (đếm số lần LOGIN_FAILED trong audit_logs)
     login_max_attempts: int = Field(default=5, ge=1, le=100)  # cùng email + cùng IP
