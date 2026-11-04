@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     app_name: str = "AI20K Agent"
     app_env: Literal["development", "production", "test"] = "development"
     app_port: int = Field(default=8000, ge=1, le=65535)
-    app_host: str = "0.0.0.0"
+    # Nghe mọi giao diện vì chạy trong container; chỉ Caddy (và cổng dev) mở ra ngoài.
+    app_host: str = "0.0.0.0"  # nosec B104
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["text", "json"] = "text"
     # Sentry (gói free) bắt lỗi backend. Để trống DSN thì tắt hẳn, không nạp thư viện.
@@ -102,6 +103,14 @@ class Settings(BaseSettings):
     payment_code_prefix: str = Field(default="DSA", pattern=r"^[A-Z]{2,6}$")
     payment_ttl_hours: int = Field(default=72, ge=1, le=720)
 
+    # Mã hóa CCCD, địa chỉ, khóa 2FA khi lưu (Fernet: base64 urlsafe 32 byte). Mất khóa = không đọc lại được dữ liệu
+    # đã mã hóa, nên sao lưu khóa riêng (trình quản lý mật khẩu). Deploy tự sinh khóa nếu .env chưa có.
+    data_encryption_key: str = ""
+    # Bắt buộc xác thực hai lớp với kế toán trưởng và admin nền tảng.
+    mfa_enforced: bool = True
+    mfa_challenge_ttl_seconds: int = Field(default=300, ge=60, le=1800)
+    mfa_max_attempts: int = Field(default=5, ge=1, le=10)
+
     # Login brute-force protection (đếm số lần LOGIN_FAILED trong audit_logs)
     login_max_attempts: int = Field(default=5, ge=1, le=100)  # cùng email + cùng IP
     login_max_attempts_per_ip: int = Field(default=30, ge=1, le=10000)
@@ -123,6 +132,13 @@ class Settings(BaseSettings):
             len(self.seed_default_password) < 10 or self.seed_default_password in WEAK_PASSWORDS
         ):
             problems.append("SEED_DEFAULT_PASSWORD quá yếu (cần tối thiểu 10 ký tự)")
+        if self.data_encryption_key:
+            try:
+                from cryptography.fernet import Fernet
+
+                Fernet(self.data_encryption_key.encode())
+            except (ValueError, TypeError):
+                problems.append("DATA_ENCRYPTION_KEY không phải khóa Fernet hợp lệ (base64 urlsafe 32 byte)")
         if problems:
             raise ValueError("Cấu hình production không an toàn: " + "; ".join(problems))
         return self

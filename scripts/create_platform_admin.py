@@ -8,6 +8,7 @@ Dùng (chạy nơi có DATABASE_URL trỏ tới DB cần tạo, ví dụ trong c
     docker compose exec backend python scripts/create_platform_admin.py --email ban@vi.du --name "Tên của bạn"
 
 Mật khẩu hỏi khi chạy (hoặc lấy từ PLATFORM_ADMIN_PASSWORD), không in ra màn hình và không lưu lại.
+Chạy lại với email đã có thì đặt lại mật khẩu. Mất điện thoại 2FA: thêm --reset-mfa (lần đăng nhập sau cài lại).
 """
 
 import argparse
@@ -32,7 +33,7 @@ ROLE_CODE = "platform_admin"
 def read_password() -> str:
     password = os.environ.get("PLATFORM_ADMIN_PASSWORD")
     if not password:
-        password = getpass.getpass("Mật khẩu (tối thiểu 8 ký tự, có chữ và số): ")
+        password = getpass.getpass("Mật khẩu (tối thiểu 10 ký tự, có chữ và số): ")
         if password != getpass.getpass("Nhập lại mật khẩu: "):
             sys.exit("Hai lần nhập mật khẩu không khớp.")
     try:
@@ -45,6 +46,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--email", required=True)
     parser.add_argument("--name", required=True, help="Họ tên hiển thị")
+    parser.add_argument("--reset-mfa", action="store_true", help="Tắt xác thực hai lớp để cài lại")
     args = parser.parse_args()
     email = args.email.lower().strip()
     password = read_password()
@@ -78,6 +80,12 @@ def main() -> None:
             user.password_hash = hash_password(password)
             user.status = "ACTIVE"
             action = "Đã cập nhật"
+            if args.reset_mfa:
+                user.totp_secret = None
+                user.totp_enabled_at = None
+                user.totp_last_step = None
+                user.totp_recovery_codes = None
+                action += " (đã tắt 2FA, lần đăng nhập sau cài lại)"
         db.commit()
         print(f"{action} tài khoản quản trị nền tảng {email}.")
 

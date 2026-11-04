@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
 
+from defusedxml import DefusedXmlException
+from defusedxml import ElementTree as SafeElementTree
 from openai import OpenAI
 
 from src.config import get_settings
@@ -279,8 +281,8 @@ def validate_readable_xml(content: bytes, filename: str, content_type: str | Non
         return
 
     try:
-        ElementTree.fromstring(content)
-    except ElementTree.ParseError as exc:
+        SafeElementTree.fromstring(content, forbid_dtd=True)
+    except (ElementTree.ParseError, DefusedXmlException) as exc:
         raise UnreadableDocumentError(UNREADABLE_XML_MESSAGE) from exc
 
 

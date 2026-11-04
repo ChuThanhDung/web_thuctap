@@ -7,6 +7,7 @@ import AcceptInvite from './pages/AcceptInvite.jsx';
 import AdminConsole from './pages/AdminConsole.jsx';
 import Billing from './pages/Billing.jsx';
 import Login from './pages/Login.jsx';
+import MfaRequired from './pages/MfaRequired.jsx';
 import Signup from './pages/Signup.jsx';
 import AccountantOverview from './pages/AccountantOverview.jsx';
 import ChiefOverview from './pages/ChiefOverview.jsx';
@@ -160,6 +161,12 @@ export default function App() {
         <Route path={ROUTES.acceptInvite} element={<AcceptInvite onLogin={handleLogin} />} />
         <Route path="*" element={<Navigate to={ROUTES.login} replace />} />
       </Routes>
+    );
+  }
+
+  if (auth.user.mfa_setup_required) {
+    return (
+      <MfaRequired token={auth.access_token} user={auth.user} onUserUpdate={handleUserUpdate} onLogout={handleLogout} />
     );
   }
 

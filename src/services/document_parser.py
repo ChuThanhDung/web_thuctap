@@ -3,6 +3,8 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Any
 
+from defusedxml import ElementTree as SafeET
+
 from src.services.vision_parser import parse_vision_document
 
 
@@ -26,7 +28,8 @@ def remove_namespaces(xml_content: bytes) -> str:
 def parse_xml_to_dict(xml_content: bytes) -> ET.Element:
     """Parse XML và chuyển sang dict hoặc ElementTree đã được xóa namespace."""
     cleaned_xml = remove_namespaces(xml_content)
-    return ET.fromstring(cleaned_xml)
+    # File do khách tải lên: defusedxml chặn DTD/entity (XML bomb, đọc file ngoài). Lỗi của nó là ValueError.
+    return SafeET.fromstring(cleaned_xml, forbid_dtd=True)
 
 
 def first_element(node: ET.Element, *paths: str) -> ET.Element | None:

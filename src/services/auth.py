@@ -12,14 +12,18 @@ from src.models.audit_log import AuditLog
 from src.models.password_reset_otp import PasswordResetOtp
 from src.models.role import Role
 from src.models.schemas import UserCreateRequest
+from src.models.security import PasswordHistory
 from src.models.user import User
 from src.models.user_session import UserSession
+from src.services.crypto import blind_index
 from src.services.email import send_otp_email, send_password_changed_email
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Mật khẩu mặc định cũ của các tài khoản seed; không còn được phép dùng ở production.
 LEGACY_DEFAULT_PASSWORD = "123456"
+# Không cho đặt lại một trong 3 mật khẩu gần nhất (mật khẩu hiện tại và 2 mật khẩu trước đó).
+PASSWORD_REUSE_DEPTH = 3
 
 
 class PasswordChangeError(ValueError):
@@ -198,6 +202,8 @@ def initiate_password_change(
     # bcrypt hashes are salted, so compare by verifying the candidate against the stored hash.
     if verify_password(new_password, user.password_hash):
         raise PasswordChangeError("Mật khẩu mới phải khác mật khẩu hiện tại.")
+    if password_recently_used(db, user, new_password):
+        raise PasswordChangeError(f"Không dùng lại {PASSWORD_REUSE_DEPTH} mật khẩu gần nhất. Hãy chọn mật khẩu khác.")
 
     settings = get_settings()
     now = datetime.now(UTC)
@@ -269,7 +275,8 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
 
     citizen_id_clean = payload.citizen_id.strip() if payload.citizen_id else None
     if citizen_id_clean:
-        existing_citizen = db.scalars(select(User).where(User.citizen_id == citizen_id_clean)).first()
+        # CCCD lưu mã hóa: tìm trùng qua dấu vân tay (trong công ty hiện tại, do RLS).
+        existing_citizen = db.scalars(select(User).where(User.citizen_id_hash == blind_index(citizen_id_clean))).first()
         if existing_citizen:
             raise ValueError("Căn cước công dân này đã tồn tại.")
 
@@ -287,6 +294,7 @@ def create_user_by_admin(db: Session, payload: UserCreateRequest) -> User:
         employee_code=build_next_employee_code(db, role.code),
         phone=payload.phone.strip(),
         citizen_id=citizen_id_clean,
+        citizen_id_hash=blind_index(citizen_id_clean),
         address=payload.address.strip(),
         date_of_birth=payload.date_of_birth,
         status="ACTIVE",
@@ -345,6 +353,7 @@ def verify_password_change_otp(db: Session, user: User, otp: str, current_sessio
         db.commit()
         raise PasswordChangeError("Yêu cầu đổi mật khẩu không hợp lệ. Vui lòng thực hiện lại.")
 
+    remember_password(db, user)
     user.password_hash = otp_record.pending_password_hash
     otp_record.pending_password_hash = None
     otp_record.verified_at = now
@@ -360,6 +369,33 @@ def verify_password_change_otp(db: Session, user: User, otp: str, current_sessio
     )
     db.commit()
     send_password_changed_email(user.email)
+
+
+def password_recently_used(db: Session, user: User, candidate: str) -> bool:
+    """Mật khẩu ứng viên trùng mật khẩu hiện tại hoặc các mật khẩu trước đó (trong PASSWORD_REUSE_DEPTH)."""
+    if verify_password(candidate, user.password_hash):
+        return True
+    previous = db.scalars(
+        select(PasswordHistory.password_hash)
+        .where(PasswordHistory.user_id == user.id)
+        .order_by(PasswordHistory.created_at.desc())
+        .limit(PASSWORD_REUSE_DEPTH - 1)
+    ).all()
+    return any(verify_password(candidate, old_hash) for old_hash in previous)
+
+
+def remember_password(db: Session, user: User) -> None:
+    """Lưu hash mật khẩu sắp bị thay vào lịch sử, chỉ giữ vài bản gần nhất. Không commit."""
+    db.add(PasswordHistory(user_id=user.id, password_hash=user.password_hash))
+    db.flush()
+    stale = db.scalars(
+        select(PasswordHistory.id)
+        .where(PasswordHistory.user_id == user.id)
+        .order_by(PasswordHistory.created_at.desc())
+        .offset(PASSWORD_REUSE_DEPTH)
+    ).all()
+    if stale:
+        db.execute(delete(PasswordHistory).where(PasswordHistory.id.in_(stale)))
 
 
 def write_audit_log(

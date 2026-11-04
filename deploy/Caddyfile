@@ -6,6 +6,8 @@
 	header {
 		-Server
 		X-Content-Type-Options "nosniff"
+		# Trình duyệt chỉ dùng HTTPS cho tên miền này trong 1 năm (bỏ qua khi truy cập bằng HTTP, ví dụ dev).
+		Strict-Transport-Security "max-age=31536000"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"

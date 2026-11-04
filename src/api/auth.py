@@ -14,6 +14,7 @@ from src.models.schemas import (
     AuthUser,
     LoginRequest,
     LoginResponse,
+    LoginStepResponse,
     MessageResponse,
     OrganizationSummary,
     OtpRequestResponse,
@@ -47,6 +48,8 @@ from src.services.avatar import (
     save_avatar,
     validate_avatar_metadata,
 )
+from src.services.crypto import blind_index, mask_citizen_id
+from src.services.mfa import create_challenge, mfa_enabled, mfa_setup_pending
 from src.services.organizations import effective_plan
 from src.services.plans import ensure_can_add_user
 
@@ -62,6 +65,10 @@ PLATFORM_ADMIN_PATHS = (
     # Chuông thông báo trên thanh bên (RLS trả về rỗng vì admin không thuộc công ty).
     "/api/v1/notifications",
 )
+
+
+# Kế toán trưởng/admin chưa bật 2FA (khi bắt buộc) chỉ gọi được các API để cài đặt 2FA.
+MFA_SETUP_PATHS = ("/api/v1/auth/me", "/api/v1/auth/mfa")
 
 
 def to_organization_summary(organization: Organization | None) -> OrganizationSummary | None:
@@ -101,7 +108,10 @@ def to_auth_user(user: User) -> AuthUser:
         employee_code=user.employee_code,
         date_of_birth=user.date_of_birth,
         address=user.address,
-        citizen_id=user.citizen_id,
+        # CCCD luôn che bớt; kế toán trưởng xem đủ qua GET /auth/users/{id}/citizen-id (có ghi nhật ký).
+        citizen_id=mask_citizen_id(user.citizen_id),
+        mfa_enabled=mfa_enabled(user),
+        mfa_setup_required=mfa_setup_pending(user),
         phone=user.phone,
         avatar_url=user.avatar_url,
         organization=to_organization_summary(user.organization),
@@ -123,6 +133,11 @@ def get_current_user(
     block_reason = organization_block_reason(user)
     if block_reason:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=block_reason)
+    if mfa_setup_pending(user) and not request.url.path.startswith(MFA_SETUP_PATHS):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn cần bật xác thực hai lớp trước khi tiếp tục.",
+        )
     if user.role.code == PLATFORM_ADMIN and not request.url.path.startswith(PLATFORM_ADMIN_PATHS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -134,12 +149,12 @@ def get_current_user(
     return user
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginStepResponse)
 async def login(
     payload: LoginRequest,
     request: Request,
     db: Session = Depends(get_db),
-) -> LoginResponse:
+) -> LoginStepResponse:
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
 
@@ -187,6 +202,22 @@ async def login(
         )
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=block_reason)
 
+    if mfa_enabled(user):
+        # Mật khẩu đúng nhưng chưa tạo phiên: phải qua bước mã 2FA (POST /auth/login/mfa).
+        write_audit_log(
+            db=db,
+            action="LOGIN_PASSWORD_OK_MFA_PENDING",
+            user=user,
+            details={"email": user.email},
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        return LoginStepResponse(mfa_required=True, mfa_token=create_challenge(db, user, ip_address))
+
+    return LoginStepResponse(**finish_login(db, user, ip_address, user_agent, method="password").model_dump())
+
+
+def finish_login(db: Session, user: User, ip_address: str | None, user_agent: str | None, method: str) -> LoginResponse:
     access_token = create_user_session(
         db=db,
         user=user,
@@ -197,11 +228,10 @@ async def login(
         db=db,
         action="LOGIN_SUCCESS",
         user=user,
-        details={"role": user.role.code},
+        details={"role": user.role.code, "method": method},
         ip_address=ip_address,
         user_agent=user_agent,
     )
-
     return LoginResponse(access_token=access_token, user=to_auth_user(user))
 
 
@@ -452,7 +482,9 @@ def ensure_unique_user_fields(db: Session, target_user: User, payload: UserUpdat
 
     if payload.citizen_id:
         citizen_id = payload.citizen_id.strip()
-        exists = db.scalars(select(User).where(User.citizen_id == citizen_id, User.id != target_user.id)).first()
+        exists = db.scalars(
+            select(User).where(User.citizen_id_hash == blind_index(citizen_id), User.id != target_user.id)
+        ).first()
         if exists:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Căn cước công dân này đã tồn tại.")
 
@@ -499,6 +531,7 @@ async def update_user_account(
         target_user.phone = payload.phone.strip() or None
     if payload.citizen_id is not None:
         target_user.citizen_id = payload.citizen_id.strip() or None
+        target_user.citizen_id_hash = blind_index(target_user.citizen_id)
     if payload.address is not None:
         target_user.address = payload.address.strip() or None
     if payload.date_of_birth is not None:

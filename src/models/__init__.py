@@ -16,6 +16,7 @@ from src.models.reconciliation import (
     UploadedFile,
 )
 from src.models.role import Role
+from src.models.security import MfaChallenge, PasswordHistory
 from src.models.signup import SignupRequest, UserInvitation
 from src.models.user import User
 from src.models.user_session import UserSession
@@ -26,8 +27,10 @@ __all__ = [
     "GoodsReceiptNote",
     "GoodsReceiptNoteItem",
     "LineItem",
+    "MfaChallenge",
     "Notification",
     "Organization",
+    "PasswordHistory",
     "PasswordResetOtp",
     "Payment",
     "PurchaseOrder",

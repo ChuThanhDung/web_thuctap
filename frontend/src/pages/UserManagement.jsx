@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  ShieldOff,
   X,
 } from 'lucide-react';
 import {
@@ -19,6 +20,8 @@ import {
   deactivateUserAccount,
   getAvatarViewUrl,
   getUserAccounts,
+  resetUserMfa,
+  revealCitizenId,
   updateUserAccount,
 } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
@@ -103,7 +106,8 @@ function buildFormFromUser(user) {
     full_name: repairVietnameseText(user.full_name) || '',
     role_code: user.role || 'accountant',
     phone: user.phone || '',
-    citizen_id: user.citizen_id || '',
+    // API chỉ trả CCCD đã che; để trống nghĩa là giữ nguyên số cũ.
+    citizen_id: '',
     address: repairVietnameseText(user.address) || '',
     date_of_birth: user.date_of_birth || '',
   };
@@ -125,6 +129,33 @@ export default function UserManagement({ token, currentUser }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [accountAction, setAccountAction] = useState(null);
   const [accountActionLoading, setAccountActionLoading] = useState(false);
+  // Số CCCD đầy đủ đã bấm xem (mỗi lần xem được ghi nhật ký ở máy chủ).
+  const [revealedCitizenIds, setRevealedCitizenIds] = useState({});
+  const [mfaResetUser, setMfaResetUser] = useState(null);
+  const [mfaResetting, setMfaResetting] = useState(false);
+
+  async function handleRevealCitizenId(user) {
+    try {
+      const { citizen_id: citizenId } = await revealCitizenId(token, user.id);
+      setRevealedCitizenIds((current) => ({ ...current, [user.id]: citizenId }));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleResetMfa() {
+    setMfaResetting(true);
+    try {
+      await resetUserMfa(token, mfaResetUser.id);
+      setMessage(`Đã đặt lại xác thực hai lớp cho ${mfaResetUser.email}. Lần đăng nhập sau họ cài lại.`);
+      await loadUsers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMfaResetting(false);
+      setMfaResetUser(null);
+    }
+  }
 
   async function loadUsers() {
     setLoading(true);
@@ -215,7 +246,7 @@ export default function UserManagement({ token, currentUser }) {
       if (passwordError) return passwordError;
     }
     if (!/^\d{10}$/.test(form.phone)) return 'Số điện thoại phải đủ 10 số.';
-    if (!/^\d{12}$/.test(form.citizen_id)) return 'Căn cước công dân phải đủ 12 số.';
+    if (!(editingUser && !form.citizen_id) && !/^\d{12}$/.test(form.citizen_id)) return 'Căn cước công dân phải đủ 12 số.';
     if (!form.address.trim()) return 'Vui lòng nhập địa chỉ.';
     return '';
   }
@@ -238,7 +269,7 @@ export default function UserManagement({ token, currentUser }) {
       full_name: form.full_name.trim(),
       role_code: form.role_code,
       phone: form.phone,
-      citizen_id: form.citizen_id,
+      ...(form.citizen_id ? { citizen_id: form.citizen_id } : {}),
       address: form.address.trim(),
       date_of_birth: form.date_of_birth || null,
     };
@@ -394,7 +425,25 @@ export default function UserManagement({ token, currentUser }) {
                         <span className="truncate">{user.phone || '-'}</span>
                       </span>
                     </td>
-                    <td className="truncate px-4 py-3 text-fg-muted">{user.citizen_id || '-'}</td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {user.citizen_id ? (
+                        <span className="inline-flex items-center gap-1.5 tabular-nums">
+                          {revealedCitizenIds[user.id] || user.citizen_id}
+                          {!revealedCitizenIds[user.id] && (
+                            <button
+                              type="button"
+                              onClick={() => handleRevealCitizenId(user)}
+                              className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                              aria-label={`Xem đủ số CCCD của ${repairVietnameseText(user.full_name)}`}
+                            >
+                              Xem
+                            </button>
+                          )}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
                     <td className="max-w-[260px] px-4 py-3 text-fg-muted">
                       <span className="inline-flex min-w-0 items-center gap-1">
                         <MapPin size={13} className="shrink-0" />
@@ -414,6 +463,17 @@ export default function UserManagement({ token, currentUser }) {
                         >
                           <Edit3 size={14} />
                         </button>
+                        {user.mfa_enabled && user.id !== currentUser?.id && (
+                          <button
+                            type="button"
+                            onClick={() => setMfaResetUser(user)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-line bg-surface text-fg-muted shadow-card transition-colors hover:bg-surface-muted hover:text-fg"
+                            title="Đặt lại xác thực hai lớp"
+                            aria-label={`Đặt lại xác thực hai lớp của ${repairVietnameseText(user.full_name)}`}
+                          >
+                            <ShieldOff size={14} />
+                          </button>
+                        )}
                         {user.status === 'ACTIVE' ? (
                           <button
                             type="button"
@@ -616,7 +676,8 @@ export default function UserManagement({ token, currentUser }) {
                   onChange={(e) => updateForm('citizen_id', e.target.value.replace(/\D/g, '').slice(0, 12))}
                   inputMode="numeric"
                   maxLength={12}
-                  required
+                  required={!editingUser}
+                  placeholder={editingUser?.citizen_id ? `Để trống = giữ nguyên (${editingUser.citizen_id})` : undefined}
                   className="input-field"
                 />
               </label>
@@ -668,6 +729,24 @@ export default function UserManagement({ token, currentUser }) {
           setAccountAction(null);
         }}
         onConfirm={handleAccountActionConfirm}
+      />
+
+      <ConfirmDialog
+        open={Boolean(mfaResetUser)}
+        tone="danger"
+        title="Đặt lại xác thực hai lớp?"
+        description={
+          mfaResetUser
+            ? `Dùng khi "${repairVietnameseText(mfaResetUser.full_name)}" mất điện thoại. Họ đăng nhập bằng mật khẩu rồi cài lại 2FA (kế toán trưởng bắt buộc cài lại ngay).`
+            : ''
+        }
+        confirmLabel="Đặt lại"
+        cancelLabel="Hủy"
+        loading={mfaResetting}
+        onCancel={() => {
+          if (!mfaResetting) setMfaResetUser(null);
+        }}
+        onConfirm={handleResetMfa}
       />
     </div>
   );
