@@ -38,6 +38,11 @@ def _use_isolated_test_database() -> str:
 
     test_url = url.set(database=test_name).render_as_string(hide_password=False)
     os.environ["DATABASE_URL"] = test_url
+    # Đặt bằng biến môi trường (không gán vào đối tượng Settings) để vẫn đúng sau get_settings.cache_clear().
+    # Mã hóa CCCD/địa chỉ bật trong test để đi đúng đường production. 2FA bắt buộc tắt ở đây (các test cũ đăng nhập
+    # bằng kế toán trưởng chưa cài 2FA); tests/test_api/test_account_security.py bật lại để kiểm tra.
+    os.environ["DATA_ENCRYPTION_KEY"] = "q3x3oN0mKj3kM2bTqk9QxJ3m7bqYQb1kGQZ3Yx8wJ2s="
+    os.environ["MFA_ENFORCED"] = "false"
     return test_url
 
 

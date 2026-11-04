@@ -399,3 +399,37 @@ export async function createCheckout(token, plan, months) {
     await authFetch('/billing/checkout', token, { method: 'POST', body: JSON.stringify({ plan, months }) }),
   );
 }
+
+// --- Xác thực hai lớp, CCCD ------------------------------------------------------------------------------------
+
+export function loginWithMfa(mfaToken, code) {
+  return postPublic('/auth/login/mfa', { mfa_token: mfaToken, code });
+}
+
+export async function startMfaSetup(token) {
+  return parseResponse(await authFetch('/auth/mfa/setup', token, { method: 'POST' }));
+}
+
+export async function enableMfa(token, code) {
+  return parseResponse(await authFetch('/auth/mfa/enable', token, { method: 'POST', body: JSON.stringify({ code }) }));
+}
+
+export async function disableMfa(token, password, code) {
+  return parseResponse(
+    await authFetch('/auth/mfa/disable', token, { method: 'POST', body: JSON.stringify({ password, code }) }),
+  );
+}
+
+export async function regenerateRecoveryCodes(token, code) {
+  return parseResponse(
+    await authFetch('/auth/mfa/recovery-codes', token, { method: 'POST', body: JSON.stringify({ code }) }),
+  );
+}
+
+export async function resetUserMfa(token, userId) {
+  return parseResponse(await authFetch(`/auth/users/${userId}/mfa/reset`, token, { method: 'POST' }));
+}
+
+export async function revealCitizenId(token, userId) {
+  return parseResponse(await authFetch(`/auth/users/${userId}/citizen-id`, token));
+}

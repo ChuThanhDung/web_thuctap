@@ -34,6 +34,8 @@ main() {
 
   git fetch --prune origin
   git checkout --detach "${1:-origin/main}"
+  # Khóa mã hóa dữ liệu cá nhân và các khóa tự sinh khác (chỉ thêm khi .env còn thiếu).
+  APP_DIR="$PWD" bash deploy/gcp/ensure-secrets.sh
   local tag owner registry
   tag=$(git rev-parse HEAD)
   owner=$(git config --get remote.origin.url | sed -E 's#.*github\.com[:/]([^/]+)/.*#\1#' | tr '[:upper:]' '[:lower:]')

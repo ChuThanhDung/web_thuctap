@@ -63,6 +63,15 @@ jobs:
       - name: Run Ruff Linter
         run: ruff check src/ tests/ migrations/ scripts/ eval/
 
+      # Lỗ hổng đã công bố trong thư viện dùng ở production. Có lỗ hổng chưa có bản vá mà chấp nhận được thì thêm
+      # --ignore-vuln <ID> kèm lý do ở docs/security/checklist.md.
+      - name: Audit Python dependencies (pip-audit)
+        run: pip-audit -r requirements.txt --progress-spinner off
+
+      # Lỗi bảo mật thường gặp trong code (mức trung bình trở lên).
+      - name: Static security analysis (bandit)
+        run: bandit -r src -ll -q
+
       - name: Apply database migrations
         run: alembic upgrade head
 
@@ -93,6 +102,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Chỉ thư viện đóng gói vào bản build (bỏ công cụ dev như vitest), chặn mức high trở lên.
+      - name: Audit production dependencies (npm audit)
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run unit tests
         run: npm test

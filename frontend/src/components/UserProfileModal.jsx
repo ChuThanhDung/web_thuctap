@@ -1,4 +1,5 @@
 import Modal from '../ui/Modal.jsx';
+import MfaSettings from './MfaSettings.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Badge,
@@ -290,6 +291,7 @@ export default function UserProfileModal({ token, user, onClose, onUserUpdate })
                       Đổi mật khẩu
                     </button>
                   </div>
+                  <MfaSettings token={token} user={user} onUserUpdate={onUserUpdate} />
                 </>
               )}
 

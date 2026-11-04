@@ -40,6 +40,9 @@ ask SEPAY_WEBHOOK_API_KEY "SePay: API key của webhook" "$(old SEPAY_WEBHOOK_AP
 # Phiên bản image đang chạy do update.sh ghi; giữ nguyên để không đổi bản đang chạy.
 IMAGE_REGISTRY=$(old IMAGE_REGISTRY)
 IMAGE_TAG=$(old IMAGE_TAG)
+# Khóa mã hóa dữ liệu cá nhân: giữ nguyên khóa cũ (đổi khóa = mất dữ liệu đã mã hóa); chưa có thì tạo mới.
+DATA_ENCRYPTION_KEY=$(old DATA_ENCRYPTION_KEY)
+DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY:-$(openssl rand -base64 32 | tr '+/' '-_')}
 
 cp .env ".env.bak.$(date +%Y%m%d_%H%M%S)"
 umask 077
@@ -86,6 +89,9 @@ SEPAY_BANK_CODE=$SEPAY_BANK_CODE
 SEPAY_BANK_ACCOUNT=$SEPAY_BANK_ACCOUNT
 SEPAY_ACCOUNT_NAME=$SEPAY_ACCOUNT_NAME
 SEPAY_WEBHOOK_API_KEY=$SEPAY_WEBHOOK_API_KEY
+
+# Mã hóa CCCD/địa chỉ/khóa 2FA. KHÔNG đổi, KHÔNG xóa; sao lưu vào trình quản lý mật khẩu.
+DATA_ENCRYPTION_KEY=$DATA_ENCRYPTION_KEY
 
 # Image đang chạy (deploy/gcp/update.sh tự cập nhật hai dòng này)
 IMAGE_REGISTRY=$IMAGE_REGISTRY

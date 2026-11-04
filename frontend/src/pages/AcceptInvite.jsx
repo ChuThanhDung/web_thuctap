@@ -80,7 +80,7 @@ export default function AcceptInvite({ onLogin }) {
             <Field label="Họ tên" required>
               <Input value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" minLength={2} maxLength={100} />
             </Field>
-            <Field label="Mật khẩu" hint="Tối thiểu 8 ký tự, có cả chữ và số." error={passwordError} required>
+            <Field label="Mật khẩu" hint="Tối thiểu 10 ký tự, có cả chữ và số." error={passwordError} required>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}

@@ -54,6 +54,9 @@ class AuthUser(BaseModel):
     phone: str | None = None
     avatar_url: str | None = None
     organization: OrganizationSummary | None = None
+    mfa_enabled: bool = False
+    # Vai trò bắt buộc 2FA nhưng chưa bật: giao diện chỉ hiện màn hình cài đặt.
+    mfa_setup_required: bool = False
 
 
 class LoginResponse(BaseModel):
@@ -62,12 +65,60 @@ class LoginResponse(BaseModel):
     user: AuthUser
 
 
-PASSWORD_MIN_LENGTH = 8
-COMMON_WEAK_PASSWORDS = {"123456", "12345678", "123456789", "password", "password1", "admin123", "qwerty123", "11111111"}
+class LoginStepResponse(BaseModel):
+    """Kết quả bước mật khẩu: đăng nhập luôn (access_token + user), hoặc cần nhập mã 2FA (mfa_token)."""
+
+    access_token: str | None = None
+    token_type: str = "bearer"
+    user: AuthUser | None = None
+    mfa_required: bool = False
+    mfa_token: str | None = None
+
+
+class MfaLoginRequest(BaseModel):
+    mfa_token: str = Field(..., min_length=20, max_length=200)
+    code: str = Field(..., min_length=6, max_length=12)
+
+
+class MfaCodeRequest(BaseModel):
+    code: str = Field(..., min_length=6, max_length=12)
+
+
+class MfaDisableRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=128)
+    code: str = Field(..., min_length=6, max_length=12)
+
+
+class MfaSetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    qr_svg: str
+
+
+class MfaRecoveryCodesResponse(BaseModel):
+    recovery_codes: list[str]
+
+
+class CitizenIdResponse(BaseModel):
+    citizen_id: str | None
+
+
+PASSWORD_MIN_LENGTH = 10
+# Mật khẩu hay bị đoán (danh sách lộ phổ biến và kiểu hay gặp ở Việt Nam). So không phân biệt hoa thường.
+# Giữ khớp với frontend/src/passwordPolicy.js.
+COMMON_WEAK_PASSWORDS = {
+    "123456", "12345678", "123456789", "1234567890", "0123456789", "12345678910", "1234567890a", "a1234567890",
+    "password", "password1", "password12", "password123", "password1234", "passw0rd123",
+    "admin123", "admin12345", "admin@123", "administrator", "qwerty123", "qwerty1234", "qwertyuiop", "1q2w3e4r5t",
+    "11111111", "1111111111", "00000000", "0000000000", "88888888", "8888888888", "abc12345678", "abcd123456",
+    "iloveyou123", "matkhau123", "matkhau1234", "matkhaumoi1", "docusync123", "docusyncai1", "ketoan12345",
+    "ketoan123456", "congty12345", "vietnam1234", "hanoi123456", "saigon12345", "welcome123", "welcome1234",
+    "changeme123", "letmein1234", "zaq12wsxcde", "1qaz2wsx3edc", "asdfghjkl1", "zxcvbnm123", "abc123456789",
+}  # fmt: skip
 
 
 def validate_password_strength(value: str) -> str:
-    """Chính sách mật khẩu: tối thiểu 8 ký tự, có cả chữ và số, không thuộc danh sách mật khẩu phổ biến."""
+    """Chính sách mật khẩu: tối thiểu 10 ký tự, có cả chữ và số, không thuộc danh sách mật khẩu phổ biến."""
     if len(value) < PASSWORD_MIN_LENGTH:
         raise ValueError(f"Mật khẩu phải có tối thiểu {PASSWORD_MIN_LENGTH} ký tự.")
     if not any(ch.isalpha() for ch in value) or not any(ch.isdigit() for ch in value):
@@ -154,7 +205,7 @@ class SignupRequestIn(BaseModel):
     tax_id: str | None = Field(default=None, pattern=r"^\d{10}(-\d{3})?$")
     full_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=1, max_length=128)
     accept_terms: bool
 
     @field_validator("password")
@@ -218,7 +269,7 @@ class InvitationLookupResponse(BaseModel):
 
 class InvitationAcceptRequest(BaseModel):
     token: str = Field(..., min_length=20, max_length=200)
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=1, max_length=128)
     full_name: str | None = Field(default=None, min_length=2, max_length=100)
 
     @field_validator("password")

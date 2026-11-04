@@ -13,8 +13,8 @@ describe('getPasswordPolicyError', () => {
   });
 
   it('requires both letters and digits', () => {
-    expect(getPasswordPolicyError('abcdefgh')).toMatch(/chữ và số/);
-    expect(getPasswordPolicyError('12345678')).toMatch(/chữ và số/);
+    expect(getPasswordPolicyError('abcdefghijk')).toMatch(/chữ và số/);
+    expect(getPasswordPolicyError('12345678901')).toMatch(/chữ và số/);
   });
 
   it('accepts accented letters as letters', () => {
@@ -22,7 +22,9 @@ describe('getPasswordPolicyError', () => {
   });
 
   it('rejects common weak passwords regardless of case', () => {
-    expect(getPasswordPolicyError('Password1')).toMatch(/phổ biến/);
-    expect(getPasswordPolicyError('QWERTY123')).toMatch(/phổ biến/);
+    expect(getPasswordPolicyError('Password123')).toMatch(/phổ biến/);
+    expect(getPasswordPolicyError('MATKHAU1234')).toMatch(/phổ biến/);
+    // Đủ 8 ký tự theo quy tắc cũ nhưng nay phải từ 10 ký tự.
+    expect(getPasswordPolicyError('Abcdef12')).toContain('10');
   });
 });

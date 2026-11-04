@@ -108,6 +108,12 @@ jobs:
       contents: read
       packages: read # token tạm để máy ảo pull image private, hết hạn khi job xong
     steps:
+      - name: Checkout the deploy scripts
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.commit }}
+          sparse-checkout: deploy/gcp
+
       - name: Set up SSH key
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -123,6 +129,13 @@ jobs:
           chmod 600 ~/.ssh/deploy
           ssh-keygen -y -f ~/.ssh/deploy > /dev/null || { echo "DEPLOY_SSH_KEY không phải khóa hợp lệ"; exit 1; }
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      # update.sh đang nằm trên máy có thể là bản cũ, nên gửi thẳng nội dung script qua SSH.
+      - name: Make sure the server .env has generated secrets
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: ssh -i ~/.ssh/deploy "$DEPLOY_USER@$DEPLOY_HOST" 'bash -s' < deploy/gcp/ensure-secrets.sh
 
       - name: Run update script on the VM
         env:

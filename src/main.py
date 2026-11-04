@@ -12,6 +12,7 @@ from src.api.admin import router as admin_router
 from src.api.audit_logs import router as audit_logs_router
 from src.api.auth import router as auth_router
 from src.api.billing import router as billing_router
+from src.api.mfa import router as mfa_router
 from src.api.notifications import router as notifications_router
 from src.api.reconciliations import router as reconciliations_router
 from src.api.routes import router
@@ -180,6 +181,43 @@ def seed_initial_data_if_needed() -> None:
             print(f"Error seeding initial data: {e}")
 
 
+def protect_personal_data() -> None:
+    """Mã hóa CCCD/địa chỉ còn lưu dạng chữ thường và tính lại dấu vân tay CCCD (đổi khóa thì dấu vân tay đổi theo).
+
+    Chạy mỗi lần khởi động, bỏ qua dòng đã xong nên chạy lại không sao. Không có khóa thì chỉ cảnh báo.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from src.database import use_system_context
+    from src.models.user import User
+    from src.services.crypto import blind_index, encrypt, is_encrypted
+
+    if not settings.data_encryption_key:
+        if settings.app_env == "production":
+            logger.error("Chưa đặt DATA_ENCRYPTION_KEY: CCCD và địa chỉ đang lưu không mã hóa.")
+        return
+    with Session(engine) as db:
+        use_system_context(db)
+        rows = db.execute(select(User.id, User.__table__.c.citizen_id, User.__table__.c.address)).all()
+        changed = 0
+        for user_id, raw_citizen_id, raw_address in rows:
+            needs_encrypt = (raw_citizen_id and not is_encrypted(raw_citizen_id)) or (
+                raw_address and not is_encrypted(raw_address)
+            )
+            user = db.get(User, user_id)
+            expected_hash = blind_index(user.citizen_id)
+            if needs_encrypt or user.citizen_id_hash != expected_hash:
+                # Gán lại để kiểu EncryptedText ghi bản mã hóa.
+                user.citizen_id = encrypt(user.citizen_id)
+                user.address = encrypt(user.address)
+                user.citizen_id_hash = expected_hash
+                changed += 1
+        db.commit()
+        if changed:
+            logger.info("Đã mã hóa/cập nhật dữ liệu cá nhân của %s người dùng.", changed)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -190,6 +228,7 @@ async def lifespan(app: FastAPI):
     engine.dispose()
     seed_initial_data_if_needed()
     secure_default_password_accounts()
+    protect_personal_data()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield
     print("Shutting down...")
@@ -241,6 +280,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(signup_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(billing_router, prefix="/api/v1")
+app.include_router(mfa_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(reconciliations_router, prefix="/api/v1")
 app.include_router(audit_logs_router, prefix="/api/v1")
