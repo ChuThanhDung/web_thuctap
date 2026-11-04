@@ -29,6 +29,8 @@ import ApprovalConfirmBody from '../components/ApprovalConfirmBody.jsx';
 import FilePreviewModal from '../components/FilePreviewModal.jsx';
 import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
 import BatchListItem, { BatchMetaLine, ForeignCopyNotice } from '../components/BatchListItem.jsx';
+import AgentInvestigate from '../components/AgentInvestigate.jsx';
+import SupplierEmailComposer, { canDraftSupplierEmail } from '../components/SupplierEmailComposer.jsx';
 import ReconciliationReportModal from '../components/ReconciliationReportModal.jsx';
 import {
   aggregateExtractedData,
@@ -657,6 +659,7 @@ export default function AuditTrail({ token, role, currentUser }) {
   }), [searchParams]);
   const cached = getCachedBatches();
   const [batches, setBatches] = useState(() => (cached?.items || []).map(mapApiBatchToAuditBatch));
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedId, setSelectedId] = useState(() => {
     const initialBatches = (cached?.items || []).map(mapApiBatchToAuditBatch);
     if (requestedBatchId) {
@@ -738,7 +741,7 @@ export default function AuditTrail({ token, role, currentUser }) {
     return () => {
       isMounted = false;
     };
-  }, [token, requestedBatchId]);
+  }, [token, requestedBatchId, reloadKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1103,6 +1106,18 @@ export default function AuditTrail({ token, role, currentUser }) {
                 <RejectionNoteAlert note={modalBatch.rejectionNote} />
               )}
               <ForeignCopyNotice foreignCopy={modalBatch.foreignCopy} />
+              <AgentInvestigate
+                key={modalBatch.id}
+                token={token}
+                batch={modalBatch}
+                onChanged={() => setReloadKey((value) => value + 1)}
+              />
+              {canDraftSupplierEmail(modalBatch) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-line bg-surface-muted px-4 py-3 text-sm">
+                  <p className="text-fg-muted">Trợ lý soạn sẵn thư đề nghị nhà cung cấp điều chỉnh, kèm đúng các dòng lệch.</p>
+                  <SupplierEmailComposer token={token} batch={modalBatch} />
+                </div>
+              )}
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => {

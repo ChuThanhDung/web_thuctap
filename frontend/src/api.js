@@ -504,3 +504,34 @@ export async function proposeSort(token) {
 export async function applySort(token, groups) {
   return parseResponse(await authFetch('/agent/sort/apply', token, { method: 'POST', body: JSON.stringify({ groups }) }));
 }
+
+/** Trợ lý điều tra bộ lệch: { odd_copy, proposals, summary: { conclusion, next_step }, ai_used }. */
+export async function investigateBatch(token, batchId) {
+  return parseResponse(await authFetch(`/agent/batches/${batchId}/investigate`, token, { method: 'POST' }));
+}
+
+/** Đồng ý đề xuất đổi liên: incomingUploadId vào bộ, liên hiện tại về chỗ của nó. */
+export async function swapBatchCopy(token, batchId, docType, incomingUploadId) {
+  return parseResponse(
+    await authFetch(`/agent/batches/${batchId}/swap`, token, {
+      method: 'POST',
+      body: JSON.stringify({ doc_type: docType, incoming_upload_id: incomingUploadId }),
+    }),
+  );
+}
+
+/** Bản nháp thư gửi nhà cung cấp: { subject, body, to, supplier, ai_used, can_send }. Không gửi gì. */
+export async function draftSupplierEmail(token, batchId) {
+  return parseResponse(await authFetch(`/agent/batches/${batchId}/supplier-email`, token, { method: 'POST' }));
+}
+
+export async function sendSupplierEmail(token, batchId, letter) {
+  return parseResponse(
+    await authFetch(`/agent/batches/${batchId}/supplier-email/send`, token, { method: 'POST', body: JSON.stringify(letter) }),
+  );
+}
+
+/** Hỏi trợ lý: messages = [{ role: 'user'|'assistant', content }]. Trả { answer, batches: [{ batch_number, id }] }. */
+export async function askAssistant(token, messages) {
+  return parseResponse(await authFetch('/agent/chat', token, { method: 'POST', body: JSON.stringify({ messages }) }));
+}

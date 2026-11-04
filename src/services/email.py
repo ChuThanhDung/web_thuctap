@@ -52,7 +52,16 @@ def _button(url: str, label: str) -> str:
     )
 
 
-def _send_email(to_email: str, subject: str, text_body: str, html_body: str, framed: bool = True) -> bool:
+def _send_email(
+    to_email: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    framed: bool = True,
+    *,
+    reply_to: str | None = None,
+    cc: str | None = None,
+) -> bool:
     """framed=False khi html_body đã tự có khung đầy đủ (email bộ bị từ chối)."""
     settings = get_settings()
     if framed:
@@ -65,6 +74,10 @@ def _send_email(to_email: str, subject: str, text_body: str, html_body: str, fra
     message["Subject"] = subject
     message["From"] = settings.smtp_from or settings.smtp_user
     message["To"] = to_email
+    if reply_to:
+        message["Reply-To"] = reply_to
+    if cc:
+        message["Cc"] = cc
     message.attach(MIMEText(text_body, "plain", "utf-8"))
     message.attach(MIMEText(html_body, "html", "utf-8"))
 
@@ -344,3 +357,16 @@ def send_welcome_email(to_email: str, full_name: str, company_name: str, trial_e
     <p style="color:#50607c;font-size:13px">Cần trợ giúp? Xem <a href="{escape(app_url, quote=True)}/huong-dan" style="color:#1f4fa3">hướng dẫn sử dụng</a>.</p>
     """
     return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_supplier_letter(to_email: str, subject: str, body: str, *, sender: str, organization_name: str) -> bool:
+    """Thư người dùng gửi nhà cung cấp qua trợ lý. Nhà cung cấp trả lời thẳng về người gửi (Reply-To), người gửi nhận
+    một bản (Cc). Không dùng khung DocuSync: đây là thư của công ty người dùng."""
+    footer = f"Thư được gửi qua DocuSync AI thay mặt {organization_name}. Vui lòng trả lời trực tiếp email này."
+    text_body = f"{body}\n\n--\n{footer}"
+    html_body = (
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#0e1b33;'
+        f'white-space:pre-wrap">{escape(body)}</div>'
+        f'<p style="margin-top:24px;color:#50607c;font-size:12px">{escape(footer)}</p>'
+    )
+    return _send_email(to_email, subject, text_body, html_body, framed=False, reply_to=sender, cc=sender)

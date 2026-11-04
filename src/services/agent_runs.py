@@ -42,7 +42,8 @@ def agent_run(db: Session, user: User, kind: str, input_summary: dict, *, check_
     except Exception:
         # Bỏ thay đổi dở dang của lần chạy lỗi, nhưng vẫn ghi lại lần chạy (và lượt AI đã tốn) bên dưới.
         db.rollback()
-        context.status = "error"
+        if context.status == "ok":
+            context.status = "error"
         raise
     finally:
         run = AgentRun(

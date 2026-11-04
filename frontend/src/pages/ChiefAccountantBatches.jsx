@@ -35,6 +35,7 @@ import useMediaQuery from '../lib/useMediaQuery.js';
 import FilePreviewModal from '../components/FilePreviewModal.jsx';
 import ReconciliationHistorySection from '../components/ReconciliationHistorySection.jsx';
 import BatchListItem, { BatchMetaLine, ForeignCopyNotice } from '../components/BatchListItem.jsx';
+import SupplierEmailComposer, { canDraftSupplierEmail } from '../components/SupplierEmailComposer.jsx';
 import {
   aggregateExtractedData,
   calculateMatchSummary,
@@ -1150,6 +1151,12 @@ export default function ChiefAccountantBatches({ token }) {
               </div>
 
               <ForeignCopyNotice foreignCopy={detailBatch.foreignCopy} />
+              {canDraftSupplierEmail(detailBatch) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-line bg-surface-muted px-4 py-3 text-sm">
+                  <p className="text-fg-muted">Trợ lý soạn sẵn thư đề nghị nhà cung cấp điều chỉnh, kèm đúng các dòng lệch.</p>
+                  <SupplierEmailComposer token={token} batch={detailBatch} />
+                </div>
+              )}
 
               <div className="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                 {DOC_TYPES.map((type) => {
