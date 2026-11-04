@@ -219,13 +219,16 @@ def system_prompt(user: User) -> str:
         "Chỉ trả lời dựa trên dữ liệu lấy từ công cụ; không có dữ liệu thì nói không có, không đoán. "
         "Bạn chỉ đọc dữ liệu: không duyệt, không sửa, không xóa được gì; nếu được nhờ làm việc đó, hướng dẫn người dùng "
         "tự làm trên giao diện. Khi nhắc tới một bộ, ghi đúng mã bộ (ví dụ BATCH_02_11_2026_03). "
-        "Trả lời tiếng Việt, ngắn gọn, dùng gạch đầu dòng khi liệt kê; tiền viết dạng 1.234.000 đ."
+        "Trả lời tiếng Việt, ngắn gọn, dùng gạch đầu dòng '- ' khi liệt kê, KHÔNG dùng markdown (không **, #); "
+        "tiền viết dạng 1.234.000 đ."
     )
 
 
 def answer(db: Session, user: User, messages: list[dict], meter: AgentMeter) -> dict:
     data = CompanyData(db, user)
     text = chat_with_tools(system_prompt(user), messages, tool_specs(data), meter, max_steps=4)
+    # Khung chat hiện chữ thô: bỏ dấu in đậm markdown nếu mô hình vẫn dùng.
+    text = text.replace("**", "")
     mentioned = [
         {"batch_number": row["batch_number"], "id": row["id"]} for row in data.rows if row["batch_number"] in text
     ]

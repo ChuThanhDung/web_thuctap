@@ -203,9 +203,10 @@ SUMMARY_SCHEMA = {
     "properties": {"conclusion": {"type": "string"}, "next_step": {"type": "string"}},
 }
 SUMMARY_SYSTEM = (
-    "Bạn là kế toán trưởng Việt Nam. Từ kết quả kiểm tra bộ chứng từ (PO, Hóa đơn, Phiếu nhập kho) dưới dạng JSON, "
-    "viết 'conclusion' (1-2 câu, nói chuyện gì đã xảy ra, nêu số chứng từ và tên bộ) và 'next_step' (1 câu, việc cần "
-    "làm). Chỉ dùng thông tin có trong JSON, không bịa số. Văn phong ngắn gọn, lịch sự."
+    "Bạn là kế toán trưởng Việt Nam. Hệ thống đã kiểm tra một bộ chứng từ (PO, Hóa đơn, Phiếu nhập kho) và đưa ra "
+    "'ket_luan_he_thong' cùng 'viec_can_lam_he_thong'. Viết lại hai ý đó rõ ràng, cụ thể hơn cho kế toán: "
+    "'conclusion' (1-2 câu: liên nào thuộc giao dịch khác, của nhà cung cấp nào, số chứng từ nào) và 'next_step' "
+    "(1 câu). GIỮ NGUYÊN Ý của hệ thống, không thêm kết luận khác. Không nêu số tiền. Không dùng markdown."
 )
 
 
@@ -215,6 +216,8 @@ def summarize(findings: dict, meter: AgentMeter, *, may_use_ai: bool) -> tuple[d
     if not (may_use_ai and is_available() and findings.get("odd_copy")):
         return fallback, False
     compact = {
+        "ket_luan_he_thong": fallback["conclusion"],
+        "viec_can_lam_he_thong": fallback["next_step"],
         "bo": findings["batch_number"],
         "lien_lac_loai": findings["odd_copy"],
         "de_xuat": [
