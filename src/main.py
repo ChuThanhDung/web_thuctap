@@ -14,6 +14,7 @@ from src.api.auth import router as auth_router
 from src.api.billing import router as billing_router
 from src.api.mfa import router as mfa_router
 from src.api.notifications import router as notifications_router
+from src.api.privacy import router as privacy_router
 from src.api.reconciliations import router as reconciliations_router
 from src.api.routes import router
 from src.api.signup import router as signup_router
@@ -281,6 +282,7 @@ app.include_router(signup_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(billing_router, prefix="/api/v1")
 app.include_router(mfa_router, prefix="/api/v1")
+app.include_router(privacy_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(reconciliations_router, prefix="/api/v1")
 app.include_router(audit_logs_router, prefix="/api/v1")

@@ -94,8 +94,11 @@ function CompanyStep({ form, setForm, onSent }) {
       <label className="flex items-start gap-2.5 text-sm text-fg-muted">
         <input type="checkbox" checked={form.accept_terms} onChange={set('accept_terms')} required className="mt-0.5 h-4 w-4 accent-[rgb(var(--c-primary))]" />
         <span>
-          Tôi đồng ý với điều khoản sử dụng và chính sách bảo vệ dữ liệu. Chứng từ PDF/ảnh được gửi tới dịch vụ AI để đọc;
-          chứng từ XML được đọc ngay trên hệ thống.
+          Tôi đồng ý với{' '}
+          <Link to={ROUTES.terms} target="_blank" className="font-semibold text-primary underline-offset-2 hover:underline">Điều khoản sử dụng</Link>,{' '}
+          <Link to={ROUTES.privacyPolicy} target="_blank" className="font-semibold text-primary underline-offset-2 hover:underline">Chính sách bảo vệ dữ liệu</Link> và{' '}
+          <Link to={ROUTES.dpa} target="_blank" className="font-semibold text-primary underline-offset-2 hover:underline">Thỏa thuận xử lý dữ liệu</Link>. Chứng từ PDF/ảnh được gửi tới
+          dịch vụ AI ở Hoa Kỳ để đọc; XML đọc ngay trên hệ thống.
         </span>
       </label>
 

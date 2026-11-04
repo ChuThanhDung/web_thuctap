@@ -9,11 +9,12 @@ const ITEMS = {
   settings: { to: ROUTES.settings, icon: 'settings', label: vi.nav.settings },
   admin: { to: ROUTES.admin, icon: 'admin', label: vi.nav.admin },
   billing: { to: ROUTES.billing, icon: 'billing', label: vi.nav.billing },
+  privacy: { to: ROUTES.privacy, icon: 'privacy', label: vi.nav.privacy },
 };
 
 const MENUS = {
   accountant: ['overview', 'upload', 'batches'],
-  chief_accountant: ['overview', 'batches', 'users', 'settings', 'billing'],
+  chief_accountant: ['overview', 'batches', 'users', 'settings', 'billing', 'privacy'],
   platform_admin: ['admin'],
 };
 

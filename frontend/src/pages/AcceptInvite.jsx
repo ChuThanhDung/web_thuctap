@@ -19,6 +19,7 @@ export default function AcceptInvite({ onLogin }) {
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [acceptTermsChecked, setAcceptTermsChecked] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +46,7 @@ export default function AcceptInvite({ onLogin }) {
     setError('');
     setLoading(true);
     try {
-      onLogin(await acceptInvitation(token, password, fullName.trim()));
+      onLogin(await acceptInvitation(token, password, fullName.trim(), acceptTermsChecked));
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -104,13 +105,28 @@ export default function AcceptInvite({ onLogin }) {
               <Input type={showPassword ? 'text' : 'password'} value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" />
             </Field>
 
+            <label className="flex items-start gap-2.5 text-sm text-fg-muted">
+              <input
+                type="checkbox"
+                checked={acceptTermsChecked}
+                onChange={(event) => setAcceptTermsChecked(event.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 accent-[rgb(var(--c-primary))]"
+              />
+              <span>
+                Tôi đồng ý với{' '}
+                <Link to={ROUTES.terms} target="_blank" className="font-semibold text-primary underline-offset-2 hover:underline">Điều khoản sử dụng</Link> và{' '}
+                <Link to={ROUTES.privacyPolicy} target="_blank" className="font-semibold text-primary underline-offset-2 hover:underline">Chính sách bảo vệ dữ liệu</Link>.
+              </span>
+            </label>
+
             {error && (
               <p role="alert" className="rounded-control border border-tone-danger-line bg-tone-danger-bg px-3 py-2 text-sm text-tone-danger-fg">
                 {error}
               </p>
             )}
 
-            <Button type="submit" variant="primary" className="w-full" loading={loading}>
+            <Button type="submit" variant="primary" className="w-full" loading={loading} disabled={!acceptTermsChecked}>
               Tham gia {invitation.organization_name}
             </Button>
           </form>

@@ -47,12 +47,11 @@ function PlanBadge({ organization }) {
   );
 }
 
-function StatusBadge({ status }) {
-  return status === 'active' ? (
-    <Badge tone="success" size="sm">Hoạt động</Badge>
-  ) : (
-    <Badge tone="danger" size="sm" icon={ShieldOff}>Tạm khóa</Badge>
-  );
+function StatusBadge({ status, deletionScheduledFor }) {
+  if (status === 'deleted') return <Badge tone="neutral" size="sm">Đã xóa</Badge>;
+  if (status !== 'active') return <Badge tone="danger" size="sm" icon={ShieldOff}>Tạm khóa</Badge>;
+  if (deletionScheduledFor) return <Badge tone="warning" size="sm">Xóa ngày {formatDate(deletionScheduledFor)}</Badge>;
+  return <Badge tone="success" size="sm">Hoạt động</Badge>;
 }
 
 function OrganizationModal({ token, organizationId, onClose, onChanged }) {
@@ -111,7 +110,7 @@ function OrganizationModal({ token, organizationId, onClose, onChanged }) {
               </div>
               <div>
                 <dt className="text-fg-muted">Trạng thái</dt>
-                <dd><StatusBadge status={detail.status} /></dd>
+                <dd><StatusBadge status={detail.status} deletionScheduledFor={detail.deletion_scheduled_for} /></dd>
               </div>
               <div>
                 <dt className="text-fg-muted">Gói đang dùng</dt>
@@ -355,7 +354,7 @@ export default function AdminConsole({ token }) {
                   <TD className="whitespace-nowrap text-fg-muted">
                     {organization.last_activity_at ? formatDate(organization.last_activity_at) : 'Chưa dùng'}
                   </TD>
-                  <TD><StatusBadge status={organization.status} /></TD>
+                  <TD><StatusBadge status={organization.status} deletionScheduledFor={organization.deletion_scheduled_for} /></TD>
                 </TR>
               ))}
             </TBody>

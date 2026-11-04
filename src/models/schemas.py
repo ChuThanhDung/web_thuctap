@@ -37,6 +37,8 @@ class OrganizationSummary(BaseModel):
     trial_ends_at: datetime | None = None
     plan_expires_at: datetime | None = None
     status: str
+    ai_enabled: bool = True
+    deletion_scheduled_for: datetime | None = None
 
 
 class AuthUser(BaseModel):
@@ -57,6 +59,8 @@ class AuthUser(BaseModel):
     mfa_enabled: bool = False
     # Vai trò bắt buộc 2FA nhưng chưa bật: giao diện chỉ hiện màn hình cài đặt.
     mfa_setup_required: bool = False
+    # Chưa đồng ý phiên bản điều khoản hiện tại: giao diện hỏi đồng ý trước khi dùng tiếp.
+    terms_acceptance_required: bool = False
 
 
 class LoginResponse(BaseModel):
@@ -271,6 +275,14 @@ class InvitationAcceptRequest(BaseModel):
     token: str = Field(..., min_length=20, max_length=200)
     password: str = Field(..., min_length=1, max_length=128)
     full_name: str | None = Field(default=None, min_length=2, max_length=100)
+    accept_terms: bool = False
+
+    @field_validator("accept_terms")
+    @classmethod
+    def terms_accepted(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Bạn cần đồng ý với điều khoản sử dụng.")
+        return value
 
     @field_validator("password")
     @classmethod
@@ -287,6 +299,8 @@ class AdminOrganizationRow(BaseModel):
     status: str
     trial_ends_at: datetime | None
     plan_expires_at: datetime | None = None
+    deletion_scheduled_for: datetime | None = None
+    ai_enabled: bool = True
     created_at: datetime | None
     user_count: int
     batch_count: int
@@ -695,3 +709,32 @@ class PaymentOut(BaseModel):
     paid_at: datetime | None
     period_end: datetime | None
     transfer: BankTransferOut | None = None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PRIVACY / LEGAL SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class LegalInfo(BaseModel):
+    terms_version: str
+    operator_name: str
+    contact_email: str
+    server_location: str
+    ai_providers: list[str]
+
+
+class PrivacySettings(BaseModel):
+    ai_enabled: bool
+    deletion_requested_at: datetime | None = None
+    deletion_scheduled_for: datetime | None = None
+
+
+class PrivacySettingsUpdate(BaseModel):
+    ai_enabled: bool
+
+
+class DeletionRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=128)
+    # Gõ lại đúng tên công ty để xác nhận.
+    confirm_name: str = Field(..., min_length=1, max_length=255)

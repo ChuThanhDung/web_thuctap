@@ -52,6 +52,7 @@ from src.services.crypto import blind_index, mask_citizen_id
 from src.services.mfa import create_challenge, mfa_enabled, mfa_setup_pending
 from src.services.organizations import effective_plan
 from src.services.plans import ensure_can_add_user
+from src.services.privacy import terms_acceptance_required
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -82,6 +83,8 @@ def to_organization_summary(organization: Organization | None) -> OrganizationSu
         trial_ends_at=organization.trial_ends_at,
         plan_expires_at=organization.plan_expires_at,
         status=organization.status,
+        ai_enabled=organization.ai_enabled,
+        deletion_scheduled_for=organization.deletion_scheduled_for,
     )
 
 
@@ -89,7 +92,9 @@ def organization_block_reason(user: User) -> str | None:
     """Lý do không cho tài khoản dùng hệ thống (công ty bị khóa, tài khoản lỗi), hoặc None nếu được phép."""
     if user.organization_id is None:
         return None if user.role.code == PLATFORM_ADMIN else "Tài khoản chưa thuộc công ty nào."
-    if user.organization is None or user.organization.status != "active":
+    if user.organization is None or user.organization.status == "deleted":
+        return "Công ty của bạn đã bị xóa khỏi hệ thống."
+    if user.organization.status != "active":
         return "Công ty của bạn đang tạm khóa. Vui lòng liên hệ bộ phận hỗ trợ."
     return None
 
@@ -112,6 +117,7 @@ def to_auth_user(user: User) -> AuthUser:
         citizen_id=mask_citizen_id(user.citizen_id),
         mfa_enabled=mfa_enabled(user),
         mfa_setup_required=mfa_setup_pending(user),
+        terms_acceptance_required=terms_acceptance_required(user),
         phone=user.phone,
         avatar_url=user.avatar_url,
         organization=to_organization_summary(user.organization),

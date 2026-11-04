@@ -245,14 +245,14 @@ async def test_invited_accountant_joins_the_inviting_company_only(client, outbox
     assert lookup.status_code == 200
     assert lookup.json()["organization_name"] == "Công ty Đăng ký Thử"
 
-    accepted = await client.post("/api/v1/auth/invitations/accept", json={"token": token, "password": PASSWORD})
+    accepted = await client.post("/api/v1/auth/invitations/accept", json={"token": token, "password": PASSWORD, "accept_terms": True})
     assert accepted.status_code == 200, accepted.text
     user = accepted.json()["user"]
     assert user["role"] == "accountant"
     assert user["organization"]["id"] == org_id
 
     # Link chỉ dùng được một lần; lời mời không còn trong danh sách chờ.
-    again = await client.post("/api/v1/auth/invitations/accept", json={"token": token, "password": PASSWORD})
+    again = await client.post("/api/v1/auth/invitations/accept", json={"token": token, "password": PASSWORD, "accept_terms": True})
     assert again.status_code == 404
     assert (await client.get("/api/v1/auth/invitations", headers=chief)).json() == []
 
@@ -279,7 +279,7 @@ async def test_revoked_invitation_cannot_be_used_and_is_private_to_the_company(c
     assert (await client.delete(f"/api/v1/auth/invitations/{created['id']}", headers=demo_chief)).status_code == 404
 
     assert (await client.delete(f"/api/v1/auth/invitations/{created['id']}", headers=chief)).status_code == 200
-    response = await client.post("/api/v1/auth/invitations/accept", json={"token": token, "password": PASSWORD})
+    response = await client.post("/api/v1/auth/invitations/accept", json={"token": token, "password": PASSWORD, "accept_terms": True})
     assert response.status_code == 404
 
 

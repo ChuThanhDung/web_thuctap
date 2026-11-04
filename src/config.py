@@ -111,6 +111,11 @@ class Settings(BaseSettings):
     mfa_challenge_ttl_seconds: int = Field(default=300, ge=60, le=1800)
     mfa_max_attempts: int = Field(default=5, ge=1, le=10)
 
+    # Thông tin hiện trên trang Điều khoản / Chính sách bảo vệ dữ liệu. Email liên hệ trống thì dùng SMTP_FROM/SMTP_USER.
+    legal_operator_name: str = "DocuSync AI"
+    legal_contact_email: str = ""
+    legal_server_location: str = "Google Cloud, Singapore"
+
     # Login brute-force protection (đếm số lần LOGIN_FAILED trong audit_logs)
     login_max_attempts: int = Field(default=5, ge=1, le=100)  # cùng email + cùng IP
     login_max_attempts_per_ip: int = Field(default=30, ge=1, le=10000)

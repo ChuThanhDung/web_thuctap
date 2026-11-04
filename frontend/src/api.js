@@ -337,8 +337,13 @@ export async function lookupInvitation(token) {
   return parseResponse(response, { triggerUnauthorized: false });
 }
 
-export function acceptInvitation(token, password, fullName) {
-  return postPublic('/auth/invitations/accept', { token, password, full_name: fullName || null });
+export function acceptInvitation(token, password, fullName, acceptTerms = false) {
+  return postPublic('/auth/invitations/accept', {
+    token,
+    password,
+    full_name: fullName || null,
+    accept_terms: acceptTerms,
+  });
 }
 
 export async function getCurrentUser(token) {
@@ -432,4 +437,44 @@ export async function resetUserMfa(token, userId) {
 
 export async function revealCitizenId(token, userId) {
   return parseResponse(await authFetch(`/auth/users/${userId}/citizen-id`, token));
+}
+
+// --- Pháp lý, quyền dữ liệu ------------------------------------------------------------------------------------
+
+export async function getLegalInfo() {
+  return parseResponse(await fetch(`${API_BASE_URL}/legal`), { triggerUnauthorized: false });
+}
+
+export async function acceptTerms(token) {
+  return parseResponse(await authFetch('/auth/terms/accept', token, { method: 'POST' }));
+}
+
+export async function getPrivacySettings(token) {
+  return parseResponse(await authFetch('/privacy/settings', token));
+}
+
+export async function updatePrivacySettings(token, settings) {
+  return parseResponse(await authFetch('/privacy/settings', token, { method: 'PATCH', body: JSON.stringify(settings) }));
+}
+
+export async function requestCompanyDeletion(token, password, confirmName) {
+  return parseResponse(
+    await authFetch('/privacy/deletion', token, {
+      method: 'POST',
+      body: JSON.stringify({ password, confirm_name: confirmName }),
+    }),
+  );
+}
+
+export async function cancelCompanyDeletion(token) {
+  return parseResponse(await authFetch('/privacy/deletion', token, { method: 'DELETE' }));
+}
+
+/** Tải file ZIP toàn bộ dữ liệu công ty. Trả về { blob, filename }. */
+export async function downloadCompanyExport(token) {
+  const response = await authFetch('/privacy/export', token);
+  if (!response.ok) await parseResponse(response);
+  const disposition = response.headers.get('content-disposition') || '';
+  const match = disposition.match(/filename="?([^";]+)"?/);
+  return { blob: await response.blob(), filename: match ? match[1] : 'docusync-du-lieu.zip' };
 }

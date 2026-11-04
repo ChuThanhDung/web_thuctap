@@ -144,6 +144,7 @@ GCS_BUCKET=gs://docusyncai-backup-<chuỗi riêng>
 0 2 * * * /opt/docusyncai/deploy/gcp/backup-to-gcs.sh >> /var/log/docusyncai/backup.log 2>&1
 0 4 1 * * /opt/docusyncai/deploy/gcp/restore-from-gcs.sh --drill >> /var/log/docusyncai/restore-drill.log 2>&1
 0 1 * * * cd /opt/docusyncai && docker compose -f docker-compose.yml exec -T backend python scripts/send_renewal_reminders.py >> /var/log/docusyncai/renewal.log 2>&1
+30 1 * * * cd /opt/docusyncai && docker compose -f docker-compose.yml exec -T backend python scripts/process_company_deletions.py >> /var/log/docusyncai/deletions.log 2>&1
 ```
 
 ### Khôi phục và diễn tập khôi phục

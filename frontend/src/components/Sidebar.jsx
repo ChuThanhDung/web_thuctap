@@ -8,6 +8,7 @@ import {
   ChevronsRight,
   ClipboardList,
   CreditCard,
+  DatabaseZap,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -33,6 +34,7 @@ const NAV_ICONS = {
   settings: SlidersHorizontal,
   admin: Building2,
   billing: CreditCard,
+  privacy: DatabaseZap,
 };
 
 // Thanh bên luôn mang màu xanh mẫu biểu (cả giao diện sáng) nên có bộ màu và ring focus riêng.

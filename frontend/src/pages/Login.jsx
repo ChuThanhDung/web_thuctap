@@ -175,6 +175,11 @@ export default function Login({ onLogin }) {
               Đăng ký dùng thử 14 ngày
             </Link>
           </p>
+          <p className="mt-3 text-center text-xs text-fg-subtle">
+            <Link to={ROUTES.terms} className="hover:text-fg-muted hover:underline">Điều khoản sử dụng</Link>
+            {' · '}
+            <Link to={ROUTES.privacyPolicy} className="hover:text-fg-muted hover:underline">Chính sách bảo vệ dữ liệu</Link>
+          </p>
         </form>
     </AuthLayout>
   );

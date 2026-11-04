@@ -1487,6 +1487,11 @@ async def upload_document(
     # XML đọc bằng parser cục bộ, không tính lượt AI.
     uses_ai = not is_xml_upload(filename, content_type)
     creates_batch = batch_id is None
+    if uses_ai and not organization.ai_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Công ty đã tắt đọc chứng từ bằng AI: chỉ nhận file XML. Kế toán trưởng bật lại ở trang Dữ liệu & quyền riêng tư.",
+        )
     if creates_batch:
         ensure_can_create_batch(db, organization)
     ensure_can_upload(db, organization, size_bytes=len(content), uses_ai=uses_ai)
