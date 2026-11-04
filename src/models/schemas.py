@@ -2,6 +2,7 @@
 src/models/schemas.py — Pydantic schemas cho toàn bộ dự án
 """
 
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -26,6 +27,18 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 
+class OrganizationSummary(BaseModel):
+    """Công ty của người dùng, hiện ở giao diện (tên, gói đang dùng, hạn dùng thử)."""
+
+    id: str
+    name: str
+    plan: str
+    effective_plan: str
+    trial_ends_at: datetime | None = None
+    plan_expires_at: datetime | None = None
+    status: str
+
+
 class AuthUser(BaseModel):
     id: str
     email: str
@@ -40,6 +53,7 @@ class AuthUser(BaseModel):
     citizen_id: str | None = None
     phone: str | None = None
     avatar_url: str | None = None
+    organization: OrganizationSummary | None = None
 
 
 class LoginResponse(BaseModel):
@@ -128,6 +142,149 @@ class UserListResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SIGNUP / INVITATION / PLATFORM ADMIN SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class SignupRequestIn(BaseModel):
+    company_name: str = Field(..., min_length=2, max_length=255)
+    tax_id: str | None = Field(default=None, pattern=r"^\d{10}(-\d{3})?$")
+    full_name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    accept_terms: bool
+
+    @field_validator("password")
+    @classmethod
+    def password_is_strong(cls, value: str) -> str:
+        return validate_password_strength(value)
+
+    @field_validator("accept_terms")
+    @classmethod
+    def terms_accepted(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Bạn cần đồng ý với điều khoản sử dụng.")
+        return value
+
+    @field_validator("tax_id", mode="before")
+    @classmethod
+    def empty_tax_id_is_none(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+
+class SignupStartResponse(BaseModel):
+    signup_id: str
+    email: str
+    expires_in_seconds: int
+    resend_after_seconds: int
+
+
+class SignupVerifyRequest(BaseModel):
+    signup_id: uuid.UUID
+    otp: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class SignupResendRequest(BaseModel):
+    signup_id: uuid.UUID
+
+
+class InvitationCreateRequest(BaseModel):
+    email: EmailStr
+    full_name: str = Field(..., min_length=2, max_length=100)
+    role_code: str = Field(default="accountant", pattern="^(chief_accountant|accountant)$")
+
+
+class InvitationOut(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    role_code: str
+    expires_at: datetime
+    created_at: datetime | None = None
+    # Chỉ có ngay khi vừa tạo: link để kế toán trưởng tự gửi nếu email không tới.
+    accept_url: str | None = None
+
+
+class InvitationLookupResponse(BaseModel):
+    email: str
+    full_name: str
+    role_code: str
+    organization_name: str
+    expires_at: datetime
+
+
+class InvitationAcceptRequest(BaseModel):
+    token: str = Field(..., min_length=20, max_length=200)
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str | None = Field(default=None, min_length=2, max_length=100)
+
+    @field_validator("password")
+    @classmethod
+    def password_is_strong(cls, value: str) -> str:
+        return validate_password_strength(value)
+
+
+class AdminOrganizationRow(BaseModel):
+    id: str
+    name: str
+    tax_id: str | None
+    plan: str
+    effective_plan: str
+    status: str
+    trial_ends_at: datetime | None
+    plan_expires_at: datetime | None = None
+    created_at: datetime | None
+    user_count: int
+    batch_count: int
+    batches_this_month: int
+    files_this_month: int
+    last_activity_at: datetime | None
+    owner_email: str | None
+
+
+class AdminOrganizationList(BaseModel):
+    items: list[AdminOrganizationRow]
+    total: int
+
+
+class AdminOrganizationUser(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    role: str
+    status: str
+    last_login_at: datetime | None
+
+
+class AdminOrganizationDetail(AdminOrganizationRow):
+    users: list[AdminOrganizationUser]
+
+
+class AdminOrganizationUpdate(BaseModel):
+    plan: str | None = Field(default=None, pattern="^(free|pro|ultra)$")
+    status: str | None = Field(default=None, pattern="^(active|suspended)$")
+    # Số ngày dùng thử tính từ hôm nay; 0 = kết thúc dùng thử ngay.
+    trial_days: int | None = Field(default=None, ge=0, le=90)
+    # Khi đổi gói: số ngày hiệu lực tính từ hôm nay; bỏ trống = không hết hạn (cấp tay, ví dụ khách trả ngoài hệ thống).
+    plan_days: int | None = Field(default=None, ge=1, le=3660)
+
+
+class AdminOverview(BaseModel):
+    organizations: int
+    active_organizations: int
+    suspended_organizations: int
+    in_trial: int
+    by_plan: dict[str, int]
+    users: int
+    signups_last_30_days: int
+    batches_this_month: int
+    files_this_month: int
+    # Doanh thu (đ) từ các đơn đã thanh toán.
+    revenue_this_month: int = 0
+    revenue_total: int = 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -418,3 +575,72 @@ class NotificationOut(BaseModel):
 class NotificationListResponse(BaseModel):
     items: list[NotificationOut]
     unread_count: int
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BILLING SCHEMAS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class PlanOut(BaseModel):
+    code: str
+    name: str
+    monthly_price: int
+    yearly_price: int
+    users: int | None
+    batches_per_month: int
+    ai_files_per_month: int
+    storage_bytes: int
+    retention_months: int
+    support: str
+
+
+class UsageOut(BaseModel):
+    period: str
+    users: int
+    batches: int
+    ai_files: int
+    storage_bytes: int
+
+
+class BillingOverview(BaseModel):
+    organization: OrganizationSummary
+    limits: PlanOut
+    usage: UsageOut
+    plans: list[PlanOut]
+    billing_enabled: bool
+
+
+class CheckoutRequest(BaseModel):
+    plan: str = Field(..., pattern="^(pro|ultra)$")
+    months: int = Field(..., description="1 hoặc 12 tháng")
+
+    @field_validator("months")
+    @classmethod
+    def months_supported(cls, value: int) -> int:
+        if value not in (1, 12):
+            raise ValueError("Kỳ hạn chỉ có 1 tháng hoặc 12 tháng.")
+        return value
+
+
+class BankTransferOut(BaseModel):
+    bank_code: str
+    account_number: str
+    account_name: str
+    amount: int
+    content: str
+    qr_url: str
+
+
+class PaymentOut(BaseModel):
+    id: str
+    code: str
+    plan: str
+    months: int
+    amount: int
+    status: str
+    created_at: datetime | None
+    expires_at: datetime
+    paid_at: datetime | None
+    period_end: datetime | None
+    transfer: BankTransferOut | None = None

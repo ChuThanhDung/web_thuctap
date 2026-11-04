@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import {
+  Building2,
   Files,
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
+  CreditCard,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -29,6 +31,8 @@ const NAV_ICONS = {
   batches: ClipboardList,
   users: Users,
   settings: SlidersHorizontal,
+  admin: Building2,
+  billing: CreditCard,
 };
 
 // Thanh bên luôn mang màu xanh mẫu biểu (cả giao diện sáng) nên có bộ màu và ring focus riêng.

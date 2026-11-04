@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["text", "json"] = "text"
+    # Sentry (gói free) bắt lỗi backend. Để trống DSN thì tắt hẳn, không nạp thư viện.
+    sentry_dsn: str = ""
+    sentry_release: str = ""
+    # Tỉ lệ request được đo hiệu năng (0 = chỉ gửi lỗi, tiết kiệm hạn mức gói free).
+    sentry_traces_sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     cors_origins: str = (
         "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,https://docusyncai-frontend.vercel.app"
     )
@@ -81,6 +86,21 @@ class Settings(BaseSettings):
     password_otp_max_attempts: int = Field(default=5, ge=1, le=10)
     password_otp_max_requests: int = Field(default=3, ge=1, le=20)
     password_otp_request_window_minutes: int = Field(default=15, ge=1, le=1440)
+    # Tự đăng ký công ty: tắt được khi chỉ muốn bán qua tư vấn. Giới hạn số lần đăng ký trong một giờ để chống spam.
+    signup_enabled: bool = True
+    signup_max_per_ip_per_hour: int = Field(default=5, ge=1, le=100)
+    signup_max_per_email_per_hour: int = Field(default=3, ge=1, le=20)
+    invitation_ttl_days: int = Field(default=7, ge=1, le=30)
+    # Thanh toán chuyển khoản qua SePay (VietQR). Để trống tài khoản ngân hàng thì tắt nút thanh toán.
+    # sepay_bank_code là mã/tên ngắn ngân hàng theo SePay (ví dụ MBBank, Vietcombank, TPBank).
+    sepay_bank_code: str = ""
+    sepay_bank_account: str = ""
+    sepay_account_name: str = ""
+    # Khóa SePay gửi kèm webhook (header "Authorization: Apikey <khóa>").
+    sepay_webhook_api_key: str = ""
+    # Tiền tố mã đơn trong nội dung chuyển khoản; khai báo giống cấu hình "tiền tố mã thanh toán" bên SePay.
+    payment_code_prefix: str = Field(default="DSA", pattern=r"^[A-Z]{2,6}$")
+    payment_ttl_hours: int = Field(default=72, ge=1, le=720)
 
     # Login brute-force protection (đếm số lần LOGIN_FAILED trong audit_logs)
     login_max_attempts: int = Field(default=5, ge=1, le=100)  # cùng email + cùng IP

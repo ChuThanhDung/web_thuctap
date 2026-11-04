@@ -1,5 +1,7 @@
 from src.models.audit_log import AuditLog
+from src.models.billing import Payment, UsageCounter
 from src.models.notification import Notification
+from src.models.organization import Organization
 from src.models.password_reset_otp import PasswordResetOtp
 from src.models.reconciliation import (
     DocumentBatch,
@@ -14,6 +16,7 @@ from src.models.reconciliation import (
     UploadedFile,
 )
 from src.models.role import Role
+from src.models.signup import SignupRequest, UserInvitation
 from src.models.user import User
 from src.models.user_session import UserSession
 
@@ -24,14 +27,19 @@ __all__ = [
     "GoodsReceiptNoteItem",
     "LineItem",
     "Notification",
+    "Organization",
     "PasswordResetOtp",
+    "Payment",
     "PurchaseOrder",
     "PurchaseOrderItem",
     "ReconciliationCase",
     "Role",
+    "SignupRequest",
     "Threshold",
     "UploadedDocumentExtraction",
     "UploadedFile",
+    "UsageCounter",
     "User",
+    "UserInvitation",
     "UserSession",
 ]

@@ -5,6 +5,8 @@ pydantic[email]>=2.10.0
 pydantic-settings>=2.7.0
 python-dotenv>=1.0.0
 python-multipart>=0.0.12
+# Giám sát lỗi (chỉ nạp khi đặt SENTRY_DSN)
+sentry-sdk[fastapi]>=2.0.0,<3.0.0
 
 
 # AI / LangChain

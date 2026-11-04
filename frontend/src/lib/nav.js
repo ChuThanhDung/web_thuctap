@@ -7,11 +7,14 @@ const ITEMS = {
   batches: { to: ROUTES.batches, icon: 'batches', label: vi.nav.batches },
   users: { to: ROUTES.users, icon: 'users', label: vi.nav.users },
   settings: { to: ROUTES.settings, icon: 'settings', label: vi.nav.settings },
+  admin: { to: ROUTES.admin, icon: 'admin', label: vi.nav.admin },
+  billing: { to: ROUTES.billing, icon: 'billing', label: vi.nav.billing },
 };
 
 const MENUS = {
   accountant: ['overview', 'upload', 'batches'],
-  chief_accountant: ['overview', 'batches', 'users', 'settings'],
+  chief_accountant: ['overview', 'batches', 'users', 'settings', 'billing'],
+  platform_admin: ['admin'],
 };
 
 /** Mục menu của một vai trò, theo đúng thứ tự hiển thị. */

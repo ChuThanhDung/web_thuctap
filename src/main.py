@@ -8,11 +8,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 import src.models  # noqa: F401
+from src.api.admin import router as admin_router
 from src.api.audit_logs import router as audit_logs_router
 from src.api.auth import router as auth_router
+from src.api.billing import router as billing_router
 from src.api.notifications import router as notifications_router
 from src.api.reconciliations import router as reconciliations_router
 from src.api.routes import router
+from src.api.signup import router as signup_router
 from src.api.thresholds import router as thresholds_router
 from src.api.uploads import router as uploads_router
 from src.config import get_settings
@@ -20,10 +23,30 @@ from src.database import engine
 from src.db_migrations import run_migrations
 from src.logging_config import configure_logging, install_request_logging
 from src.schema_bootstrap import ensure_database_timezone
+from src.services.plans import PlanLimitError
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 configure_logging(settings.log_level, settings.log_format)
+
+
+def init_sentry() -> bool:
+    """Bật Sentry khi có SENTRY_DSN. Không gửi dữ liệu cá nhân (email, IP, body request)."""
+    if not settings.sentry_dsn:
+        return False
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.app_env,
+        release=settings.sentry_release or None,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        send_default_pii=False,
+    )
+    return True
+
+
+init_sentry()
 
 
 def secure_default_password_accounts() -> None:
@@ -43,18 +66,24 @@ def secure_default_password_accounts() -> None:
             ", ".join(emails),
         )
     else:
-        logger.warning("Các tài khoản đang dùng mật khẩu mặc định (chỉ chấp nhận ngoài production): %s", ", ".join(emails))
+        logger.warning(
+            "Các tài khoản đang dùng mật khẩu mặc định (chỉ chấp nhận ngoài production): %s", ", ".join(emails)
+        )
 
 
 def seed_initial_data_if_needed() -> None:
     from sqlalchemy.orm import Session
 
-    from src.models.reconciliation import Threshold
+    from src.database import use_system_context
+    from src.models.organization import DEMO_ORGANIZATION_ID
     from src.models.role import Role
     from src.models.user import User
-    from src.services.auth import hash_password
+    from src.services.auth import hash_password, next_public_user_id
+    from src.services.organizations import ensure_default_thresholds
 
     with Session(engine) as db:
+        # Tài khoản seed và ngưỡng mặc định thuộc công ty Demo (migration 0003 tạo công ty này).
+        use_system_context(db, DEMO_ORGANIZATION_ID)
         try:
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             if not acc_role:
@@ -80,28 +109,22 @@ def seed_initial_data_if_needed() -> None:
                 chief_role.name = "Kế toán trưởng"
                 chief_role.description = "Theo dõi tổng quan, phê duyệt đối soát và cấu hình quy trình."
 
+            # Vai trò admin nền tảng (migration 0004 cũng tạo). Tài khoản tạo bằng scripts/create_platform_admin.py.
+            if not db.query(Role).filter(Role.code == "platform_admin").first():
+                db.add(
+                    Role(
+                        code="platform_admin",
+                        name="Quản trị nền tảng",
+                        description="Quản lý công ty khách hàng, gói dịch vụ và mức sử dụng. Không xem chứng từ của khách.",
+                    )
+                )
+
             db.commit()
 
             acc_role = db.query(Role).filter(Role.code == "accountant").first()
             chief_role = db.query(Role).filter(Role.code == "chief_accountant").first()
 
-            default_thresholds = [
-                {
-                    "category": "Đơn giá & Tổng tiền",
-                    "percent_threshold": "0",
-                    "absolute_threshold": "1000",
-                },
-                {
-                    "category": "Số lượng",
-                    "percent_threshold": "0",
-                    "absolute_threshold": "0",
-                },
-            ]
-
-            for threshold_data in default_thresholds:
-                threshold = db.query(Threshold).filter(Threshold.category == threshold_data["category"]).first()
-                if not threshold:
-                    db.add(Threshold(**threshold_data))
+            ensure_default_thresholds(db, DEMO_ORGANIZATION_ID)
 
             created_emails: list[str] = []
             seed_password = settings.seed_default_password or token_urlsafe(12)
@@ -128,7 +151,8 @@ def seed_initial_data_if_needed() -> None:
                 user = db.query(User).filter(User.email == udata["email"]).first()
                 if not user:
                     user = User(
-                        public_id=(db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1),
+                        organization_id=DEMO_ORGANIZATION_ID,
+                        public_id=next_public_user_id(db),
                         email=udata["email"],
                         password_hash=default_password_hash,
                         full_name=udata["full_name"],
@@ -140,7 +164,7 @@ def seed_initial_data_if_needed() -> None:
                     db.add(user)
                     created_emails.append(udata["email"])
                 elif user.public_id is None:
-                    user.public_id = db.scalar(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")) or 1
+                    user.public_id = next_public_user_id(db)
 
             db.commit()
             print("Seed initial users & roles successfully.")
@@ -162,6 +186,8 @@ async def lifespan(app: FastAPI):
     ensure_database_timezone()
     if settings.run_migrations_on_startup:
         run_migrations()
+    # Kết nối mở trước khi migration tạo role docusync_app vẫn là tài khoản chủ DB (bỏ qua RLS): bỏ hết để mở lại.
+    engine.dispose()
     seed_initial_data_if_needed()
     secure_default_password_accounts()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
@@ -192,6 +218,15 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(PlanLimitError)
+async def plan_limit_exception_handler(request: Request, exc: PlanLimitError):
+    # 402: vượt hạn mức gói. Giao diện hiện thông báo và đưa tới trang nâng cấp.
+    return JSONResponse(
+        status_code=402,
+        content={"detail": str(exc), "code": "plan_limit", "resource": exc.resource},
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled server exception at %s: %s", request.url.path, exc)
@@ -203,6 +238,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(signup_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(billing_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(reconciliations_router, prefix="/api/v1")
 app.include_router(audit_logs_router, prefix="/api/v1")

@@ -7,13 +7,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
-from src.database import get_db
+from src.database import get_db, set_organization_context
+from src.models.organization import Organization
 from src.models.role import Role
 from src.models.schemas import (
     AuthUser,
     LoginRequest,
     LoginResponse,
     MessageResponse,
+    OrganizationSummary,
     OtpRequestResponse,
     OtpVerifyRequest,
     PasswordChangeInitiateRequest,
@@ -29,6 +31,7 @@ from src.services.auth import (
     build_next_employee_code,
     create_user_by_admin,
     create_user_session,
+    email_in_use,
     get_user_by_session_token,
     initiate_password_change,
     is_login_rate_limited,
@@ -44,8 +47,44 @@ from src.services.avatar import (
     save_avatar,
     validate_avatar_metadata,
 )
+from src.services.organizations import effective_plan
+from src.services.plans import ensure_can_add_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+PLATFORM_ADMIN = "platform_admin"
+# Admin nền tảng không thuộc công ty nào: chỉ dùng trang quản trị và hồ sơ của mình, không gọi API nghiệp vụ.
+PLATFORM_ADMIN_PATHS = (
+    "/api/v1/admin",
+    "/api/v1/auth/me",
+    "/api/v1/auth/password",
+    "/api/v1/auth/avatars",
+    # Chuông thông báo trên thanh bên (RLS trả về rỗng vì admin không thuộc công ty).
+    "/api/v1/notifications",
+)
+
+
+def to_organization_summary(organization: Organization | None) -> OrganizationSummary | None:
+    if organization is None:
+        return None
+    return OrganizationSummary(
+        id=str(organization.id),
+        name=organization.name,
+        plan=organization.plan,
+        effective_plan=effective_plan(organization),
+        trial_ends_at=organization.trial_ends_at,
+        plan_expires_at=organization.plan_expires_at,
+        status=organization.status,
+    )
+
+
+def organization_block_reason(user: User) -> str | None:
+    """Lý do không cho tài khoản dùng hệ thống (công ty bị khóa, tài khoản lỗi), hoặc None nếu được phép."""
+    if user.organization_id is None:
+        return None if user.role.code == PLATFORM_ADMIN else "Tài khoản chưa thuộc công ty nào."
+    if user.organization is None or user.organization.status != "active":
+        return "Công ty của bạn đang tạm khóa. Vui lòng liên hệ bộ phận hỗ trợ."
+    return None
 
 
 def to_auth_user(user: User) -> AuthUser:
@@ -65,10 +104,12 @@ def to_auth_user(user: User) -> AuthUser:
         citizen_id=user.citizen_id,
         phone=user.phone,
         avatar_url=user.avatar_url,
+        organization=to_organization_summary(user.organization),
     )
 
 
 def get_current_user(
+    request: Request,
     authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> User:
@@ -79,7 +120,17 @@ def get_current_user(
     user = get_user_by_session_token(db, access_token)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Phiên đăng nhập đã hết hạn.")
+    block_reason = organization_block_reason(user)
+    if block_reason:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=block_reason)
+    if user.role.code == PLATFORM_ADMIN and not request.url.path.startswith(PLATFORM_ADMIN_PATHS):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản quản trị nền tảng không dùng được chức năng nghiệp vụ của công ty.",
+        )
 
+    # Từ đây phiên DB chỉ thấy và chỉ ghi được dữ liệu công ty của người dùng (Row-Level Security).
+    set_organization_context(db, user.organization_id)
     return user
 
 
@@ -123,6 +174,18 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email hoặc mật khẩu không đúng.",
         )
+
+    block_reason = organization_block_reason(user)
+    if block_reason:
+        write_audit_log(
+            db=db,
+            action="LOGIN_BLOCKED_ORGANIZATION",
+            user=user,
+            details={"email": user.email},
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=block_reason)
 
     access_token = create_user_session(
         db=db,
@@ -312,6 +375,7 @@ async def create_user_account(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Chỉ Kế toán trưởng mới có quyền tạo tài khoản người dùng mới.",
         )
+    ensure_can_add_user(db, current_user.organization)
 
     try:
         new_user = create_user_by_admin(db, payload)
@@ -383,9 +447,7 @@ def count_active_chief_accountants(db: Session) -> int:
 
 def ensure_unique_user_fields(db: Session, target_user: User, payload: UserUpdateRequest) -> None:
     if payload.email is not None:
-        email_clean = payload.email.lower().strip()
-        exists = db.scalars(select(User).where(User.email == email_clean, User.id != target_user.id)).first()
-        if exists:
+        if email_in_use(payload.email, exclude_user_id=target_user.id):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email này đã được sử dụng.")
 
     if payload.citizen_id:
@@ -510,6 +572,8 @@ async def activate_user_account(
 ) -> AuthUser:
     require_chief_accountant(current_user)
     target_user = get_managed_user(db, user_id)
+    if target_user.status.upper() != "ACTIVE":
+        ensure_can_add_user(db, current_user.organization)
     target_user.status = "ACTIVE"
     db.commit()
     db.refresh(target_user)

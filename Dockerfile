@@ -34,4 +34,5 @@ EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/health/ready', timeout=5)" || exit 1
 
-CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers
+# UVICORN_WORKERS mặc định 1 (máy ảo 1 GB RAM); FORWARDED_ALLOW_IPS đặt trong docker-compose.yml.
+CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${UVICORN_WORKERS:-1} --proxy-headers

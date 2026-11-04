@@ -12,6 +12,13 @@ export const vi = {
   roles: {
     accountant: 'Kế toán viên',
     chief_accountant: 'Kế toán trưởng',
+    platform_admin: 'Quản trị nền tảng',
+  },
+
+  plans: {
+    free: 'Free',
+    pro: 'Pro',
+    ultra: 'Ultra',
   },
 
   userStatus: {
@@ -68,6 +75,8 @@ export const vi = {
     batches: 'Bộ đối soát',
     users: 'Quản lý tài khoản',
     settings: 'Ngưỡng sai số',
+    admin: 'Công ty khách hàng',
+    billing: 'Gói & thanh toán',
   },
 
   shell: {

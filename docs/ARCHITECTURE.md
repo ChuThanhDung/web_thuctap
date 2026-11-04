@@ -12,8 +12,8 @@ graph TB
         SPA[React SPA]
     end
 
-    subgraph Edge[Frontend container]
-        NGINX[Nginx: static + proxy /api + WebSocket]
+    subgraph Edge[Web container]
+        CADDY[Caddy: HTTPS + static + proxy /api, /health, WebSocket]
     end
 
     subgraph Backend[FastAPI backend]
@@ -31,8 +31,8 @@ graph TB
 
     AI[OpenAI / Gemini]
 
-    SPA -->|HTTPS| NGINX
-    NGINX -->|/api, WebSocket| API
+    SPA -->|HTTPS| CADDY
+    CADDY -->|/api, WebSocket| API
     API --> PARSE
     PARSE -.->|PDF, ảnh| AI
     API --> ENGINE
@@ -49,8 +49,8 @@ graph TB
 ### Frontend (`frontend/`)
 React 18 + Vite + Tailwind. Trang chính: tải chứng từ (`UploadQueue`), tổng quan kế toán viên, duyệt batch của kế toán trưởng, chi tiết hồ sơ đối soát, nhật ký thao tác, cấu hình ngưỡng, quản lý người dùng. So sánh ba chứng từ phía giao diện nằm ở `reconciliationCompare.js` (có unit test). Nhận thông báo realtime qua WebSocket `/api/v1/notifications/ws`.
 
-### Nginx (`frontend/nginx.conf`)
-Phục vụ file tĩnh, proxy `/api/` tới backend (kèm header `Upgrade` cho WebSocket), giới hạn body 25 MB, gắn các header bảo mật (CSP, `X-Frame-Options`, `nosniff`, `Referrer-Policy`). HTTPS do Caddy (profile `https`) hoặc lớp proxy của hạ tầng đảm nhiệm.
+### Caddy (`deploy/Caddyfile`, container `web`)
+Image `web` build từ `frontend/Dockerfile`: bước một build Vite, bước hai là Caddy chứa file tĩnh ở `/srv`. Caddy tự xin HTTPS khi có `DOMAIN`, phục vụ file tĩnh (asset băm tên cache 1 năm, `index.html` luôn hỏi lại), proxy `/api/*` (kể cả WebSocket) và `/health*` tới backend, giới hạn body 25 MB, gắn các header bảo mật (CSP, `X-Frame-Options`, `nosniff`, `Referrer-Policy`). Một container thay cho nginx + Caddy trước đây để tiết kiệm RAM trên máy 1 GB.
 
 ### Backend (`src/`)
 - `api/`: các router theo nghiệp vụ. Xác thực bằng bearer token; phân quyền theo vai trò `accountant` và `chief_accountant`.
@@ -94,7 +94,7 @@ Bộ PO + GRN + Invoice đã qua hai lần duyệt (`final_approved`) là hồ s
 | Phân quyền | Kiểm tra vai trò ở từng endpoint; mọi endpoint nghiệp vụ yêu cầu đăng nhập (ngoại lệ: đăng nhập, health check, ảnh đại diện) |
 | Cấu hình production | Từ chối khởi động nếu còn mật khẩu DB mặc định hoặc mật khẩu seed yếu; tắt Swagger |
 | Tài khoản mặc định | Seed dùng mật khẩu ngẫu nhiên hoặc `SEED_DEFAULT_PASSWORD`; tài khoản còn mật khẩu cũ `123456` bị đặt lại ở production |
-| Upload | Giới hạn dung lượng ở backend và Nginx; XML đọc bằng parser cục bộ, chỉ PDF và ảnh mới gửi sang AI |
+| Upload | Giới hạn dung lượng ở backend và Caddy; XML đọc bằng parser cục bộ, chỉ PDF và ảnh mới gửi sang AI |
 | Hồ sơ đã duyệt | Khóa ở API và trigger database, xem mục "Lưu trữ bộ chứng từ đã duyệt" |
 | Mạng | Compose production không mở cổng backend và DB; DB dev chỉ bind `127.0.0.1` |
 | Truy vết | Audit log và `X-Request-ID` trên mọi phản hồi |
@@ -103,14 +103,15 @@ Bộ PO + GRN + Invoice đã qua hai lần duyệt (`final_approved`) là hồ s
 
 ```mermaid
 graph LR
-    U[Người dùng] --> C[Caddy HTTPS - tùy chọn]
-    C --> FE[Frontend + Nginx]
-    FE --> BE[Backend]
+    U[Người dùng] --> C[web: Caddy HTTPS + file tĩnh frontend]
+    C --> BE[Backend, 1 worker]
     BE --> DB[(PostgreSQL)]
     BE --> FS[(Volume storage / invoice)]
 ```
 
-- `docker-compose.yml`: cấu hình production-safe (không mount mã nguồn, không dữ liệu demo, healthcheck đầy đủ).
+- `docker-compose.yml`: cấu hình production-safe (không mount mã nguồn, không dữ liệu demo, healthcheck đầy đủ), làm gọn cho máy ảo GCP e2-micro 1 GB RAM.
+- Image `backend` và `web` build trên GitHub Actions (`.github/workflows/deploy.yml`), đẩy lên GHCR; máy ảo chỉ pull (`deploy/gcp/update.sh`).
+- Giám sát: GCP Uptime Check gọi `/health`, Sentry (tùy chọn, `SENTRY_DSN` / `VITE_SENTRY_DSN`), `deploy/gcp/check-resources.sh` gửi email khi RAM hoặc ổ đĩa vượt 85%.
 - `docker-compose.override.yml`: tiện ích dev, tự nạp khi chạy `docker compose up`.
 - Hướng dẫn chi tiết, sao lưu và khôi phục: xem [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -123,4 +124,4 @@ graph LR
 | Migration | Alembic, baseline idempotent | Tương thích DB đã có dữ liệu, thay đổi sau này có phiên bản rõ ràng |
 | Rate limit đăng nhập | Đếm từ `audit_logs` | Không thêm hạ tầng (Redis); hoạt động đúng với nhiều tiến trình |
 | Bóc tách XML | Parser cục bộ | Chính xác, nhanh, không tốn phí AI; AI chỉ dùng cho PDF và ảnh |
-| Frontend | React + Vite, serve bằng Nginx | Build tĩnh, dễ cache, cùng origin với API nên không cần CORS rộng |
+| Frontend | React + Vite, serve bằng Caddy | Build tĩnh, dễ cache, cùng origin với API nên không cần CORS rộng |

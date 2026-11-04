@@ -16,6 +16,7 @@ from src.database import get_db
 from src.main import app
 from src.models.audit_log import AuditLog
 from src.models.notification import Notification
+from src.models.organization import DEMO_ORGANIZATION_ID
 from src.models.reconciliation import DocumentBatch, ReconciliationCase, UploadedFile
 from src.models.user import User
 from src.services.document_ai_extractor import DocumentAiAnalysis
@@ -114,7 +115,7 @@ async def test_upload_valid_invoice(client):
     assert data["original_filename"] is None
     assert_stored_filename(data, "invoice", "xml")
     assert data["storage_provider"] == "local"
-    assert data["storage_key"].startswith("storage/upload/invoice/")
+    assert data["storage_key"].startswith(f"storage/upload/{DEMO_ORGANIZATION_ID}/invoice/")
     assert data["file_url"] == f"/api/v1/uploads/{data['id']}/file"
     assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
@@ -131,7 +132,7 @@ async def test_upload_valid_invoice_archives_copy_to_backend_invoice_folder(clie
     )
 
     assert response.status_code == 200
-    archived_files = list(archive_root.glob("invoice_*.xml"))
+    archived_files = list((archive_root / str(DEMO_ORGANIZATION_ID)).glob("invoice_*.xml"))
     assert len(archived_files) == 1
     assert archived_files[0].read_bytes() == xml_content
 
@@ -165,7 +166,7 @@ async def test_upload_pdf_invoice_only_stores_file(client):
     assert data["original_filename"] is None
     assert data["file_ext"] == "pdf"
     assert_stored_filename(data, "invoice", "pdf")
-    assert data["storage_key"].startswith("storage/upload/invoice/")
+    assert data["storage_key"].startswith(f"storage/upload/{DEMO_ORGANIZATION_ID}/invoice/")
     assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 
@@ -356,7 +357,7 @@ async def test_upload_po_png_only_stores_file(client):
     assert data["original_filename"] is None
     assert data["file_ext"] == "png"
     assert_stored_filename(data, "po", "png")
-    assert data["storage_key"].startswith("storage/upload/po/")
+    assert data["storage_key"].startswith(f"storage/upload/{DEMO_ORGANIZATION_ID}/po/")
     assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 
@@ -375,7 +376,7 @@ async def test_upload_selected_type_controls_storage_folder(client):
     assert data["uploaded_by_id"] is not None
     assert data["original_filename"] is None
     assert_stored_filename(data, "po", "xml")
-    assert data["storage_key"].startswith("storage/upload/po/")
+    assert data["storage_key"].startswith(f"storage/upload/{DEMO_ORGANIZATION_ID}/po/")
     assert Path(uploads_api.PROJECT_ROOT / data["storage_key"]).exists()
 
 

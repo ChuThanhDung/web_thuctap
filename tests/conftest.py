@@ -70,6 +70,12 @@ def init_db():
 
     assert engine.url.database.endswith("_test"), "Test phải chạy trên database *_test"
 
+    import src.database as database
+    from src.models.organization import DEMO_ORGANIZATION_ID
+
+    # Fixture ghi thẳng vào DB (không qua request đã đăng nhập) thuộc công ty Demo, giống dữ liệu seed.
+    database.default_organization_id = DEMO_ORGANIZATION_ID
+
     import src.api.uploads as uploads_api
 
     # File upload và avatar của test ghi vào thư mục tạm, không lẫn với storage thật.
@@ -152,7 +158,7 @@ def other_accountant(db_session):
     from src.services.auth import hash_password
 
     role = db_session.query(Role).filter(Role.code == "accountant").one()
-    next_public_id = db_session.execute(text("SELECT COALESCE(MAX(public_id), 0) + 1 FROM users")).scalar()
+    next_public_id = db_session.execute(text("SELECT nextval('users_public_id_seq')")).scalar()
     user = User(
         public_id=next_public_id,
         email=f"other-accountant-{uuid.uuid4().hex[:8]}@example.com",

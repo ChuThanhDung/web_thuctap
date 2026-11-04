@@ -23,6 +23,7 @@ import {
 } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { Button, PageHeader } from '../ui/index.js';
+import InvitationsPanel from '../components/InvitationsPanel.jsx';
 import { repairVietnameseText } from '../text.js';
 import { getPasswordPolicyError } from '../passwordPolicy.js';
 
@@ -300,7 +301,7 @@ export default function UserManagement({ token, currentUser }) {
     <div className="space-y-5">
       <PageHeader
         title="Quản lý tài khoản"
-        description="Quản lý Kế toán trưởng và Kế toán viên trong hệ thống."
+        description="Kế toán trưởng và kế toán viên của công ty. Mời người mới qua email hoặc tạo tài khoản trực tiếp."
         actions={
           <Button variant="primary" leadingIcon={Plus} onClick={openCreateModal}>
             Tạo tài khoản
@@ -534,6 +535,8 @@ export default function UserManagement({ token, currentUser }) {
           </div>
         )}
       </div>
+
+      <InvitationsPanel token={token} />
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-3 backdrop-blur-sm sm:p-4">

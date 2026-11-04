@@ -308,3 +308,94 @@ export async function activateUserAccount(token, userId) {
 }
 
 
+
+// --- Đăng ký, lời mời ------------------------------------------------------------------------------------------
+
+async function postPublic(path, body) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return parseResponse(response, { triggerUnauthorized: false });
+}
+
+export function startSignup(payload) {
+  return postPublic('/auth/signup', payload);
+}
+
+export function verifySignup(signupId, otp) {
+  return postPublic('/auth/signup/verify', { signup_id: signupId, otp });
+}
+
+export function resendSignupOtp(signupId) {
+  return postPublic('/auth/signup/resend', { signup_id: signupId });
+}
+
+export async function lookupInvitation(token) {
+  const response = await fetch(`${API_BASE_URL}/auth/invitations/lookup?${new URLSearchParams({ token })}`);
+  return parseResponse(response, { triggerUnauthorized: false });
+}
+
+export function acceptInvitation(token, password, fullName) {
+  return postPublic('/auth/invitations/accept', { token, password, full_name: fullName || null });
+}
+
+export async function getCurrentUser(token) {
+  return parseResponse(await authFetch('/auth/me', token));
+}
+
+export async function getInvitations(token) {
+  return parseResponse(await authFetch('/auth/invitations', token));
+}
+
+export async function createInvitation(token, invitation) {
+  return parseResponse(
+    await authFetch('/auth/invitations', token, { method: 'POST', body: JSON.stringify(invitation) }),
+  );
+}
+
+export async function revokeInvitation(token, invitationId) {
+  return parseResponse(await authFetch(`/auth/invitations/${invitationId}`, token, { method: 'DELETE' }));
+}
+
+// --- Quản trị nền tảng -----------------------------------------------------------------------------------------
+
+export async function getAdminOverview(token) {
+  return parseResponse(await authFetch('/admin/overview', token));
+}
+
+export async function getAdminOrganizations(token, search = '') {
+  const query = search.trim() ? `?${new URLSearchParams({ search: search.trim() })}` : '';
+  return parseResponse(await authFetch(`/admin/organizations${query}`, token));
+}
+
+export async function getAdminOrganization(token, organizationId) {
+  return parseResponse(await authFetch(`/admin/organizations/${organizationId}`, token));
+}
+
+export async function updateAdminOrganization(token, organizationId, changes) {
+  return parseResponse(
+    await authFetch(`/admin/organizations/${organizationId}`, token, { method: 'PATCH', body: JSON.stringify(changes) }),
+  );
+}
+
+// --- Gói và thanh toán -----------------------------------------------------------------------------------------
+
+export async function getBillingOverview(token) {
+  return parseResponse(await authFetch('/billing/overview', token));
+}
+
+export async function getPayments(token) {
+  return parseResponse(await authFetch('/billing/payments', token));
+}
+
+export async function getPayment(token, paymentId) {
+  return parseResponse(await authFetch(`/billing/payments/${paymentId}`, token));
+}
+
+export async function createCheckout(token, plan, months) {
+  return parseResponse(
+    await authFetch('/billing/checkout', token, { method: 'POST', body: JSON.stringify({ plan, months }) }),
+  );
+}

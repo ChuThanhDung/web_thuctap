@@ -163,3 +163,94 @@ def send_batch_rejected_email(
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_signup_otp_email(to_email: str, company_name: str, otp: str) -> bool:
+    settings = get_settings()
+    ttl_minutes = max(1, settings.password_otp_ttl_seconds // 60)
+    subject = f"[{settings.app_name}] Mã xác thực đăng ký"
+    text_body = (
+        f"Mã xác thực đăng ký công ty {company_name} là: {otp}\n\n"
+        f"Mã có hiệu lực trong {ttl_minutes} phút. Nếu bạn không đăng ký, hãy bỏ qua email này."
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+      <h2>Xác thực email đăng ký</h2>
+      <p>Mã xác thực để tạo tài khoản cho <strong>{escape(company_name)}</strong>:</p>
+      <p style="padding:18px;text-align:center;font-size:32px;font-weight:700;letter-spacing:6px;background:#f0f4ff;border-radius:8px;color:#533afd">{otp}</p>
+      <p>Mã có hiệu lực trong <strong>{ttl_minutes} phút</strong> và chỉ dùng được một lần.</p>
+      <p style="color:#64748d">Nếu bạn không đăng ký, hãy bỏ qua email này.</p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_invitation_email(
+    to_email: str, recipient_name: str, company_name: str, inviter_name: str, role_name: str, accept_url: str, days: int
+) -> bool:
+    settings = get_settings()
+    subject = f"[{settings.app_name}] Lời mời tham gia {company_name}"
+    text_body = (
+        f"Xin chào {recipient_name},\n\n"
+        f"{inviter_name} mời bạn tham gia {company_name} trên {settings.app_name} với vai trò {role_name}.\n\n"
+        f"Mở đường dẫn sau để đặt mật khẩu (hiệu lực {days} ngày):\n{accept_url}\n"
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0d253d">
+      <h2>Lời mời tham gia {escape(company_name)}</h2>
+      <p>Xin chào <strong>{escape(recipient_name)}</strong>,</p>
+      <p><strong>{escape(inviter_name)}</strong> mời bạn dùng {escape(settings.app_name)} với vai trò
+         <strong>{escape(role_name)}</strong>.</p>
+      <p style="margin:24px 0;text-align:center">
+        <a href="{escape(accept_url, quote=True)}" style="display:inline-block;padding:13px 22px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700">Nhận lời mời</a>
+      </p>
+      <p style="color:#64748d;font-size:13px">Lời mời có hiệu lực {days} ngày. Nếu nút không mở được, dán đường dẫn này vào trình duyệt:<br>
+        <a href="{escape(accept_url, quote=True)}" style="word-break:break-all">{escape(accept_url)}</a></p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)
+
+
+def _format_vnd(amount: int) -> str:
+    return f"{amount:,}".replace(",", ".") + " đ"
+
+
+def send_payment_confirmed_email(to_email: str, company_name: str, plan_name: str, amount: int, expires_at) -> bool:
+    settings = get_settings()
+    until = expires_at.strftime("%d/%m/%Y")
+    subject = f"[{settings.app_name}] Đã nhận thanh toán gói {plan_name}"
+    text_body = (
+        f"Đã nhận {_format_vnd(amount)} cho gói {plan_name} của {company_name}.\n"
+        f"Gói có hiệu lực đến hết ngày {until}. Cảm ơn bạn đã sử dụng {settings.app_name}."
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+      <h2>Đã nhận thanh toán</h2>
+      <p>Đã nhận <strong>{_format_vnd(amount)}</strong> cho gói <strong>{escape(plan_name)}</strong> của
+         <strong>{escape(company_name)}</strong>.</p>
+      <p>Gói có hiệu lực đến hết ngày <strong>{until}</strong>.</p>
+      <p style="color:#64748d">Cảm ơn bạn đã sử dụng {escape(settings.app_name)}.</p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_renewal_reminder_email(to_email: str, company_name: str, plan_name: str, expires_at, renew_url: str) -> bool:
+    settings = get_settings()
+    until = expires_at.strftime("%d/%m/%Y")
+    subject = f"[{settings.app_name}] Gói {plan_name} sắp hết hạn ({until})"
+    text_body = (
+        f"Gói {plan_name} của {company_name} hết hạn ngày {until}. Sau đó công ty chuyển về gói Free; dữ liệu vẫn giữ "
+        f"nguyên nhưng hạn mức thấp hơn.\nGia hạn tại: {renew_url}"
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+      <h2>Gói {escape(plan_name)} sắp hết hạn</h2>
+      <p>Gói của <strong>{escape(company_name)}</strong> hết hạn ngày <strong>{until}</strong>. Sau đó công ty chuyển
+         về gói Free: dữ liệu vẫn giữ nguyên nhưng hạn mức thấp hơn.</p>
+      <p style="margin:24px 0;text-align:center">
+        <a href="{escape(renew_url, quote=True)}" style="display:inline-block;padding:13px 22px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700">Gia hạn gói</a>
+      </p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)

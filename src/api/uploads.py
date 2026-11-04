@@ -42,12 +42,14 @@ from src.services.document_ai_extractor import (
     UnreadableDocumentError,
     analyze_uploaded_document,
 )
+from src.services.document_ai_extractor import _is_xml_upload as is_xml_upload
 from src.services.email import is_smtp_configured, send_batch_rejected_email
 from src.services.notifications import (
     create_notification,
     create_notifications_for_role,
     publish_notifications,
 )
+from src.services.plans import ensure_can_create_batch, ensure_can_upload, record_usage
 from src.services.reconciliation_engine import reconcile_documents
 from src.services.s3_service import (
     delete_file_from_object_storage,
@@ -359,11 +361,19 @@ def build_sequential_stored_filename(target_dir: Path, selected_doc_type: str, f
     return build_sequential_stored_filename_from_names(existing_filenames, selected_doc_type, file_ext)
 
 
-def save_uploaded_file_to_local_storage(content: bytes, filename: str, selected_doc_type: str) -> str:
+def org_folder(organization_id) -> str:
+    """Thư mục riêng của công ty trong kho file; trống khi không có công ty (file cũ, test cũ)."""
+    return str(organization_id) if organization_id else ""
+
+
+def save_uploaded_file_to_local_storage(
+    content: bytes, filename: str, selected_doc_type: str, organization_id=None
+) -> str:
     original_filename = os.path.basename(filename)
     file_ext = Path(original_filename).suffix.lower().lstrip(".")
 
-    target_dir = UPLOAD_STORAGE_ROOT / selected_doc_type
+    # File của mỗi công ty nằm trong thư mục riêng: dễ xuất, xóa và đo dung lượng theo công ty.
+    target_dir = UPLOAD_STORAGE_ROOT / org_folder(organization_id) / selected_doc_type
     target_dir.mkdir(parents=True, exist_ok=True)
     stored_filename = build_sequential_stored_filename(target_dir, selected_doc_type, file_ext)
     target_path = target_dir / stored_filename
@@ -372,13 +382,14 @@ def save_uploaded_file_to_local_storage(content: bytes, filename: str, selected_
     return target_path.relative_to(PROJECT_ROOT).as_posix()
 
 
-def save_invoice_file_to_archive(content: bytes, filename: str) -> str:
+def save_invoice_file_to_archive(content: bytes, filename: str, organization_id=None) -> str:
     original_filename = os.path.basename(filename)
     file_ext = Path(original_filename).suffix.lower().lstrip(".")
 
-    INVOICE_ARCHIVE_ROOT.mkdir(parents=True, exist_ok=True)
-    stored_filename = build_sequential_stored_filename(INVOICE_ARCHIVE_ROOT, "invoice", file_ext)
-    target_path = INVOICE_ARCHIVE_ROOT / stored_filename
+    archive_dir = INVOICE_ARCHIVE_ROOT / org_folder(organization_id)
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    stored_filename = build_sequential_stored_filename(archive_dir, "invoice", file_ext)
+    target_path = archive_dir / stored_filename
     target_path.write_bytes(content)
 
     try:
@@ -402,25 +413,28 @@ def guess_inline_content_type(filename: str, provided_content_type: str | None =
     return "application/octet-stream"
 
 
-def build_cloud_storage_key(filename: str, selected_doc_type: str) -> str:
+def build_cloud_storage_key(filename: str, selected_doc_type: str, organization_id=None) -> str:
     original_filename = os.path.basename(filename)
     file_ext = Path(original_filename).suffix.lower().lstrip(".")
     today = datetime.now()
-    cloud_dir = f"uploads/{selected_doc_type}/{today.year}/{today.month:02d}/{today.day:02d}"
+    org_prefix = f"orgs/{organization_id}/" if organization_id else ""
+    cloud_dir = f"{org_prefix}uploads/{selected_doc_type}/{today.year}/{today.month:02d}/{today.day:02d}"
     date_part = today.strftime("%d_%m_%Y")
     existing_keys = list_object_storage_keys(f"{cloud_dir}/{selected_doc_type}_{date_part}_")
     stored_filename = build_sequential_stored_filename_from_names(existing_keys, selected_doc_type, file_ext, today)
     return f"{cloud_dir}/{stored_filename}"
 
 
-def save_uploaded_file(content: bytes, filename: str, selected_doc_type: str, content_type: str) -> str:
+def save_uploaded_file(
+    content: bytes, filename: str, selected_doc_type: str, content_type: str, organization_id=None
+) -> str:
     settings = get_settings()
     if settings.storage_provider in {"r2", "s3"}:
-        storage_key = build_cloud_storage_key(filename, selected_doc_type)
+        storage_key = build_cloud_storage_key(filename, selected_doc_type, organization_id)
         upload_file_to_object_storage(content, storage_key, guess_inline_content_type(filename, content_type))
         return storage_key
 
-    return save_uploaded_file_to_local_storage(content, filename, selected_doc_type)
+    return save_uploaded_file_to_local_storage(content, filename, selected_doc_type, organization_id)
 
 
 def format_file_size(storage_key: str) -> str:
@@ -963,7 +977,9 @@ async def create_upload_batch(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DocumentBatchOut:
+    ensure_can_create_batch(db, current_user.organization)
     batch = create_document_batch(db, current_user)
+    record_usage(db, batch.organization_id, batches=1)
     db.commit()
     db.refresh(batch)
     return to_document_batch_out(batch, db)
@@ -1466,11 +1482,19 @@ async def upload_document(
             detail=f"File vượt quá dung lượng tối đa {max_upload_bytes // (1024 * 1024)} MB.",
         )
 
+    organization = current_user.organization
+    content_type = file.content_type or "application/octet-stream"
+    # XML đọc bằng parser cục bộ, không tính lượt AI.
+    uses_ai = not is_xml_upload(filename, content_type)
+    creates_batch = batch_id is None
+    if creates_batch:
+        ensure_can_create_batch(db, organization)
+    ensure_can_upload(db, organization, size_bytes=len(content), uses_ai=uses_ai)
+
     batch = get_or_create_document_batch(db, batch_id, current_user)
     require_batch_access(current_user, batch)
     ensure_batch_unlocked(batch)
 
-    content_type = file.content_type or "application/octet-stream"
     content_hash = calculate_content_hash(content)
     # Kiểm tra trùng sớm để không tốn một lần gọi AI cho file đã có; kiểm tra lại sau khi khóa batch (bên dưới).
     if find_duplicate_upload_by_content(batch, content_hash) is not None:
@@ -1533,10 +1557,10 @@ async def upload_document(
         batch.chief_approved_by_id = None
 
     try:
-        storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type)
+        storage_key = save_uploaded_file(content, filename, selected_doc_type, content_type, batch.organization_id)
         invoice_archive_key = None
         if selected_doc_type == "invoice":
-            invoice_archive_key = save_invoice_file_to_archive(content, filename)
+            invoice_archive_key = save_invoice_file_to_archive(content, filename, batch.organization_id)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1549,9 +1573,11 @@ async def upload_document(
         doc_type=selected_doc_type,
         storage_key=storage_key,
         version=batch.version or 1,
+        file_size_bytes=len(content),
     )
     db.add(db_upload)
     db.flush()
+    record_usage(db, batch.organization_id, batches=1 if creates_batch else 0, ai_files=1 if uses_ai else 0)
     create_ai_extraction_record(db, db_upload, ai_analysis)
     db.flush()
     update_batch_status(db, batch)
