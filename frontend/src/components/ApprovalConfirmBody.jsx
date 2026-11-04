@@ -36,7 +36,7 @@ export default function ApprovalConfirmBody({ batch, final = false }) {
       )}
 
       {skipsLevelOne && (
-        <p className="rounded-control border border-tone-warning-line bg-tone-warning-bg px-3 py-2 text-sm text-tone-warning-fg">
+        <p className="rounded-control border border-tone-neutral-line bg-tone-neutral-bg px-3 py-2 text-sm text-fg">
           Bộ này chưa qua kế toán viên duyệt. Bạn đang duyệt trực tiếp ở cấp cuối.
         </p>
       )}

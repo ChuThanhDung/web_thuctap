@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { GUIDE_SECTIONS } from '../guide/content.js';
 import { ROUTES } from '../routes.js';
+import BrandMark from '../components/BrandMark.jsx';
 
 function Block({ block }) {
   switch (block.type) {
@@ -21,7 +22,7 @@ function Block({ block }) {
       );
     case 'list':
       return (
-        <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-7 text-fg-muted">
+        <ul className="mt-3 max-w-[68ch] list-disc space-y-1.5 pl-5 leading-7 text-fg-muted">
           {block.items.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -64,7 +65,7 @@ function Block({ block }) {
         </div>
       );
     default:
-      return <p className="mt-3 leading-7 text-fg-muted">{block.text}</p>;
+      return <p className="mt-3 max-w-[68ch] leading-7 text-fg-muted">{block.text}</p>;
   }
 }
 
@@ -103,9 +104,7 @@ export default function GuidePage({ backTo = ROUTES.login }) {
       <header className="sticky top-0 z-10 border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <Link to={backTo} aria-label="DocuSync AI" className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
-            <span className="flex h-8 w-8 items-center justify-center rounded-control bg-sidebar-accent text-sidebar" aria-hidden="true">
-              <Check size={18} strokeWidth={3} />
-            </span>
+            <BrandMark />
             <span className="hidden sm:inline">DocuSync AI</span>
           </Link>
           <nav aria-label="Trang" className="flex items-center gap-4 whitespace-nowrap text-sm sm:gap-5">

@@ -66,13 +66,15 @@ function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
 export default function App() {
   const toast = useToast();
   const location = useLocation();
-  // Mặc định là thanh icon hẹp để dành chỗ cho bảng đối chiếu; người dùng mở rộng thì nhớ lựa chọn.
+  // Chưa chọn thì màn rộng (≥1280px) mở thanh bên có chữ, màn hẹp hơn là thanh icon; người dùng đổi thì nhớ lựa chọn.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
-      return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) !== 'expanded';
+      const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      if (stored) return stored !== 'expanded';
     } catch {
-      return true;
+      // Trình duyệt chặn lưu trữ: dùng mặc định theo độ rộng màn hình.
     }
+    return window.innerWidth < 1280;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [auth, setAuth] = useState(getInitialAuth);

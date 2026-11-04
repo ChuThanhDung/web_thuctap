@@ -1180,9 +1180,10 @@ export default function AuditTrail({ token, role, currentUser }) {
       <div className="border-b border-line pb-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden="true" />
             <input
-              type="text"
+              type="search"
+              aria-label="Tìm bộ chứng từ"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Tìm theo tên bộ chứng từ, ghi chú, người tạo, nhà cung cấp..."
@@ -1192,10 +1193,11 @@ export default function AuditTrail({ token, role, currentUser }) {
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted"
+                className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-control text-fg-subtle hover:text-fg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 title="Xóa tìm kiếm"
+                aria-label="Xóa tìm kiếm"
               >
-                <X size={15} />
+                <X size={15} aria-hidden="true" />
               </button>
             )}
           </div>

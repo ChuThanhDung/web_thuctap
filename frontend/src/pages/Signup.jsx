@@ -192,8 +192,10 @@ export default function Signup({ onLogin }) {
     <AuthLayout>
       <div className="w-full max-w-md rounded-modal bg-surface p-5 shadow-pop sm:p-8">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">Bước {signup ? 2 : 1} / 2</p>
-          <h2 className="mt-1 text-2xl font-bold text-fg">{signup ? 'Xác thực email' : 'Đăng ký dùng thử'}</h2>
+          <h2 className="text-2xl font-bold text-fg">
+            {signup ? 'Xác thực email' : 'Đăng ký dùng thử'}
+            <span className="ml-2 align-middle text-sm font-medium text-fg-subtle tabular-nums">Bước {signup ? 2 : 1}/2</span>
+          </h2>
           {!signup && (
             <p className="mt-2 text-sm text-fg-subtle">
               Dùng thử gói Pro miễn phí 14 ngày, không cần thẻ. Hết hạn tự chuyển về gói Free, dữ liệu vẫn giữ nguyên.

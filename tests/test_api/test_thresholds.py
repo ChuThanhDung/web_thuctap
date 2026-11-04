@@ -76,3 +76,21 @@ async def test_threshold_validation(client, chief, category):
     assert (await client.post("/api/v1/thresholds", json=negative, headers=chief)).status_code == 422
     body = {"percent_threshold": "1", "absolute_threshold": "1"}
     assert (await client.put("/api/v1/thresholds/not-a-uuid", json=body, headers=chief)).status_code == 400
+
+
+async def test_quantity_threshold_cannot_be_loosened(client, chief):
+    thresholds = (await client.get("/api/v1/thresholds", headers=chief)).json()
+    quantity = next(item for item in thresholds if "số lượng" in item["category"].lower())
+    loosened = await client.put(
+        f"/api/v1/thresholds/{quantity['id']}",
+        json={"category": quantity["category"], "percent_threshold": "0", "absolute_threshold": "5"},
+        headers=chief,
+    )
+    assert loosened.status_code == 400
+    assert "khớp tuyệt đối" in loosened.json()["detail"]
+    created = await client.post(
+        "/api/v1/thresholds",
+        json={"category": "QA rule số lượng", "percent_threshold": "2", "absolute_threshold": "0"},
+        headers=chief,
+    )
+    assert created.status_code == 400

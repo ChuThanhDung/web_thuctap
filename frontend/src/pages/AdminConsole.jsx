@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Banknote, Building2, Clock3, FileStack, Search, ShieldOff } from 'lucide-react';
+import { Building2, Search, ShieldOff } from 'lucide-react';
 import { getAdminOrganization, getAdminOrganizations, getAdminOverview, updateAdminOrganization } from '../api.js';
 import { vi } from '../i18n/vi.js';
+import SummaryLine from '../components/overview/SummaryLine.jsx';
 import { formatDate, formatDateTime, formatVND } from '../lib/format.js';
 import {
   Badge,
@@ -12,7 +13,6 @@ import {
   Modal,
   PageHeader,
   Select,
-  StatCard,
   Table,
   TBody,
   TD,
@@ -50,7 +50,7 @@ function PlanBadge({ organization }) {
 function StatusBadge({ status, deletionScheduledFor }) {
   if (status === 'deleted') return <Badge tone="neutral" size="sm">Đã xóa</Badge>;
   if (status !== 'active') return <Badge tone="danger" size="sm" icon={ShieldOff}>Tạm khóa</Badge>;
-  if (deletionScheduledFor) return <Badge tone="warning" size="sm">Xóa ngày {formatDate(deletionScheduledFor)}</Badge>;
+  if (deletionScheduledFor) return <Badge tone="danger" size="sm">Xóa ngày {formatDate(deletionScheduledFor)}</Badge>;
   return <Badge tone="success" size="sm">Hoạt động</Badge>;
 }
 
@@ -263,35 +263,29 @@ export default function AdminConsole({ token }) {
       />
 
       {overview && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
-            label="Công ty"
-            value={overview.organizations}
-            hint={`${overview.suspended_organizations} tạm khóa · ${overview.signups_last_30_days} mới trong 30 ngày`}
-            icon={Building2}
-            tone="brand"
-          />
-          <StatCard
-            label="Đang dùng thử"
-            value={overview.in_trial}
-            hint={`Free ${overview.by_plan.free ?? 0} · Pro ${overview.by_plan.pro ?? 0} · Ultra ${overview.by_plan.ultra ?? 0}`}
-            icon={Clock3}
-            tone="info"
-          />
-          <StatCard
-            label="Doanh thu tháng này"
-            value={formatVND(overview.revenue_this_month)}
-            hint={`Tổng ${formatVND(overview.revenue_total)} · ${overview.users} người dùng`}
-            icon={Banknote}
-            tone="success"
-          />
-          <StatCard
-            label="Bộ đối soát tháng này"
-            value={overview.batches_this_month}
-            hint={`${overview.files_this_month} file tải lên`}
-            icon={FileStack}
-          />
-        </div>
+        <SummaryLine
+          label="Tổng quan nền tảng"
+          items={[
+            {
+              label: 'Doanh thu tháng này',
+              value: formatVND(overview.revenue_this_month),
+              hint: `Tổng ${formatVND(overview.revenue_total)}`,
+              lead: true,
+            },
+            {
+              label: 'Công ty',
+              value: overview.organizations,
+              hint: `${overview.suspended_organizations} tạm khóa · ${overview.signups_last_30_days} mới trong 30 ngày`,
+            },
+            {
+              label: 'Đang dùng thử',
+              value: overview.in_trial,
+              hint: `Free ${overview.by_plan.free ?? 0} · Pro ${overview.by_plan.pro ?? 0} · Ultra ${overview.by_plan.ultra ?? 0}`,
+            },
+            { label: 'Người dùng', value: overview.users },
+            { label: 'Bộ đối soát tháng này', value: overview.batches_this_month, hint: `${overview.files_this_month} file tải lên` },
+          ]}
+        />
       )}
 
       <Card>

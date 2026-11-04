@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, FileCode2, FileImage, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, FileCode2, FileImage, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { getLegalInfo, getPublicPlans } from '../api.js';
 import { formatVND } from '../lib/format.js';
 import { ROUTES } from '../routes.js';
+import BrandMark from '../components/BrandMark.jsx';
 import { cn } from '../ui/index.js';
 
 // Sáu trạm một bộ chứng từ đi qua; mỗi trạm là một đoạn của trang, cột trái sáng theo đoạn đang đọc.
@@ -106,7 +107,7 @@ function Station({ id, index, title, children, className, as: Heading = 'h2' }) 
     <section id={id} aria-labelledby={`${id}-title`} className={cn('scroll-mt-6 border-t border-line py-16 first:border-t-0 lg:py-20', className)}>
       <Heading id={`${id}-title`} className="flex max-w-4xl items-start gap-4 text-balance text-[clamp(1.5rem,3vw,2rem)] font-bold leading-tight tracking-[-0.015em] text-fg">
         {/* Số trạm khớp vòng số ở cột hành trình bên trái. */}
-        <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-base text-primary tabular-nums" aria-label={`Trạm ${index} trên 6`}>
+        <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-base text-primary tabular-nums" aria-hidden="true">
           {index}
         </span>
         <span>{title}</span>
@@ -174,9 +175,7 @@ export default function Landing() {
       <aside className="sticky top-0 z-20 bg-[linear-gradient(180deg,rgb(var(--c-sidebar))_0%,rgb(var(--c-sidebar-end))_100%)] text-sidebar-fg lg:fixed lg:inset-y-0 lg:left-0 lg:w-[300px]">
         <div className="flex items-center justify-between gap-3 px-4 py-3 lg:block lg:px-7 lg:py-7">
           <Link to="/" className="flex items-center gap-2.5 font-bold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-control bg-sidebar-accent text-sidebar" aria-hidden="true">
-              <Check size={18} strokeWidth={3} />
-            </span>
+            <BrandMark />
             DocuSync AI
           </Link>
           <PrimaryAction href={contact} tone="inverse" className="min-h-10 !px-3 text-sm lg:hidden">
@@ -358,14 +357,14 @@ export default function Landing() {
             </div>
             <ul className="mt-6 grid gap-x-8 gap-y-2 text-sm leading-6 text-fg-muted md:grid-cols-2">
               <li><strong className="text-fg">Khớp tuyệt đối:</strong> mã số thuế, thuế suất VAT, đơn giá, số lượng.</li>
-              <li><strong className="text-fg">Lệch tối đa 1.000 đ:</strong> thành tiền, tiền thuế, tổng thanh toán (làm tròn), báo là lệch nhỏ.</li>
+              <li><strong className="text-fg">Lệch tối đa 1.000 đ (mặc định):</strong> thành tiền, tiền thuế, tổng thanh toán (làm tròn), báo là lệch nhỏ.</li>
               <li><strong className="text-fg">Ghép dòng hàng:</strong> theo mã hàng, rồi tên trùng khớp, rồi tên gần nhất.</li>
               <li><strong className="text-fg">Không đoán liên nào đúng:</strong> chỉ chỉ ra liên nào khác hai liên còn lại.</li>
             </ul>
           </Station>
 
           <Station id="duyet-cap-1" index={4} title="Kế toán viên duyệt bộ khớp, bộ lệch lớn bị giữ lại">
-            <p className="max-w-3xl leading-7 text-fg-muted">
+            <p className="max-w-[68ch] leading-7 text-fg-muted">
               Chỉ bộ có đủ ba liên và kết quả Khớp hoặc Lệch nhỏ mới duyệt được. Bộ lệch lớn cần chứng từ đúng thay thế, nên sai sót không
               lọt qua chỉ vì một cú bấm. Kế toán trưởng nhận thông báo ngay khi có bộ chờ duyệt cuối.
             </p>

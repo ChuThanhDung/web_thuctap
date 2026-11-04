@@ -27,6 +27,16 @@ def to_threshold_out(threshold: Threshold) -> ThresholdOut:
     )
 
 
+QUANTITY_KEYWORDS = ("số lượng", "so luong", "quantity", "qty")
+QUANTITY_LOCKED_MESSAGE = "Số lượng luôn phải khớp tuyệt đối giữa PO, hóa đơn và phiếu nhập kho; không cấu hình được."
+
+
+def ensure_quantity_stays_exact(category: str, percent_threshold, absolute_threshold) -> None:
+    """Số lượng là số đếm thật nên không có ngưỡng: chặn mọi giá trị khác 0 cho nhóm số lượng."""
+    if any(keyword in category.lower() for keyword in QUANTITY_KEYWORDS) and (percent_threshold or absolute_threshold):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=QUANTITY_LOCKED_MESSAGE)
+
+
 def _require_chief(current_user: User) -> None:
     if current_user.role.code != "chief_accountant":
         raise HTTPException(
@@ -54,6 +64,7 @@ async def create_threshold(
     _require_chief(current_user)
 
     category = payload.category.strip()
+    ensure_quantity_stays_exact(category, payload.percent_threshold, payload.absolute_threshold)
     existing = db.scalars(select(Threshold).where(Threshold.category == category)).first()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tên quy tắc đã tồn tại.")
@@ -117,6 +128,7 @@ async def update_threshold(
         if duplicate is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tên quy tắc đã tồn tại.")
         threshold.category = category
+    ensure_quantity_stays_exact(threshold.category, payload.percent_threshold, payload.absolute_threshold)
     threshold.percent_threshold = payload.percent_threshold
     threshold.absolute_threshold = payload.absolute_threshold
     threshold.updated_by_id = current_user.id
