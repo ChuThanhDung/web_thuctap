@@ -1,3 +1,4 @@
+from src.models.agent import AgentRun
 from src.models.audit_log import AuditLog
 from src.models.billing import Payment, UsageCounter
 from src.models.notification import Notification
@@ -22,6 +23,7 @@ from src.models.user import User
 from src.models.user_session import UserSession
 
 __all__ = [
+    "AgentRun",
     "AuditLog",
     "DocumentBatch",
     "GoodsReceiptNote",

@@ -25,6 +25,8 @@ class UsageCounter(Base):
     period: Mapped[str] = mapped_column(String(7), primary_key=True)
     batches_created: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     ai_files: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    # Số lần trợ lý AI gọi mô hình (xếp bộ, điều tra, soạn thư, hỏi đáp).
+    agent_calls: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

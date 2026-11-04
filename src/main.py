@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 import src.models  # noqa: F401
 from src.api.admin import router as admin_router
+from src.api.agent import router as agent_router
 from src.api.audit_logs import router as audit_logs_router
 from src.api.auth import router as auth_router
 from src.api.billing import router as billing_router
@@ -16,7 +17,6 @@ from src.api.mfa import router as mfa_router
 from src.api.notifications import router as notifications_router
 from src.api.privacy import router as privacy_router
 from src.api.reconciliations import router as reconciliations_router
-from src.api.routes import router
 from src.api.signup import router as signup_router
 from src.api.thresholds import router as thresholds_router
 from src.api.uploads import router as uploads_router
@@ -276,7 +276,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-app.include_router(router, prefix="/api/v1")
+app.include_router(agent_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(signup_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")

@@ -19,6 +19,7 @@ import Signup from './pages/Signup.jsx';
 import AccountantOverview from './pages/AccountantOverview.jsx';
 import ChiefOverview from './pages/ChiefOverview.jsx';
 import UploadQueue from './pages/UploadQueue.jsx';
+import AutoSort from './pages/AutoSort.jsx';
 import AuditTrail from './pages/AuditTrail.jsx';
 import ChiefAccountantBatches from './pages/ChiefAccountantBatches.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
@@ -265,6 +266,14 @@ export default function App() {
               element={
                 <RoleRoute allowedRole="accountant" currentRole={role} redirectTo={homePath}>
                   <UploadQueue token={auth.access_token} />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path={ROUTES.autoSort}
+              element={
+                <RoleRoute allowedRole="accountant" currentRole={role} redirectTo={homePath}>
+                  <AutoSort token={auth.access_token} />
                 </RoleRoute>
               }
             />

@@ -63,13 +63,17 @@ def _rows(db: Session, organizations: list[Organization]) -> list[AdminOrganizat
     batches = _counts_by_org(
         db,
         select(DocumentBatch.organization_id, func.count(DocumentBatch.id))
-        .where(DocumentBatch.organization_id.in_(ids))
+        .where(DocumentBatch.organization_id.in_(ids), DocumentBatch.is_inbox.is_(False))
         .group_by(DocumentBatch.organization_id),
     )
     batches_month = _counts_by_org(
         db,
         select(DocumentBatch.organization_id, func.count(DocumentBatch.id))
-        .where(DocumentBatch.organization_id.in_(ids), DocumentBatch.created_at >= MONTH_START)
+        .where(
+            DocumentBatch.organization_id.in_(ids),
+            DocumentBatch.created_at >= MONTH_START,
+            DocumentBatch.is_inbox.is_(False),
+        )
         .group_by(DocumentBatch.organization_id),
     )
     files_month = _counts_by_org(
@@ -166,7 +170,9 @@ async def admin_overview(_: User = Depends(require_platform_admin), db: Session 
         users=db.scalar(select(func.count(User.id)).where(User.organization_id.is_not(None))) or 0,
         signups_last_30_days=sum(1 for o in organizations if o.created_at and o.created_at >= now - timedelta(days=30)),
         batches_this_month=db.scalar(
-            select(func.count(DocumentBatch.id)).where(DocumentBatch.created_at >= MONTH_START)
+            select(func.count(DocumentBatch.id)).where(
+                DocumentBatch.created_at >= MONTH_START, DocumentBatch.is_inbox.is_(False)
+            )
         )
         or 0,
         files_this_month=db.scalar(select(func.count(UploadedFile.id)).where(UploadedFile.created_at >= MONTH_START))

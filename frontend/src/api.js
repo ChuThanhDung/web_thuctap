@@ -483,3 +483,24 @@ export async function downloadCompanyExport(token) {
 export async function getPublicPlans() {
   return parseResponse(await fetch(`${API_BASE_URL}/billing/plans`), { triggerUnauthorized: false });
 }
+
+// --- Trợ lý AI ---------------------------------------------------------------
+
+export async function getAgentStatus(token) {
+  return parseResponse(await authFetch('/agent/status', token));
+}
+
+/** Hộp chờ xếp của người dùng: { batch_id, files }. Tải file vào batch_id này bằng uploadDocument(…, 'auto', batch_id). */
+export async function getSortInbox(token) {
+  return parseResponse(await authFetch('/agent/inbox', token));
+}
+
+/** Trợ lý đề xuất cách xếp: { groups, unsorted, files, ai_used, ai_note }. Không thay đổi dữ liệu. */
+export async function proposeSort(token) {
+  return parseResponse(await authFetch('/agent/sort', token, { method: 'POST' }));
+}
+
+/** Tạo bộ theo nhóm đã xác nhận: groups = [{ po, invoice, grn }]. */
+export async function applySort(token, groups) {
+  return parseResponse(await authFetch('/agent/sort/apply', token, { method: 'POST', body: JSON.stringify({ groups }) }));
+}

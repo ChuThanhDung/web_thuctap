@@ -50,6 +50,7 @@ PURGE_TABLES = (
     "usage_counters",
     "document_batches",
     "audit_logs",
+    "agent_runs",
 )
 
 
