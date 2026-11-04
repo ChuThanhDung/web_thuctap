@@ -30,7 +30,7 @@ def unique_email(prefix: str) -> str:
 @pytest.fixture
 def outbox(monkeypatch):
     """Thu email OTP và lời mời thay vì gửi thật."""
-    sent: dict[str, list] = {"otp": [], "invite": []}
+    sent: dict[str, list] = {"otp": [], "invite": [], "welcome": []}
 
     def fake_otp(to_email, company_name, otp):
         sent["otp"].append((to_email, otp))
@@ -42,6 +42,7 @@ def outbox(monkeypatch):
 
     monkeypatch.setattr("src.services.signup.send_signup_otp_email", fake_otp)
     monkeypatch.setattr("src.services.signup.send_invitation_email", fake_invite)
+    monkeypatch.setattr("src.api.signup.send_welcome_email", lambda *args: sent["welcome"].append(args) or True)
     return sent
 
 
@@ -121,6 +122,7 @@ async def test_signup_with_otp_creates_company_on_pro_trial_and_logs_in(client, 
     assert organization["plan"] == "free"
     assert organization["effective_plan"] == "pro"
     trial_end = datetime.fromisoformat(organization["trial_ends_at"])
+    assert [args[0] for args in outbox["welcome"]] == [email]
     assert timedelta(days=13) < trial_end - datetime.now(UTC) <= timedelta(days=14)
 
     headers = {"Authorization": f"Bearer {body['access_token']}"}

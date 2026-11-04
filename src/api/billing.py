@@ -69,6 +69,12 @@ def to_payment_out(payment: Payment, with_transfer: bool = False) -> PaymentOut:
     )
 
 
+@router.get("/plans", response_model=list[PlanOut])
+async def public_plans() -> list[PlanOut]:
+    """Bảng gói và hạn mức, công khai cho trang Bảng giá (cùng nguồn PLAN_LIMITS với phần chặn hạn mức)."""
+    return [to_plan_out(code) for code in PLAN_LIMITS]
+
+
 @router.get("/overview", response_model=BillingOverview)
 async def billing_overview(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)

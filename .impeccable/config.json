@@ -14,6 +14,42 @@
         "value": "inter",
         "createdAt": "2026-10-26T16:16:29.753Z",
         "reason": "user confirmed: keep Inter as the app font (shape round 1, 26/10/2026)"
+      },
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/rules.html"
+        ],
+        "createdAt": "2026-11-04T08:23:57.044Z",
+        "reason": "Claude: decision-round sketch, not shipped; mocks under .impeccable/mocks/decision are exempt"
+      },
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/ledger.html"
+        ],
+        "createdAt": "2026-11-04T08:23:57.445Z",
+        "reason": "Claude: decision-round sketch, not shipped; mocks under .impeccable/mocks/decision are exempt"
+      },
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/desk.html"
+        ],
+        "createdAt": "2026-11-04T08:23:57.832Z",
+        "reason": "Claude: decision-round sketch, not shipped; mocks under .impeccable/mocks/decision are exempt"
+      },
+      {
+        "rule": "skipped-heading",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/desk.html"
+        ],
+        "createdAt": "2026-11-04T08:23:58.478Z",
+        "reason": "Claude: decision-round sketch, not shipped; mocks under .impeccable/mocks/decision are exempt"
       }
     ]
   }

@@ -20,6 +20,7 @@ import {
   summarize,
 } from '../lib/overview.js';
 import useBatches from '../lib/useBatches.js';
+import OnboardingChecklist from '../components/OnboardingChecklist.jsx';
 import { Avatar, Badge, Button, Card, CardHeader, EmptyState, PageHeader } from '../ui/index.js';
 
 const TIMELINE_DAYS = 14;
@@ -202,7 +203,7 @@ function AccountantsCard({ rows }) {
 }
 
 /** Tổng quan của kế toán trưởng: việc cần duyệt, điểm cần chú ý, xu hướng và hoạt động gần đây. */
-export default function ChiefOverview({ token }) {
+export default function ChiefOverview({ token, user }) {
   const navigate = useNavigate();
   const { batches, loading, error, reload } = useBatches(token);
   const [preset, setPreset] = useState('all');
@@ -280,6 +281,7 @@ export default function ChiefOverview({ token }) {
     return (
       <div className="space-y-6">
         {header}
+        {user && <OnboardingChecklist token={token} user={user} batches={batches} />}
         <Card>
           <EmptyState icon={Inbox} title={vi.overview.empty.title} description={vi.overview.empty.description} />
         </Card>
@@ -290,6 +292,7 @@ export default function ChiefOverview({ token }) {
   return (
     <div className="space-y-6">
       {header}
+      {user && <OnboardingChecklist token={token} user={user} batches={batches} />}
 
       <SummaryLine
         label={vi.overview.title}

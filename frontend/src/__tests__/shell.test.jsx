@@ -50,6 +50,7 @@ describe('Sidebar', () => {
       'Tổng quan',
       'Tải chứng từ',
       'Bộ đối soát',
+      'Hướng dẫn',
     ]);
   });
 

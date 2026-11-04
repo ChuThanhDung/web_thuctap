@@ -23,6 +23,7 @@ from src.models.schemas import (
 from src.models.signup import UserInvitation
 from src.models.user import User
 from src.services.auth import create_user_session, write_audit_log
+from src.services.email import send_welcome_email
 from src.services.signup import (
     SignupError,
     accept_invitation,
@@ -124,6 +125,11 @@ async def signup_verify(payload: SignupVerifyRequest, request: Request, db: Sess
         user = complete_signup(db, payload.signup_id, payload.otp)
     except SignupError as exc:
         raise to_http_error(exc) from exc
+    organization = user.organization
+    # Email chào mừng không chặn đăng ký: gửi lỗi thì vẫn vào được hệ thống.
+    send_welcome_email(
+        user.email, user.full_name, organization.name, organization.trial_ends_at, get_frontend_base_url(request)
+    )
     return login_new_user(db, user, request, "ORGANIZATION_SIGNED_UP")
 
 

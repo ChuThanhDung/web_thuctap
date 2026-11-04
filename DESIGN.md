@@ -178,7 +178,7 @@ A blue-and-white form palette blended along one gradient: rail navy fading into 
 ### Primary
 - **Form Blue** (form-blue): the lower end of the sidebar gradient, primary buttons, the 2px rule under comparison table headers, signed names in the signature strip, the lead figure in the summary line, focus rings. It is the colour of structure and of a human signature.
 - **Deep Form Blue** (form-blue-deep): primary hover and copy-chip lettering.
-- **Rail Navy** (rail-navy): the top of the sidebar gradient and of the login ground (135° navy → form blue → copy tint).
+- **Rail Navy** (rail-navy): the top of the sidebar gradient, of the public landing page's journey rail (the same 180° rail navy → form blue sweep) and of the login ground (135° navy → form blue → copy tint).
 - **Seal Brass** (seal-brass): the brand mark square, the "Đã đối soát" seal on the login illustration, and focus rings on the rail. Never a status colour: amber stays reserved for rounding differences.
 - **Copy Tint** (copy-tint): the fill of the PO / HĐ / GRN copy chips, brand-tone badges, dropzone-active state, and text selection (form blue at 22%).
 
@@ -260,7 +260,7 @@ The system is flat and ruled. Surfaces sit on canvas separated by 1px rule lines
 
 ## Shapes
 
-Square, form-like corners: controls, badges, chips and table cells at 4px; cards and list containers at 6px; dialogs at 8px (top corners only when they rise as a bottom sheet on mobile). Full rounds are reserved for things that are round by nature: avatars, legend dots, progress tracks and donut charts.
+Square, form-like corners: controls, badges, chips and table cells at 4px; cards and list containers at 6px; dialogs at 8px (top corners only when they rise as a bottom sheet on mobile). Full rounds are reserved for things that are round by nature: avatars, legend dots, progress tracks, donut charts, numbered step markers (the journey rail's stations, guide steps) and the brass seal stamp.
 
 Borders are 1px throughout, with two deliberate exceptions: the 2px form-blue rule under comparison table headers, and the 2px rule-line separator between line-item groups in the three-copy table. Highlight boxes are tinted fills with a full 1px border, never a thick left edge.
 
@@ -315,6 +315,8 @@ Replaces KPI card grids on overviews: figures stand side by side in one ruled ba
 ### Navigation
 The sidebar is a vertical gradient from rail navy to form blue, with the brand mark on a brass square. Items are 44px tall, 4px corners, 20px line icons with pale-blue muted labels; hover lays white at 10% and the active item white at 15% with white semibold text and a faint inset white ring, so states read the same anywhere on the gradient. Theme toggle, user, sign-out and the expand control sit at the foot. Status filters inside the list column are a compact segmented row, the active segment filled form blue.
 
+The public landing page carries the same rail as a journey rail: 300px wide from 1024px (a sticky top bar below), the same gradient, item states and brass focus ring, with numbered round station markers (brass-filled when active) and a scroll-spy that lights the station being read. Actions on the rail invert to paper fill with rail-navy text.
+
 ### Dialogs and Toasts
 Dialogs: paper, 8px corners, pop shadow, 1px ruled header and footer, actions right-aligned; bottom sheet on mobile. Toasts: tone triple with icon, 6px corners, pop shadow, bottom-right, pause on hover or focus.
 
@@ -334,8 +336,8 @@ Dialogs: paper, 8px corners, pop shadow, 1px ruled header and footer, actions ri
 - **Don't** colour or label any copy as "correct" or "wrong"; the interface does not know which copy was misread.
 - **Don't** use side stripes (a thick coloured border on one side) for selection, severity or callouts.
 - **Don't** build overviews from a grid of same-size KPI cards; use the summary line.
-- **Don't** use pill-shaped badges or chips; round shapes are for avatars, dots, tracks and charts.
-- **Don't** add resting drop shadows, gradients or glows to cards or buttons. Gradients live only on the sidebar rail, the login ground and the shell's top wash.
+- **Don't** use pill-shaped badges or chips; round shapes are for avatars, dots, tracks, charts, step numbers and the seal.
+- **Don't** add resting drop shadows, gradients or glows to cards or buttons. Gradients live only on navy rails (the app sidebar and the landing journey rail), the login ground and the copy-tint top wash on the shell and public pages.
 - **Don't** introduce a second typeface, uppercase letter-spaced labels or eyebrow lines above headings in app chrome.
 - **Don't** open a modal for record detail on wide screens.
 - **Don't** hard-code palette colours (Tailwind gray, blue, red scales) in components; use the semantic tokens so dark mode follows.

@@ -12,6 +12,7 @@ import { formatDateTime } from '../lib/format.js';
 import { formatWaiting, getAccountantQueue } from '../lib/overview.js';
 import { ROUTES, batchDetail } from '../routes.js';
 import { Badge, Button, Card, CardHeader, EmptyState, PageHeader } from '../ui/index.js';
+import OnboardingChecklist from '../components/OnboardingChecklist.jsx';
 import { vi } from '../i18n/vi.js';
 
 const DOC_TYPES = ['po', 'invoice', 'grn'];
@@ -147,7 +148,7 @@ function AccountantQueue({ queue, infoOf, onOpen, onViewAll }) {
 }
 
 /** Tổng quan của kế toán viên: việc cần xử lý trước, số liệu sau, biểu đồ cuối trang. */
-export default function AccountantOverview({ token }) {
+export default function AccountantOverview({ token, user }) {
   const navigate = useNavigate();
   const cached = getCachedBatches();
   const [batches, setBatches] = useState(() => cached?.items || []);
@@ -268,6 +269,7 @@ export default function AccountantOverview({ token }) {
           />
         }
       />
+      {user && <OnboardingChecklist token={token} user={user} batches={batches} />}
 
       <SummaryLine
         label={kpi.label}

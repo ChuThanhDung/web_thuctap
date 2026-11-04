@@ -14,8 +14,49 @@ def is_smtp_configured() -> bool:
     return bool(settings.smtp_user and settings.smtp_password)
 
 
-def _send_email(to_email: str, subject: str, text_body: str, html_body: str) -> bool:
+# Khung chung cho mọi email: dải tên sản phẩm, nội dung trên giấy trắng, chân thư có link pháp lý. Màu theo DESIGN.md
+# (xanh mẫu biểu #1f4fa3, mực navy #0e1b33, nền xanh giấy #f2f6fc).
+EMAIL_FRAME = """
+<div style="margin:0;padding:24px 12px;background:#f2f6fc;font-family:Arial,Helvetica,sans-serif;color:#0e1b33">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #dae2ee;border-radius:6px;overflow:hidden">
+    <div style="padding:16px 24px;background:#13213d;color:#ffffff;font-size:15px;font-weight:700">
+      <span style="display:inline-block;width:14px;height:14px;background:#d9b26a;border-radius:3px;vertical-align:-2px;margin-right:8px"></span>{app_name}
+      <span style="font-weight:400;color:#c9d6f0"> · Đối soát chứng từ</span>
+    </div>
+    <div style="padding:24px;font-size:15px;line-height:1.6">{content}</div>
+    <div style="padding:14px 24px;background:#f2f6fc;border-top:1px solid #dae2ee;color:#50607c;font-size:12px;line-height:1.5">
+      Email tự động, vui lòng không trả lời trực tiếp.{links}
+    </div>
+  </div>
+</div>
+"""
+
+
+def _frame(content: str) -> str:
     settings = get_settings()
+    base = (settings.app_frontend_url or "").rstrip("/")
+    links = (
+        f'<br><a href="{base}/dieu-khoan" style="color:#1f4fa3">Điều khoản sử dụng</a> · '
+        f'<a href="{base}/bao-mat" style="color:#1f4fa3">Chính sách bảo vệ dữ liệu</a>'
+        if base
+        else ""
+    )
+    return EMAIL_FRAME.format(app_name=escape(settings.app_name), content=content, links=links)
+
+
+def _button(url: str, label: str) -> str:
+    return (
+        f'<p style="margin:24px 0;text-align:center"><a href="{escape(url, quote=True)}" '
+        'style="display:inline-block;padding:12px 22px;border-radius:4px;background:#1f4fa3;color:#ffffff;'
+        f'text-decoration:none;font-weight:700">{escape(label)}</a></p>'
+    )
+
+
+def _send_email(to_email: str, subject: str, text_body: str, html_body: str, framed: bool = True) -> bool:
+    """framed=False khi html_body đã tự có khung đầy đủ (email bộ bị từ chối)."""
+    settings = get_settings()
+    if framed:
+        html_body = _frame(html_body)
     if not is_smtp_configured():
         logger.error("SMTP chưa được cấu hình; không thể gửi email tới %s", to_email)
         return False
@@ -54,12 +95,12 @@ def send_otp_email(to_email: str, otp: str) -> bool:
         "Nếu bạn không yêu cầu thao tác này, hãy bỏ qua email."
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+    <div>
       <h2>Xác thực đổi mật khẩu</h2>
       <p>Mã OTP của tài khoản <strong>{to_email}</strong> là:</p>
-      <p style="padding:18px;text-align:center;font-size:32px;font-weight:700;letter-spacing:6px;background:#f0f4ff;border-radius:8px;color:#533afd">{otp}</p>
+      <p style="padding:18px;text-align:center;font-size:32px;font-weight:700;letter-spacing:6px;background:#e8effa;border-radius:8px;color:#1f4fa3">{otp}</p>
       <p>Mã có hiệu lực trong <strong>{ttl_minutes} phút</strong> và chỉ được sử dụng một lần.</p>
-      <p style="color:#64748d">Không chia sẻ mã này với bất kỳ ai.</p>
+      <p style="color:#50607c">Không chia sẻ mã này với bất kỳ ai.</p>
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
@@ -73,7 +114,7 @@ def send_password_changed_email(to_email: str) -> bool:
         "Nếu bạn không thực hiện thao tác này, hãy liên hệ quản trị viên ngay."
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+    <div>
       <h2>Mật khẩu vừa được thay đổi</h2>
       <p>Mật khẩu của tài khoản <strong>{to_email}</strong> đã được cập nhật thành công.</p>
       <p style="color:#b42318">Nếu bạn không thực hiện thao tác này, hãy liên hệ quản trị viên ngay.</p>
@@ -162,7 +203,7 @@ def send_batch_rejected_email(
       </div>
     </div>
     """
-    return _send_email(to_email, subject, text_body, html_body)
+    return _send_email(to_email, subject, text_body, html_body, framed=False)
 
 
 def send_signup_otp_email(to_email: str, company_name: str, otp: str) -> bool:
@@ -174,12 +215,12 @@ def send_signup_otp_email(to_email: str, company_name: str, otp: str) -> bool:
         f"Mã có hiệu lực trong {ttl_minutes} phút. Nếu bạn không đăng ký, hãy bỏ qua email này."
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+    <div>
       <h2>Xác thực email đăng ký</h2>
       <p>Mã xác thực để tạo tài khoản cho <strong>{escape(company_name)}</strong>:</p>
-      <p style="padding:18px;text-align:center;font-size:32px;font-weight:700;letter-spacing:6px;background:#f0f4ff;border-radius:8px;color:#533afd">{otp}</p>
+      <p style="padding:18px;text-align:center;font-size:32px;font-weight:700;letter-spacing:6px;background:#e8effa;border-radius:8px;color:#1f4fa3">{otp}</p>
       <p>Mã có hiệu lực trong <strong>{ttl_minutes} phút</strong> và chỉ dùng được một lần.</p>
-      <p style="color:#64748d">Nếu bạn không đăng ký, hãy bỏ qua email này.</p>
+      <p style="color:#50607c">Nếu bạn không đăng ký, hãy bỏ qua email này.</p>
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
@@ -196,15 +237,13 @@ def send_invitation_email(
         f"Mở đường dẫn sau để đặt mật khẩu (hiệu lực {days} ngày):\n{accept_url}\n"
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0d253d">
+    <div>
       <h2>Lời mời tham gia {escape(company_name)}</h2>
       <p>Xin chào <strong>{escape(recipient_name)}</strong>,</p>
       <p><strong>{escape(inviter_name)}</strong> mời bạn dùng {escape(settings.app_name)} với vai trò
          <strong>{escape(role_name)}</strong>.</p>
-      <p style="margin:24px 0;text-align:center">
-        <a href="{escape(accept_url, quote=True)}" style="display:inline-block;padding:13px 22px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700">Nhận lời mời</a>
-      </p>
-      <p style="color:#64748d;font-size:13px">Lời mời có hiệu lực {days} ngày. Nếu nút không mở được, dán đường dẫn này vào trình duyệt:<br>
+      {_button(accept_url, "Nhận lời mời")}
+      <p style="color:#50607c;font-size:13px">Lời mời có hiệu lực {days} ngày. Nếu nút không mở được, dán đường dẫn này vào trình duyệt:<br>
         <a href="{escape(accept_url, quote=True)}" style="word-break:break-all">{escape(accept_url)}</a></p>
     </div>
     """
@@ -224,12 +263,12 @@ def send_payment_confirmed_email(to_email: str, company_name: str, plan_name: st
         f"Gói có hiệu lực đến hết ngày {until}. Cảm ơn bạn đã sử dụng {settings.app_name}."
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+    <div>
       <h2>Đã nhận thanh toán</h2>
       <p>Đã nhận <strong>{_format_vnd(amount)}</strong> cho gói <strong>{escape(plan_name)}</strong> của
          <strong>{escape(company_name)}</strong>.</p>
       <p>Gói có hiệu lực đến hết ngày <strong>{until}</strong>.</p>
-      <p style="color:#64748d">Cảm ơn bạn đã sử dụng {escape(settings.app_name)}.</p>
+      <p style="color:#50607c">Cảm ơn bạn đã sử dụng {escape(settings.app_name)}.</p>
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
@@ -244,13 +283,11 @@ def send_renewal_reminder_email(to_email: str, company_name: str, plan_name: str
         f"nguyên nhưng hạn mức thấp hơn.\nGia hạn tại: {renew_url}"
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0d253d">
+    <div>
       <h2>Gói {escape(plan_name)} sắp hết hạn</h2>
       <p>Gói của <strong>{escape(company_name)}</strong> hết hạn ngày <strong>{until}</strong>. Sau đó công ty chuyển
          về gói Free: dữ liệu vẫn giữ nguyên nhưng hạn mức thấp hơn.</p>
-      <p style="margin:24px 0;text-align:center">
-        <a href="{escape(renew_url, quote=True)}" style="display:inline-block;padding:13px 22px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700">Gia hạn gói</a>
-      </p>
+      {_button(renew_url, "Gia hạn gói")}
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
@@ -266,12 +303,44 @@ def send_deletion_scheduled_email(to_email: str, company_name: str, requested_by
         "Dữ liệu & quyền riêng tư.\nNếu không phải bạn yêu cầu, hãy đăng nhập và hủy ngay."
     )
     html_body = f"""
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0d253d">
+    <div>
       <h2>Yêu cầu xóa dữ liệu công ty</h2>
       <p><strong>{escape(requested_by)}</strong> đã yêu cầu xóa toàn bộ dữ liệu của <strong>{escape(company_name)}</strong>.</p>
       <p>Dữ liệu sẽ bị <strong>xóa vĩnh viễn ngày {when}</strong>. Trước ngày đó có thể hủy yêu cầu và tải toàn bộ dữ liệu
          ở trang Dữ liệu &amp; quyền riêng tư.</p>
       <p style="color:#b42318">Nếu không phải bạn yêu cầu, hãy đăng nhập và hủy ngay.</p>
     </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_welcome_email(to_email: str, full_name: str, company_name: str, trial_ends_at, app_url: str) -> bool:
+    """Gửi sau khi đăng ký xong: ba việc nên làm đầu tiên và hạn dùng thử."""
+    settings = get_settings()
+    until = trial_ends_at.strftime("%d/%m/%Y") if trial_ends_at else ""
+    steps = (
+        ("Mời kế toán viên", "Trang Quản lý tài khoản → Mời qua email."),
+        ("Thử một bộ mẫu", "Trên trang Tổng quan, bấm Tạo bộ mẫu để xem cách hệ thống chỉ ra chỗ lệch."),
+        ("Duyệt bộ đầu tiên", "Kế toán viên duyệt trước, bạn duyệt cuối; bộ đã duyệt được khóa thành hồ sơ."),
+    )
+    subject = f"[{settings.app_name}] Chào mừng {company_name}"
+    text_body = (
+        f"Xin chào {full_name},\n\n{company_name} đã sẵn sàng trên {settings.app_name}. "
+        f"Gói Pro dùng thử đến hết ngày {until}.\n\n"
+        + "\n".join(f"{index}. {title}: {detail}" for index, (title, detail) in enumerate(steps, 1))
+        + f"\n\nĐăng nhập: {app_url}\nHướng dẫn: {app_url}/huong-dan"
+    )
+    items = "".join(
+        f'<li style="margin:0 0 10px"><strong>{escape(title)}</strong><br><span style="color:#3a4a66">{escape(detail)}</span></li>'
+        for title, detail in steps
+    )
+    html_body = f"""
+    <h2 style="margin:0 0 12px;font-size:20px">Chào mừng {escape(company_name)}</h2>
+    <p>Xin chào <strong>{escape(full_name)}</strong>, công ty đã sẵn sàng. Gói <strong>Pro</strong> dùng thử đến hết
+       ngày <strong>{until}</strong>; sau đó tự chuyển về gói Free, dữ liệu giữ nguyên.</p>
+    <p style="margin:20px 0 8px;font-weight:700">Ba việc nên làm đầu tiên</p>
+    <ol style="padding-left:20px;margin:0">{items}</ol>
+    {_button(app_url, "Mở DocuSync AI")}
+    <p style="color:#50607c;font-size:13px">Cần trợ giúp? Xem <a href="{escape(app_url, quote=True)}/huong-dan" style="color:#1f4fa3">hướng dẫn sử dụng</a>.</p>
     """
     return _send_email(to_email, subject, text_body, html_body)

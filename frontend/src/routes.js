@@ -11,6 +11,8 @@ export const ROUTES = {
   terms: '/dieu-khoan',
   privacyPolicy: '/bao-mat',
   dpa: '/xu-ly-du-lieu',
+  guide: '/huong-dan',
+  pricing: '/bang-gia',
   overview: '/accountant',
   upload: '/upload',
   batches: '/audit-trail',

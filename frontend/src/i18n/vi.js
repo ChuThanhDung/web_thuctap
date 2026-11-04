@@ -78,6 +78,7 @@ export const vi = {
     admin: 'Công ty khách hàng',
     billing: 'Gói & thanh toán',
     privacy: 'Dữ liệu & quyền riêng tư',
+    guide: 'Hướng dẫn',
   },
 
   shell: {

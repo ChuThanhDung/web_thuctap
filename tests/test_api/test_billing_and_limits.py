@@ -355,3 +355,14 @@ async def test_admin_revenue_and_manual_plan_with_expiry(client, billing_enabled
     with SessionLocal() as db:
         use_system_context(db)
         assert db.scalars(select(Payment).where(Payment.code == payment["code"])).one().status == "paid"
+
+
+@pytest.mark.asyncio
+async def test_plans_are_public_for_the_pricing_page(client):
+    response = await client.get("/api/v1/billing/plans")
+    assert response.status_code == 200
+    plans = {plan["code"]: plan for plan in response.json()}
+    assert list(plans) == ["free", "pro", "ultra"]
+    assert plans["pro"]["monthly_price"] == PLAN_LIMITS["pro"].monthly_price
+    assert plans["pro"]["yearly_price"] == PLAN_LIMITS["pro"].monthly_price * 10
+    assert plans["ultra"]["users"] is None
