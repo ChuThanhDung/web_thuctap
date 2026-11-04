@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { getLegalInfo } from '../api.js';
 import { LEGAL_DOCUMENTS, fillLegalText } from '../legal/content.js';
 import { ROUTES } from '../routes.js';
+import BrandMark from '../components/BrandMark.jsx';
 
 const DOCUMENT_LINKS = [
   ['terms', ROUTES.terms],
@@ -41,9 +42,7 @@ export default function LegalPage({ document: documentKey, backTo = ROUTES.login
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <Link to={backTo} className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
-            <span className="flex h-8 w-8 items-center justify-center rounded-control bg-sidebar-accent text-sidebar" aria-hidden="true">
-              <Check size={18} strokeWidth={3} />
-            </span>
+            <BrandMark />
             DocuSync AI
           </Link>
           <Link to={backTo} className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">

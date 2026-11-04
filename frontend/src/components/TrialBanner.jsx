@@ -22,7 +22,7 @@ export default function TrialBanner({ organization }) {
     <p
       className={`mb-4 flex items-start gap-2 rounded-card border px-4 py-2.5 text-sm ${
         urgent
-          ? 'border-tone-warning-line bg-tone-warning-bg text-tone-warning-fg'
+          ? 'border-tone-neutral-line bg-tone-neutral-bg text-fg'
           : 'border-tone-info-line bg-tone-info-bg text-tone-info-fg'
       }`}
     >

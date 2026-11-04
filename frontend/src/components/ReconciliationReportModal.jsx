@@ -278,7 +278,7 @@ function getStatusBadgeText(status) {
     case 'mismatch':
       return { label: 'Lệch dữ liệu', color: 'text-tone-danger-fg bg-tone-danger-bg border-tone-danger-line' };
     case 'missing':
-      return { label: 'Thiếu chứng từ', color: 'text-tone-warning-fg bg-tone-warning-bg border-tone-warning-line' };
+      return { label: 'Thiếu chứng từ', color: 'text-tone-neutral-fg bg-tone-neutral-bg border-tone-neutral-line' };
     default:
       return { label: 'Đang xử lý', color: 'text-fg-muted bg-surface-muted border-tone-neutral-line' };
   }
@@ -1060,7 +1060,7 @@ export default function ReconciliationReportModal({
             <div className="mt-2 grid grid-cols-4 gap-2 sm:gap-3 text-center">
               <div className="rounded border border-tone-neutral-line bg-surface-muted p-2.5">
                 <p className="text-[11px] font-medium text-fg-muted">Thiếu dữ liệu</p>
-                <p className="mt-0.5 text-lg font-bold text-tone-warning-fg tabular-nums">
+                <p className="mt-0.5 text-lg font-bold text-fg tabular-nums">
                   {reportSummary.missing || 0}
                 </p>
               </div>

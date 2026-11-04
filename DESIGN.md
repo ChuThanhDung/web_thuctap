@@ -232,7 +232,7 @@ Dark mode remaps every token by variable and keeps the same blend: canvas #0b132
 
 ## Layout
 
-The shell is a fixed sidebar (vertical gradient, rail navy to form blue) plus a canvas content column. The sidebar is a 64px icon rail by default from 768px up; users can expand it to 260px from 1024px up, and the choice persists. Below 768px it becomes a drawer.
+The shell is a fixed sidebar (vertical gradient, rail navy to form blue) plus a canvas content column. The sidebar opens expanded (260px, with labels) by default from 1280px, and as a 64px icon rail from 768px to 1279px; users can switch from 1024px up, and the choice persists. Below 768px it becomes a drawer.
 
 The batch surfaces (Bộ đối soát for both roles, Audit Trail) are master-detail. From 1280px the page splits into a 360px list column on pale ledger and a paper detail pane; choosing a row by click or ↑/↓ updates the detail in place, with no dialog. Below 1280px the list stands alone and the detail opens in a near-full-screen dialog.
 

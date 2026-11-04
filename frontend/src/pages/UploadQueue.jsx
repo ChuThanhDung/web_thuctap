@@ -35,6 +35,7 @@ import { useToast } from '../ui/Toast.jsx';
 import { Button, PageHeader } from '../ui/index.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { EXPORT_FONT_STACK } from '../lib/exportStyles.js';
+import { formatDateTime } from '../lib/format.js';
 
 const DOC_TYPES = [
   { value: 'po', label: 'Đơn đặt hàng (PO)', icon: ShoppingCart },
@@ -916,7 +917,7 @@ export default function UploadQueue({ token }) {
             : ''
         }`}
       >
-        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {DOC_TYPES.map((type) => {
             const Icon = type.icon;
             const uploadedFiles = uploadedFilesByType[type.value] || [];
@@ -926,32 +927,29 @@ export default function UploadQueue({ token }) {
               <div
                 key={type.value}
                 data-testid={`card-${type.value}`}
-                className={`flex flex-col items-start rounded-card border-2 p-4 text-left transition-all ${
-                  isReadingThisType
-                    ? 'border-tone-neutral-line bg-surface-muted shadow-card ring-2 ring-line'
-                    : 'border-line bg-surface hover:border-tone-neutral-line'
+                className={`flex flex-col items-start rounded-card border px-3 py-2.5 text-left transition-colors ${
+                  isReadingThisType ? 'border-tone-brand-line bg-tone-brand-bg' : 'border-line bg-surface'
                 }`}
               >
-              <div className="flex w-full items-center justify-between">
-                <div className={`p-2 rounded-control transition-colors ${
-                  isReadingThisType
-                    ? 'bg-primary text-primary-fg animate-pulse'
-                    : 'bg-surface-muted text-fg-subtle'
-                }`}>
-                  <Icon size={18} />
-                </div>
-                {isReadingThisType && (
-                  <span className="inline-flex items-center gap-1 rounded-control bg-tone-brand-bg px-2 py-0.5 text-xs font-bold text-tone-brand-fg">
-                    <Loader2 size={11} className="animate-spin" />
-                    Đang đọc file
+              <div className="flex w-full items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg">
+                  <Icon size={16} className="shrink-0 text-fg-subtle" aria-hidden="true" />
+                  <span className="truncate">{type.label}</span>
+                </span>
+                {isReadingThisType ? (
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-tone-brand-fg">
+                    <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+                    Đang đọc
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-xs text-fg-subtle">
+                    {uploadedFiles.length ? `${uploadedFiles.length} file` : 'Chưa có'}
                   </span>
                 )}
               </div>
 
-              <span className="mt-3 font-bold text-sm text-fg">{type.label}</span>
-
               {uploadedFiles.length > 0 && (
-                <div className="mt-3 w-full border-t border-line pt-2.5">
+                <div className="mt-2 w-full border-t border-line pt-2">
                   <div className="space-y-1.5">
                     {uploadedFiles.map((file, index) => {
                       const fileBeingRead = isFileBeingRead(file);
@@ -997,10 +995,11 @@ export default function UploadQueue({ token }) {
                                   e.stopPropagation();
                                   handleDismissInFlightError(file.id);
                                 }}
-                                className="text-tone-danger-fg hover:text-tone-danger-fg"
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-tone-danger-fg hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                                 title="Đóng thông báo"
+                                aria-label={`Đóng thông báo lỗi của ${file.filename}`}
                               >
-                                <X size={13} />
+                                <X size={15} aria-hidden="true" />
                               </button>
                             </div>
                             <p className="text-xs font-medium text-tone-danger-fg">
@@ -1020,7 +1019,7 @@ export default function UploadQueue({ token }) {
                           key={file.id || `${file.filename}-${index}`}
                           className={`flex w-full flex-col gap-2 rounded-control border px-2.5 py-2 ${
                             isLowQualityFile
-                              ? 'border-tone-warning-line bg-tone-warning-bg'
+                              ? 'border-tone-neutral-line bg-tone-neutral-bg'
                               : 'border-line bg-surface-muted'
                           }`}
                         >
@@ -1044,16 +1043,17 @@ export default function UploadQueue({ token }) {
                                 event.stopPropagation();
                                 handleDeleteUploadedFile(file);
                               }}
-                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-control text-fg-subtle hover:bg-tone-danger-bg hover:text-tone-danger-fg"
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-fg-subtle hover:bg-tone-danger-bg hover:text-tone-danger-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                               title="Xóa file"
+                              aria-label={`Xóa file ${file.filename}`}
                             >
-                              <X size={13} />
+                              <X size={15} aria-hidden="true" />
                             </button>
                           </div>
                           {isLowQualityFile && (
-                            <p className="flex items-start gap-1.5 text-xs font-semibold leading-4 text-tone-warning-fg">
-                              <AlertCircle size={13} className="mt-0.5 shrink-0" />
-                              <span>{lowQualityMessage}</span>
+                            <p className="flex items-start gap-1.5 text-xs leading-4 text-fg">
+                              <AlertCircle size={13} className="mt-0.5 shrink-0 text-tone-neutral-fg" aria-hidden="true" />
+                              <span><strong>Cần kiểm tra dữ liệu đọc:</strong> {lowQualityMessage}</span>
                             </p>
                           )}
                         </div>
@@ -1197,7 +1197,7 @@ export default function UploadQueue({ token }) {
           rows={2}
           maxLength={BATCH_NOTE_MAX_LENGTH}
           placeholder="Ví dụ: Bộ chứng từ đối chiếu hóa đơn công ty A..."
-          className="mt-2 w-full resize-none rounded-control border border-line bg-surface-muted px-3 py-2 text-sm text-fg outline-none transition focus:border-primary focus:bg-surface focus:ring-2 focus:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-2 w-full resize-none rounded-control border border-line bg-surface-muted px-3 py-2 text-sm text-fg outline-none transition focus:bg-surface focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div className="mt-2 min-h-[18px] text-xs">
           {batchNoteError ? (
@@ -1320,10 +1320,10 @@ export default function UploadQueue({ token }) {
                             className={`rounded-control px-2 py-0.5 text-xs font-semibold ${
                               hasInFlight
                                 ? 'bg-tone-brand-bg text-tone-brand-fg'
-                                : 'bg-tone-warning-bg text-tone-warning-fg'
+                                : 'border border-tone-neutral-line bg-tone-neutral-bg text-tone-neutral-fg'
                             }`}
                           >
-                            {hasInFlight ? 'Đang đọc file...' : `Cần bổ sung ${missingCount} chứng từ`}
+                            {hasInFlight ? 'Đang đọc file...' : `Thiếu ${missingCount} chứng từ`}
                           </span>
                         )}
                         {isReady && batchFilterTab !== 'incomplete' && (
@@ -1333,7 +1333,7 @@ export default function UploadQueue({ token }) {
                         )}
                       </div>
                       <p className="mt-1 text-xs text-fg-subtle">
-                        Cập nhật: {batch.updated_at || batch.created_at}
+                        Cập nhật: {formatDateTime(batch.updated_at || batch.created_at)}
                       </p>
                       {batch.note && (
                         <p className="mt-1 max-w-sm truncate text-xs font-medium text-fg-muted" title={batch.note}>
@@ -1358,7 +1358,7 @@ export default function UploadQueue({ token }) {
                               fileBeingRead
                                 ? 'border-tone-brand-line bg-tone-brand-bg text-tone-brand-fg'
                                 : isWrongType
-                                ? 'border-tone-warning-line bg-tone-warning-bg text-tone-warning-fg'
+                                ? 'border-tone-danger-line bg-tone-danger-bg text-tone-danger-fg'
                                 : file
                                 ? 'border-tone-success-line bg-tone-success-bg text-tone-success-fg'
                                 : 'border-line bg-surface-muted text-fg-subtle'
@@ -1375,8 +1375,8 @@ export default function UploadQueue({ token }) {
                                 Đang đọc file
                               </span>
                             ) : isWrongType ? (
-                              <span className="mt-1 flex items-center gap-1 font-semibold text-tone-warning-fg whitespace-nowrap">
-                                <AlertCircle size={11} />
+                              <span className="mt-1 flex items-center gap-1 font-semibold text-tone-danger-fg whitespace-nowrap">
+                                <AlertCircle size={11} aria-hidden="true" />
                                 Sai loại file
                               </span>
                             ) : file ? (

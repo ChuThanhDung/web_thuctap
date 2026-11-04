@@ -17,7 +17,8 @@ export const APPROVAL_STATUSES = ['pending_accountant', 'pending_chief', 'approv
 // `icon` là tên icon lucide, được ánh xạ sang component ở src/ui/StatusBadge.jsx (giữ module này thuần dữ liệu).
 const RECONCILIATION_META = {
   processing: { tone: 'info', icon: 'Loader2' },
-  missing_docs: { tone: 'warning', icon: 'FileWarning' },
+  // Thiếu chứng từ là trung tính: vàng chỉ dành cho lệch do làm tròn (DESIGN.md).
+  missing_docs: { tone: 'neutral', icon: 'FileWarning' },
   matched: { tone: 'success', icon: 'CheckCircle2' },
   minor: { tone: 'warning', icon: 'AlertCircle' },
   mismatch: { tone: 'danger', icon: 'AlertTriangle' },

@@ -299,11 +299,6 @@ def reconcile_documents(
         ("đơn giá", "tổng tiền", "số tiền", "amount", "price", "mặc định", "khác"),
         ("0", "1000"),  # chỉ chấp nhận lệch do làm tròn tiền
     )
-    qty_pct_limit, qty_abs_limit = get_threshold_by_category(
-        db,
-        ("số lượng", "quantity", "qty"),
-        ("0", "0"),  # số lượng phải khớp tuyệt đối
-    )
 
     invoice_tax_id = normalize_tax_id(invoice_data.get("supplier_tax_id"))
     po_tax_id = normalize_tax_id(po_data.get("supplier_tax_id"))
@@ -378,9 +373,8 @@ def reconcile_documents(
         amount_exceeded = exceeds_threshold(max_amount_diff, amount_diff_pct, amount_pct_limit, amount_abs_limit)
         amount_diff = max_amount_diff > 0
         max_qty_diff = max(abs(inv_qty - po_qty), abs(inv_qty - grn_qty), abs(po_qty - grn_qty))
-        qty_base = max(inv_qty, po_qty, grn_qty, Decimal("1"))
-        qty_diff_pct = percent_diff(max_qty_diff, qty_base)
-        qty_exceeded = exceeds_threshold(max_qty_diff, qty_diff_pct, qty_pct_limit, qty_abs_limit)
+        # Số lượng là số đếm thật, không có làm tròn: lệch bao nhiêu cũng là lệch lớn (không cấu hình được).
+        qty_exceeded = max_qty_diff > 0
 
         # Đơn giá là số thỏa thuận, không có làm tròn: lệch bao nhiêu cũng là vượt ngưỡng.
         unit_price_diff = abs(inv_price - po_price)
@@ -521,7 +515,7 @@ def reconcile_documents(
         ai_note = (
             f"Chênh lệch số tiền: {diff_amount:,} VND ({pct_diff:.2f}%). "
             f"Ngưỡng tiền: {amount_pct_limit}% và {amount_abs_limit:,} VND. "
-            f"Ngưỡng số lượng: {qty_pct_limit}% và {qty_abs_limit} đơn vị."
+            "Số lượng phải khớp tuyệt đối."
         )
         if grn_tax_adjusted:
             ai_note += f" GRN không thể hiện thuế nên đã cộng VAT {grn_tax_rate}% trước khi so khớp."

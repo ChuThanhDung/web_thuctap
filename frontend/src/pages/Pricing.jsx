@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Mail, Minus } from 'lucide-react';
 import { getLegalInfo, getPublicPlans } from '../api.js';
 import { formatNumber, formatVND } from '../lib/format.js';
 import { ROUTES } from '../routes.js';
+import BrandMark from '../components/BrandMark.jsx';
 import { cn } from '../ui/index.js';
 
 function storage(bytes) {
@@ -56,9 +57,7 @@ export default function Pricing({ backTo = '/' }) {
     <div className="min-h-dvh bg-canvas bg-[linear-gradient(180deg,rgb(var(--c-accent-soft))_0%,rgb(var(--c-canvas))_28rem)] bg-no-repeat text-fg">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-8">
         <Link to={backTo} className="inline-flex items-center gap-2.5 font-bold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-control bg-sidebar-accent text-sidebar" aria-hidden="true">
-            <Check size={18} strokeWidth={3} />
-          </span>
+          <BrandMark />
           DocuSync AI
         </Link>
         <nav aria-label="Trang" className="flex items-center gap-5 text-sm">
@@ -147,7 +146,7 @@ export default function Pricing({ backTo = '/' }) {
                 {plans.map((plan) => {
                   const price = yearly ? plan.yearly_price : plan.monthly_price;
                   return (
-                    <th key={plan.code} scope="col" className={cn('px-5 py-5 text-left font-normal', plan.code === 'pro' && 'bg-accent-soft/60')}>
+                    <th key={plan.code} scope="col" className={cn('px-5 py-5 text-right font-normal', plan.code === 'pro' && 'bg-accent-soft/60')}>
                       <span className="block text-base font-semibold text-fg">{plan.name}</span>
                       <span className="mt-1 block text-2xl font-bold tabular-nums text-fg">{price ? formatVND(price) : '0 đ'}</span>
                       <span className="block text-xs text-fg-subtle">
@@ -174,8 +173,8 @@ export default function Pricing({ backTo = '/' }) {
                   {plans.map((plan) => {
                     const cell = value(plan);
                     return (
-                      <td key={plan.code} className={cn('px-5 py-3 tabular-nums text-fg-muted', plan.code === 'pro' && 'bg-accent-soft/60')}>
-                        {cell === true ? <Check size={18} className="text-tone-success-fg" aria-label="Có" /> : cell === false ? <Minus size={18} aria-label="Không" /> : cell}
+                      <td key={plan.code} className={cn('px-5 py-3 text-right tabular-nums text-fg-muted', plan.code === 'pro' && 'bg-accent-soft/60')}>
+                        {cell === true ? <Check size={18} className="ml-auto text-tone-success-fg" aria-label="Có" /> : cell === false ? <Minus size={18} className="ml-auto" aria-label="Không" /> : cell}
                       </td>
                     );
                   })}
