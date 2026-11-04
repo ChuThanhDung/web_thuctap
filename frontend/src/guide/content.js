@@ -66,6 +66,20 @@ export const GUIDE_SECTIONS = [
     ],
   },
   {
+    id: 'tro-ly',
+    title: 'Trợ lý AI',
+    blocks: [
+      { type: 'p', text: 'Trợ lý chỉ đề xuất. Không có thay đổi nào xảy ra cho đến khi bạn bấm xác nhận; trợ lý không duyệt, không sửa số tiền và không tự gửi thư.' },
+      { type: 'list', items: [
+        'Tự xếp bộ (trang Tải chứng từ → Nhiều bộ cùng lúc): thả chứng từ của nhiều giao dịch cùng lúc, trợ lý ghép thành từng bộ PO · HĐ · GRN dựa trên số đơn hàng, MST và mặt hàng, kèm lý do. Sửa nếu cần rồi bấm Tạo bộ.',
+        'Điều tra: ở bộ lệch lớn hoặc gắn nhầm liên, trợ lý tìm xem chứng từ đúng có nằm ở bộ khác chưa duyệt không và đề xuất đổi chỗ; cả hai bộ được đối soát lại.',
+        'Soạn thư cho nhà cung cấp: thư nêu đúng các dòng lệch lấy từ kết quả đối soát. Bạn đọc, sửa, rồi gửi (nhà cung cấp trả lời thẳng về email của bạn) hoặc sao chép để tự gửi.',
+        'Hỏi trợ lý (nút góc dưới màn hình): hỏi về bộ chờ duyệt, nhà cung cấp hay lệch, mức dùng. Trợ lý chỉ đọc dữ liệu bạn được xem.',
+        'Phần lớn việc được quyết bằng quy tắc, không tốn lượt. Lượt trợ lý chỉ tính khi thật sự gọi AI; hạn mức theo gói. Công ty tắt AI thì trợ lý chỉ dùng quy tắc, không gửi gì ra ngoài.',
+      ] },
+    ],
+  },
+  {
     id: 'goi-dich-vu',
     title: 'Gói dịch vụ và hạn mức',
     blocks: [

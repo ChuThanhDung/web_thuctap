@@ -104,6 +104,7 @@ export const LEGAL_DOCUMENTS = {
         items: [
           'Máy chủ và cơ sở dữ liệu đặt tại {server}. Bản sao lưu lưu trên Google Cloud Storage.',
           'Chứng từ PDF/ảnh được gửi tới dịch vụ AI để đọc: {ai}. Nhà cung cấp AI xử lý theo hợp đồng API của họ và không dùng dữ liệu gửi qua API để huấn luyện mô hình.',
+          'Trợ lý AI (xếp bộ, điều tra, soạn thư, hỏi đáp) gửi tới cùng dịch vụ AI dữ liệu đã trích xuất và đã rút gọn (số chứng từ, nhà cung cấp, mặt hàng, câu hỏi của người dùng), không gửi file chứng từ gốc.',
           'Kế toán trưởng có thể tắt đọc bằng AI ở trang Dữ liệu & quyền riêng tư; khi tắt, công ty chỉ tải được XML và không file nào được gửi ra nước ngoài để đọc.',
           'Email gửi qua Gmail (Google). {operator} thực hiện thủ tục đánh giá tác động chuyển dữ liệu cá nhân ra nước ngoài theo quy định.',
         ],

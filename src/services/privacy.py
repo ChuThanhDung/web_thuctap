@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Đổi khi sửa nội dung Điều khoản / Chính sách bảo vệ dữ liệu (frontend/src/legal/content.js): người dùng được hỏi
 # đồng ý lại ở lần mở app sau.
-TERMS_VERSION = "2026-11-04"
+TERMS_VERSION = "2026-11-05"
 DELETION_GRACE_DAYS = 30
 
 # Bảng nghiệp vụ xóa khi xóa công ty, theo thứ tự khóa ngoại (bảng con trước).

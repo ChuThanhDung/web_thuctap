@@ -61,6 +61,8 @@ def purge_batch_tables(db: Session) -> None:
     db.query(UploadedFile).delete()
     db.query(Notification).delete()
     db.query(DocumentBatch).delete()
+    # Bộ đếm hạn mức tháng chỉ tăng; không xóa thì chạy test nhiều lần trong tháng sẽ làm công ty Demo hết lượt (402).
+    db.execute(text("DELETE FROM usage_counters"))
     db.commit()
 
 

@@ -21,6 +21,7 @@ const ROWS = [
   ['Người dùng (kể cả lời mời đang chờ)', (plan) => (plan.users === null ? 'Không giới hạn' : formatNumber(plan.users))],
   ['Bộ đối soát mỗi tháng', (plan) => formatNumber(plan.batches_per_month)],
   ['File PDF/ảnh đọc bằng AI mỗi tháng', (plan) => formatNumber(plan.ai_files_per_month)],
+  ['Lượt trợ lý AI mỗi tháng', (plan) => formatNumber(plan.agent_calls_per_month)],
   ['Hóa đơn XML', () => 'Không tính lượt AI'],
   ['Dung lượng lưu trữ', (plan) => storage(plan.storage_bytes)],
   ['Giữ hồ sơ', (plan) => retention(plan.retention_months)],
