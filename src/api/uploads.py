@@ -252,6 +252,9 @@ def require_accountant(current_user: User) -> None:
 
 
 def can_access_batch(current_user: User, batch: DocumentBatch) -> bool:
+    # Bộ tạm chờ trợ lý xếp là chỗ làm việc riêng của người tạo.
+    if batch.is_inbox:
+        return batch.created_by_id == current_user.public_id
     if current_user.role.code == "chief_accountant":
         return True
     if current_user.role.code == "accountant":
@@ -1000,6 +1003,7 @@ async def list_upload_batches(
             selectinload(DocumentBatch.files).selectinload(UploadedFile.ai_extraction),
             selectinload(DocumentBatch.histories).selectinload(DocumentBatchHistory.rejected_by),
         )
+        .where(DocumentBatch.is_inbox.is_(False))
         .order_by(DocumentBatch.updated_at.desc(), DocumentBatch.created_at.desc())
     )
     if current_user.role.code == "accountant":
@@ -1353,10 +1357,12 @@ async def list_uploads(
             selectinload(UploadedFile.uploaded_by),
             selectinload(UploadedFile.ai_extraction),
         )
+        .outerjoin(DocumentBatch, UploadedFile.batch_id == DocumentBatch.id)
+        .where(or_(DocumentBatch.id.is_(None), DocumentBatch.is_inbox.is_(False)))
         .order_by(UploadedFile.created_at.desc())
     )
     if current_user.role.code == "accountant":
-        stmt = stmt.outerjoin(DocumentBatch, UploadedFile.batch_id == DocumentBatch.id).where(
+        stmt = stmt.where(
             or_(
                 UploadedFile.uploaded_by_id == current_user.public_id,
                 DocumentBatch.created_by_id == current_user.public_id,
@@ -1438,7 +1444,7 @@ async def delete_uploaded_file(
 
     db.delete(upload)
     db.flush()
-    if batch is not None:
+    if batch is not None and not batch.is_inbox:
         update_batch_status(db, batch)
 
     write_audit_log(
@@ -1585,8 +1591,10 @@ async def upload_document(
     record_usage(db, batch.organization_id, batches=1 if creates_batch else 0, ai_files=1 if uses_ai else 0)
     create_ai_extraction_record(db, db_upload, ai_analysis)
     db.flush()
-    update_batch_status(db, batch)
-    reconcile_ready_batch(db, batch)
+    # Bộ tạm chỉ gom file chờ trợ lý xếp: không tính trạng thái, không đối soát.
+    if not batch.is_inbox:
+        update_batch_status(db, batch)
+        reconcile_ready_batch(db, batch)
     db.commit()
     db.refresh(db_upload)
 

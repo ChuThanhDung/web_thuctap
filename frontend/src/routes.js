@@ -15,6 +15,7 @@ export const ROUTES = {
   pricing: '/bang-gia',
   overview: '/accountant',
   upload: '/upload',
+  autoSort: '/tu-xep-bo',
   batches: '/audit-trail',
   users: '/users',
   settings: '/settings',

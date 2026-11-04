@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AppHeader from './components/AppHeader.jsx';
+import AssistantPanel from './components/AssistantPanel.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import DeletionBanner from './components/DeletionBanner.jsx';
 import TermsUpdateDialog from './components/TermsUpdateDialog.jsx';
@@ -19,6 +20,7 @@ import Signup from './pages/Signup.jsx';
 import AccountantOverview from './pages/AccountantOverview.jsx';
 import ChiefOverview from './pages/ChiefOverview.jsx';
 import UploadQueue from './pages/UploadQueue.jsx';
+import AutoSort from './pages/AutoSort.jsx';
 import AuditTrail from './pages/AuditTrail.jsx';
 import ChiefAccountantBatches from './pages/ChiefAccountantBatches.jsx';
 import ThresholdConfig from './pages/ThresholdConfig.jsx';
@@ -269,6 +271,14 @@ export default function App() {
               }
             />
             <Route
+              path={ROUTES.autoSort}
+              element={
+                <RoleRoute allowedRole="accountant" currentRole={role} redirectTo={homePath}>
+                  <AutoSort token={auth.access_token} />
+                </RoleRoute>
+              }
+            />
+            <Route
               path={ROUTES.batches}
               element={
                 role === 'chief_accountant' ? (
@@ -315,6 +325,7 @@ export default function App() {
           </Routes>
           )}
         </main>
+        {role !== 'platform_admin' && <AssistantPanel token={auth.access_token} />}
       </div>
     </div>
   );

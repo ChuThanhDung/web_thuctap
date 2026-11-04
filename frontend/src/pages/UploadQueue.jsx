@@ -1,4 +1,4 @@
-import { batchDetail } from '../routes.js';
+import { ROUTES, batchDetail } from '../routes.js';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import {
   AlertCircle,
   ArrowRight,
   UploadCloud,
+  Layers,
 } from 'lucide-react';
 import {
   createDocumentBatch,
@@ -832,9 +833,14 @@ export default function UploadQueue({ token }) {
         title="Tải chứng từ"
         description="Tải PO, hóa đơn và phiếu nhập kho cho một bộ. XML được đọc cục bộ; PDF và ảnh qua AI trích xuất."
         actions={
-          <Button variant="primary" leadingIcon={Plus} onClick={handleCreateBatch} disabled={!uploadWorkspaceReady}>
-            Tạo bộ mới
-          </Button>
+          <>
+            <Button variant="secondary" leadingIcon={Layers} onClick={() => navigate(ROUTES.autoSort)}>
+              Nhiều bộ cùng lúc
+            </Button>
+            <Button variant="primary" leadingIcon={Plus} onClick={handleCreateBatch} disabled={!uploadWorkspaceReady}>
+              Tạo bộ mới
+            </Button>
+          </>
         }
       />
 

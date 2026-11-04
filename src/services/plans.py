@@ -30,6 +30,7 @@ class PlanLimits:
     users: int | None
     batches_per_month: int
     ai_files_per_month: int
+    agent_calls_per_month: int
     storage_bytes: int
     retention_months: int
     monthly_price: int
@@ -41,6 +42,7 @@ PLAN_LIMITS: dict[str, PlanLimits] = {
         users=2,
         batches_per_month=15,
         ai_files_per_month=10,
+        agent_calls_per_month=20,
         storage_bytes=200 * MB,
         retention_months=6,
         monthly_price=0,
@@ -50,6 +52,7 @@ PLAN_LIMITS: dict[str, PlanLimits] = {
         users=10,
         batches_per_month=300,
         ai_files_per_month=600,
+        agent_calls_per_month=500,
         storage_bytes=10 * 1024 * MB,
         retention_months=60,
         monthly_price=490_000,
@@ -59,6 +62,7 @@ PLAN_LIMITS: dict[str, PlanLimits] = {
         users=None,
         batches_per_month=2_000,
         ai_files_per_month=5_000,
+        agent_calls_per_month=3_000,
         storage_bytes=50 * 1024 * MB,
         retention_months=120,
         monthly_price=1_490_000,
@@ -95,20 +99,29 @@ def _counter(db: Session, organization_id: uuid.UUID, period: str | None = None)
     return db.get(UsageCounter, (organization_id, period or current_period()))
 
 
-def record_usage(db: Session, organization_id: uuid.UUID, *, batches: int = 0, ai_files: int = 0) -> None:
+def record_usage(
+    db: Session, organization_id: uuid.UUID, *, batches: int = 0, ai_files: int = 0, agent_calls: int = 0
+) -> None:
     """Cộng mức dùng tháng này (upsert một câu lệnh, an toàn khi nhiều request cùng lúc). Không commit."""
     db.execute(
         text(
             """
-            INSERT INTO usage_counters (organization_id, period, batches_created, ai_files, updated_at)
-            VALUES (:org, :period, :batches, :ai_files, now())
+            INSERT INTO usage_counters (organization_id, period, batches_created, ai_files, agent_calls, updated_at)
+            VALUES (:org, :period, :batches, :ai_files, :agent_calls, now())
             ON CONFLICT (organization_id, period) DO UPDATE SET
                 batches_created = usage_counters.batches_created + EXCLUDED.batches_created,
                 ai_files = usage_counters.ai_files + EXCLUDED.ai_files,
+                agent_calls = usage_counters.agent_calls + EXCLUDED.agent_calls,
                 updated_at = now()
             """
         ),
-        {"org": organization_id, "period": current_period(), "batches": batches, "ai_files": ai_files},
+        {
+            "org": organization_id,
+            "period": current_period(),
+            "batches": batches,
+            "ai_files": ai_files,
+            "agent_calls": agent_calls,
+        },
     )
 
 
@@ -154,6 +167,7 @@ def usage_summary(db: Session, organization: Organization) -> dict:
         "users": seat_count(db, organization.id),
         "batches": counter.batches_created if counter else 0,
         "ai_files": counter.ai_files if counter else 0,
+        "agent_calls": counter.agent_calls if counter else 0,
         "storage_bytes": storage_used(db, organization.id),
     }
 
@@ -200,4 +214,26 @@ def ensure_can_add_user(db: Session, organization: Organization) -> None:
             f"Gói {PLAN_NAMES[plan]} có tối đa {limits.users} người dùng (tính cả lời mời đang chờ). "
             + _upgrade_hint(plan),
             resource="users",
+        )
+
+
+AI_DISABLED_MESSAGE = (
+    "Công ty đã tắt AI nên trợ lý không hoạt động. Kế toán trưởng bật lại ở trang Dữ liệu & quyền riêng tư."
+)
+
+
+class AgentUnavailableError(Exception):
+    """Công ty tắt AI: trợ lý không được gửi dữ liệu ra ngoài."""
+
+
+def ensure_can_use_agent(db: Session, organization: Organization) -> None:
+    if not organization.ai_enabled:
+        raise AgentUnavailableError(AI_DISABLED_MESSAGE)
+    plan, limits = limits_for(organization)
+    counter = _counter(db, organization.id)
+    if (counter.agent_calls if counter else 0) >= limits.agent_calls_per_month:
+        raise PlanLimitError(
+            f"Đã dùng hết {limits.agent_calls_per_month} lượt trợ lý AI của gói {PLAN_NAMES[plan]} tháng này. "
+            + _upgrade_hint(plan),
+            resource="agent_calls",
         )

@@ -50,6 +50,7 @@ function planFeatures(plan) {
     plan.users === null ? 'Không giới hạn người dùng' : `${plan.users} người dùng`,
     `${formatNumber(plan.batches_per_month)} bộ đối soát / tháng`,
     `${formatNumber(plan.ai_files_per_month)} file PDF/ảnh đọc bằng AI / tháng`,
+    ...(plan.agent_calls_per_month ? [`${formatNumber(plan.agent_calls_per_month)} lượt trợ lý AI / tháng`] : []),
     'XML đọc trực tiếp, không tính lượt AI',
     `Lưu trữ ${formatStorage(plan.storage_bytes)}`,
     `Giữ hồ sơ ${plan.retention_months >= 12 ? `${plan.retention_months / 12} năm` : `${plan.retention_months} tháng`}`,
@@ -229,6 +230,9 @@ export default function Billing({ token, onUserUpdate }) {
           <UsageMeter label="Người dùng (kể cả lời mời đang chờ)" used={usage.users} limit={limits.users} />
           <UsageMeter label="Bộ đối soát tạo trong tháng" used={usage.batches} limit={limits.batches_per_month} />
           <UsageMeter label="File PDF/ảnh đọc bằng AI trong tháng" used={usage.ai_files} limit={limits.ai_files_per_month} />
+          {limits.agent_calls_per_month ? (
+            <UsageMeter label="Lượt trợ lý AI trong tháng" used={usage.agent_calls || 0} limit={limits.agent_calls_per_month} />
+          ) : null}
           <UsageMeter label="Dung lượng lưu trữ" used={usage.storage_bytes} limit={limits.storage_bytes} format={formatStorage} />
         </div>
       </Card>

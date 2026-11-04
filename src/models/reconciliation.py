@@ -233,6 +233,8 @@ class DocumentBatch(Base):
     rejection_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="incomplete")
+    # Bộ tạm chứa file thả lẫn lộn chờ trợ lý xếp: không hiện trong danh sách, không đối soát, không tính hạn mức.
+    is_inbox: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         server_default=text("date_trunc('second', timezone('Asia/Ho_Chi_Minh', now()))"),
