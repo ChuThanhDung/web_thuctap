@@ -43,8 +43,9 @@ export function getBatchApprovalChip(batch, role) {
   if (batch.rawStatus === 'rejected') return { tone: 'danger', icon: AlertTriangle, label: role === 'chief_accountant' ? 'Đã từ chối' : 'Bị trả lại' };
   if (batch.rawStatus === 'approved') return { tone: 'brand', icon: Clock3, label: 'Chờ duyệt cuối' };
   if (role === 'chief_accountant') return { tone: 'neutral', icon: Clock3, label: 'Chờ cấp 1' };
-  // Kế toán viên: bộ lệch lớn hoặc thiếu dữ liệu chưa duyệt được, nên không ghi "Chờ bạn duyệt".
-  if (['mismatch', 'missing'].includes(batch.status)) return { tone: 'neutral', icon: AlertTriangle, label: 'Cần xem lại' };
+  // Kế toán viên: bộ lệch lớn hoặc thiếu dữ liệu chưa duyệt được. Nhãn này nói về bước duyệt nên giữ trung tính;
+  // mức lệch (đỏ "Lệch lớn") đã nằm ở dòng kết quả ngay bên dưới, không lặp lại bằng một nhãn xám mơ hồ.
+  if (['mismatch', 'missing'].includes(batch.status)) return { tone: 'neutral', icon: AlertTriangle, label: 'Chưa duyệt được' };
   return { tone: 'neutral', icon: Clock3, label: 'Chờ bạn duyệt' };
 }
 

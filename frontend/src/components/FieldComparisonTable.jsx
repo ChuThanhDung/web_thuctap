@@ -18,6 +18,13 @@ const RESULT_TONE = {
 };
 const resultTone = (item) => RESULT_TONE[item.minor ? 'minor' : item.severity];
 
+// Trường chữ (tên nhà cung cấp...) căn trái và gọn tối đa 3 dòng; chỉ trường số (MST, VAT, tiền) căn phải.
+const isNumericValue = (value) => /^[\d\s.,%đ+-]+$/i.test(String(value ?? '').trim());
+
+// Tên công ty: bỏ loại hình ("CÔNG TY TNHH", "CÔNG TY CỔ PHẦN"...) để phần phân biệt không bị cắt; tên đủ ở title.
+const LEGAL_FORM = /^\s*(công ty|cty)\s+(tnhh|cổ phần|cp|trách nhiệm hữu hạn)(\s+(một|hai) thành viên|\s+mtv)?\s+/i;
+const shortName = (value) => String(value).replace(LEGAL_FORM, '').trim() || String(value);
+
 const isEmpty = (value) => value === undefined || value === null || String(value).trim() === '' || value === '-';
 
 /** Kết quả bằng lời; khớp nhưng một liên không ghi giá trị thì nói rõ, không ghi trơn "Khớp". */
@@ -53,7 +60,7 @@ export default function FieldComparisonTable({ items }) {
           <tr className="border-b-2 border-primary text-xs font-semibold text-fg-muted">
             <th scope="col" className="w-36 px-4 py-2.5 text-left">Trường</th>
             {COPIES.map((copy) => (
-              <th key={copy.key} scope="col" className="px-4 py-2.5 text-right">
+              <th key={copy.key} scope="col" className="px-4 py-2.5 text-left">
                 <abbr title={copy.name} className="no-underline">{copy.label}</abbr>
               </th>
             ))}
@@ -63,17 +70,21 @@ export default function FieldComparisonTable({ items }) {
         <tbody className="divide-y divide-line">
           {items.map((item, index) => {
             const peers = COPIES.map((copy) => item[copy.key]);
+            const numeric = peers.every((value) => isEmpty(value) || isNumericValue(value));
             return (
               <tr key={`${item.field}-${index}`}>
-                <th scope="row" className="whitespace-nowrap px-4 py-2.5 text-left font-semibold text-fg">{item.field}</th>
+                <th scope="row" className="whitespace-nowrap px-4 py-2.5 align-top text-left font-semibold text-fg">{item.field}</th>
                 {COPIES.map((copy) => (
-                  <td key={copy.key} className="px-4 py-2.5 text-right tabular-nums">
-                    <span className={cn('inline-block rounded-control px-1.5 py-0.5', cellClass(item, copy.key, peers))}>
-                      {isEmpty(item[copy.key]) ? '—' : item[copy.key]}
+                  <td key={copy.key} className={cn('px-4 py-2.5 align-top', numeric ? 'text-right tabular-nums' : 'text-left')}>
+                    <span
+                      title={numeric || isEmpty(item[copy.key]) ? undefined : String(item[copy.key])}
+                      className={cn('rounded-control px-1.5 py-0.5', numeric ? 'inline-block' : 'line-clamp-3 w-fit break-words py-0 leading-5', cellClass(item, copy.key, peers))}
+                    >
+                      {isEmpty(item[copy.key]) ? '—' : numeric ? item[copy.key] : shortName(item[copy.key])}
                     </span>
                   </td>
                 ))}
-                <td className={cn('px-4 py-2.5 font-semibold', resultTone(item))}>{describeField(item)}</td>
+                <td className={cn('px-4 py-2.5 align-top font-semibold', resultTone(item))}>{describeField(item)}</td>
               </tr>
             );
           })}
