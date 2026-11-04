@@ -29,6 +29,7 @@ from src.services.auth import (
 from src.services.email import is_smtp_configured, send_invitation_email, send_signup_otp_email
 from src.services.organizations import create_organization
 from src.services.plans import PlanLimitError, ensure_can_add_user
+from src.services.privacy import TERMS_VERSION, record_terms_acceptance
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,7 @@ def start_signup(
         otp_hash=hash_password(otp),
         ip_address=ip_address,
         terms_accepted_at=now,
+        terms_version=TERMS_VERSION,
         otp_sent_at=now,
         expires_at=now + timedelta(seconds=settings.password_otp_ttl_seconds),
     )
@@ -203,6 +205,7 @@ def complete_signup(db: Session, signup_id: uuid.UUID, otp: str) -> User:
         employee_code=build_next_employee_code(db, role.code),
         status="ACTIVE",
     )
+    record_terms_acceptance(user, request.terms_version or TERMS_VERSION, request.terms_accepted_at)
     db.add(user)
     db.commit()
     # Người dùng chưa đăng nhập: trả phiên về chế độ hệ thống để tạo phiên đăng nhập và nhật ký.
@@ -335,6 +338,8 @@ def accept_invitation(db: Session, token: str, password: str, full_name: str | N
         employee_code=build_next_employee_code(db, role.code),
         status="ACTIVE",
     )
+    # Người nhận lời mời đồng ý điều khoản ngay trên trang nhận lời mời (InvitationAcceptRequest.accept_terms).
+    record_terms_acceptance(user)
     db.add(user)
     invitation = db.get(UserInvitation, invitation.id)
     invitation.accepted_at = datetime.now(UTC)

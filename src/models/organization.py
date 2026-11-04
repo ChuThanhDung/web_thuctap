@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -40,6 +40,13 @@ class Organization(Base):
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Hạn của gói đã trả tiền; NULL = không hết hạn (gói free, hoặc admin cấp không thời hạn).
     plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # False: chỉ nhận XML (đọc trên máy chủ), không gửi PDF/ảnh tới dịch vụ AI ở nước ngoài.
+    ai_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"), default=True)
+    # Yêu cầu xóa công ty: thực hiện sau 30 ngày (scripts/process_company_deletions.py), hủy được trước đó.
+    deletion_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletion_scheduled_for: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletion_requested_by: Mapped[uuid.UUID | None] = mapped_column(postgresql.UUID(as_uuid=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

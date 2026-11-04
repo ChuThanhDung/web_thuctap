@@ -16,9 +16,10 @@ const SIZES = {
  * Hộp thoại. Headless UI lo phần khó: nhốt focus trong hộp, Esc để đóng, trả focus về nút đã mở,
  * khóa cuộn nền và gắn aria-modal / aria-labelledby.
  */
-export default function Modal({ open, onClose, title, description, children, footer, size = 'md', className }) {
+/** dismissible=false: hộp bắt buộc trả lời (không có nút X, Esc và bấm nền không đóng). */
+export default function Modal({ open, onClose, title, description, children, footer, size = 'md', className, dismissible = true }) {
   return (
-    <Dialog open={open} onClose={onClose} className="relative z-50">
+    <Dialog open={open} onClose={dismissible ? onClose : () => {}} className="relative z-50">
       <DialogBackdrop className="fixed inset-0 bg-scrim/50 backdrop-blur-[1px] transition-opacity data-[closed]:opacity-0" />
 
       <div className="fixed inset-0 flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-6">
@@ -34,7 +35,7 @@ export default function Modal({ open, onClose, title, description, children, foo
               <DialogTitle className="text-lg font-semibold text-fg">{title}</DialogTitle>
               {description && <Description className="mt-1 text-sm text-fg-muted">{description}</Description>}
             </div>
-            <button
+            {dismissible && <button
               type="button"
               onClick={onClose}
               aria-label={vi.actions.close}
@@ -44,7 +45,7 @@ export default function Modal({ open, onClose, title, description, children, foo
               )}
             >
               <X size={18} aria-hidden="true" />
-            </button>
+            </button>}
           </div>
 
           {children != null && <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>}

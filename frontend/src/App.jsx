@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AppHeader from './components/AppHeader.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import DeletionBanner from './components/DeletionBanner.jsx';
+import TermsUpdateDialog from './components/TermsUpdateDialog.jsx';
 import TrialBanner from './components/TrialBanner.jsx';
+import LegalPage from './pages/LegalPage.jsx';
+import PrivacySettings from './pages/PrivacySettings.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
 import AdminConsole from './pages/AdminConsole.jsx';
 import Billing from './pages/Billing.jsx';
@@ -58,6 +62,7 @@ function RoleRoute({ allowedRole, currentRole, redirectTo, children }) {
 
 export default function App() {
   const toast = useToast();
+  const location = useLocation();
   // Mặc định là thanh icon hẹp để dành chỗ cho bảng đối chiếu; người dùng mở rộng thì nhớ lựa chọn.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -153,6 +158,12 @@ export default function App() {
     });
   }
 
+  // Văn bản pháp lý xem được cả khi đã hoặc chưa đăng nhập, không cần khung ứng dụng.
+  const legalBack = auth ? '/' : ROUTES.login;
+  if (location.pathname === ROUTES.terms) return <LegalPage document="terms" backTo={legalBack} />;
+  if (location.pathname === ROUTES.privacyPolicy) return <LegalPage document="privacy" backTo={legalBack} />;
+  if (location.pathname === ROUTES.dpa) return <LegalPage document="dpa" backTo={legalBack} />;
+
   if (!auth) {
     return (
       <Routes>
@@ -162,6 +173,10 @@ export default function App() {
         <Route path="*" element={<Navigate to={ROUTES.login} replace />} />
       </Routes>
     );
+  }
+
+  if (auth.user.terms_acceptance_required) {
+    return <TermsUpdateDialog token={auth.access_token} onAccepted={handleUserUpdate} onLogout={handleLogout} />;
   }
 
   if (auth.user.mfa_setup_required) {
@@ -217,6 +232,7 @@ export default function App() {
         )}
         <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1480px] flex-1 px-4 py-5 focus:outline-none md:px-6 md:py-6">
           <TrialBanner organization={auth.user.organization} />
+          <DeletionBanner organization={auth.user.organization} canManage={role === 'chief_accountant'} />
           {role === 'platform_admin' ? (
             <Routes>
               <Route path={ROUTES.admin} element={<AdminConsole token={auth.access_token} />} />
@@ -275,6 +291,14 @@ export default function App() {
               element={
                 <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
                   <Billing token={auth.access_token} onUserUpdate={handleUserUpdate} />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path={ROUTES.privacy}
+              element={
+                <RoleRoute allowedRole="chief_accountant" currentRole={role} redirectTo={homePath}>
+                  <PrivacySettings token={auth.access_token} user={auth.user} onUserUpdate={handleUserUpdate} />
                 </RoleRoute>
               }
             />

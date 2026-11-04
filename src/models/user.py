@@ -36,6 +36,9 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Phiên bản điều khoản/chính sách đã đồng ý (src.services.legal.TERMS_VERSION) và thời điểm đồng ý.
+    terms_version: Mapped[str | None] = mapped_column(String(20))
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Xác thực hai lớp (TOTP). Khóa lưu mã hóa; có khóa mà chưa có totp_enabled_at là đang cài đặt dở.
     totp_secret: Mapped[str | None] = mapped_column(EncryptedText)
     totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

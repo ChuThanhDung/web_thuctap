@@ -254,3 +254,24 @@ def send_renewal_reminder_email(to_email: str, company_name: str, plan_name: str
     </div>
     """
     return _send_email(to_email, subject, text_body, html_body)
+
+
+def send_deletion_scheduled_email(to_email: str, company_name: str, requested_by: str, scheduled_for) -> bool:
+    settings = get_settings()
+    when = scheduled_for.strftime("%d/%m/%Y")
+    subject = f"[{settings.app_name}] Yêu cầu xóa dữ liệu {company_name}"
+    text_body = (
+        f"{requested_by} đã yêu cầu xóa toàn bộ dữ liệu của {company_name} trên {settings.app_name}.\n"
+        f"Dữ liệu sẽ bị xóa vĩnh viễn ngày {when}. Trước ngày đó có thể hủy yêu cầu và tải toàn bộ dữ liệu ở trang "
+        "Dữ liệu & quyền riêng tư.\nNếu không phải bạn yêu cầu, hãy đăng nhập và hủy ngay."
+    )
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0d253d">
+      <h2>Yêu cầu xóa dữ liệu công ty</h2>
+      <p><strong>{escape(requested_by)}</strong> đã yêu cầu xóa toàn bộ dữ liệu của <strong>{escape(company_name)}</strong>.</p>
+      <p>Dữ liệu sẽ bị <strong>xóa vĩnh viễn ngày {when}</strong>. Trước ngày đó có thể hủy yêu cầu và tải toàn bộ dữ liệu
+         ở trang Dữ liệu &amp; quyền riêng tư.</p>
+      <p style="color:#b42318">Nếu không phải bạn yêu cầu, hãy đăng nhập và hủy ngay.</p>
+    </div>
+    """
+    return _send_email(to_email, subject, text_body, html_body)

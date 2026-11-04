@@ -105,6 +105,8 @@ def _rows(db: Session, organizations: list[Organization]) -> list[AdminOrganizat
             status=organization.status,
             trial_ends_at=organization.trial_ends_at,
             plan_expires_at=organization.plan_expires_at,
+            deletion_scheduled_for=organization.deletion_scheduled_for,
+            ai_enabled=organization.ai_enabled,
             created_at=organization.created_at,
             user_count=users.get(organization.id, 0),
             batch_count=batches.get(organization.id, 0),
