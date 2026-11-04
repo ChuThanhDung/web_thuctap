@@ -10,11 +10,12 @@ const ITEMS = {
   admin: { to: ROUTES.admin, icon: 'admin', label: vi.nav.admin },
   billing: { to: ROUTES.billing, icon: 'billing', label: vi.nav.billing },
   privacy: { to: ROUTES.privacy, icon: 'privacy', label: vi.nav.privacy },
+  guide: { to: ROUTES.guide, icon: 'guide', label: vi.nav.guide },
 };
 
 const MENUS = {
-  accountant: ['overview', 'upload', 'batches'],
-  chief_accountant: ['overview', 'batches', 'users', 'settings', 'billing', 'privacy'],
+  accountant: ['overview', 'upload', 'batches', 'guide'],
+  chief_accountant: ['overview', 'batches', 'users', 'settings', 'billing', 'privacy', 'guide'],
   platform_admin: ['admin'],
 };
 

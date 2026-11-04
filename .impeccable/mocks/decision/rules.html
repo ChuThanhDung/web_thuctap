@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}body{width:1440px;height:900px;overflow:hidden;font:14px/1.45 Inter,sans-serif;color:#0e1b33;background:linear-gradient(180deg,#e8effa 0,#f2f6fc 420px)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 64px}
+.brand{display:flex;gap:10px;align-items:center;font-weight:700}.mark{width:32px;height:32px;border-radius:4px;background:#d9b26a}
+nav a{color:#3a4a66;margin-left:28px;text-decoration:none}nav .cta{background:#1f4fa3;color:#fff;padding:9px 16px;border-radius:4px;font-weight:600}
+.sheet{margin:10px 64px 0;background:#fff;border:1px solid #dae2ee;border-radius:6px}
+.head{display:grid;grid-template-columns:1fr 420px;gap:40px;padding:32px 36px 24px;border-bottom:2px solid #1f4fa3}
+h1{font-size:44px;line-height:1.12;letter-spacing:-.02em}
+.lead{color:#3a4a66;font-size:16px;margin-top:12px;max-width:620px}
+.act{display:flex;flex-direction:column;gap:10px;justify-content:end}
+.btn{display:block;text-align:center;padding:12px;border-radius:4px;font-weight:600}.p{background:#1f4fa3;color:#fff}.s{border:1px solid #788aa8}
+table{width:100%;border-collapse:collapse}th{font-size:12px;color:#3a4a66;text-align:left;padding:10px 36px;border-bottom:1px solid #dae2ee}
+td{padding:13px 36px;border-bottom:1px solid #dae2ee;vertical-align:top}td.n{text-align:right;font-variant-numeric:tabular-nums}
+.rule{font-weight:600}.chip{display:inline-block;width:40px;text-align:center;background:#e8effa;color:#173d80;font-size:11px;font-weight:700;border-radius:4px;margin-right:6px}
+.ok{color:#0a6b48;font-weight:600}.amb{color:#8a4b00;font-weight:600}.bad{color:#a81626;font-weight:600}.bad span{background:#fdebec;outline:1px solid #f4c0c4;padding:1px 4px;position:relative;left:8px}
+.foot{display:flex;justify-content:space-between;padding:14px 36px;color:#50607c;font-size:12px}
+</style></head><body>
+<nav><div class="brand"><div class="mark"></div>DocuSync AI</div><div><a>Cách đối soát</a><a>Bảng giá</a><a>Bảo mật</a><a>Đăng nhập</a><a class="cta">Liên hệ tư vấn</a></div></nav>
+<div class="sheet">
+ <div class="head">
+  <div><h1>Đối chiếu đơn hàng, hóa đơn, phiếu nhập kho theo luật chơi bạn đọc được</h1>
+  <p class="lead">Mỗi chỗ lệch kèm quy tắc đã sinh ra nó. Kế toán viên duyệt trước, kế toán trưởng duyệt sau, bộ đã duyệt được khóa thành hồ sơ.</p></div>
+  <div class="act"><a class="btn p">Liên hệ tư vấn</a><a class="btn s">Dùng thử miễn phí 14 ngày</a></div>
+ </div>
+ <table><tr><th>Quy tắc</th><th>Ví dụ (dữ liệu minh họa)</th><th style="text-align:right;padding-right:36px">PO · HĐ · GRN</th><th>Kết quả</th></tr>
+ <tr><td class="rule">Đơn giá phải khớp tuyệt đối</td><td>Giấy A4 Double A 80gsm</td><td class="n">125.000 · <b class="bad"><span>128.000</span></b> · 125.000</td><td class="bad">HĐ cao hơn PO 3.000 đ/ram</td></tr>
+ <tr><td class="rule">Số lượng phải khớp tuyệt đối</td><td>Mực in HP 76A</td><td class="n">20 · 20 · <b class="bad"><span>18</span></b></td><td class="bad">GRN nhận thiếu 2 hộp</td></tr>
+ <tr><td class="rule">Tiền lệch tối đa 1.000 đ do làm tròn</td><td>Tổng thanh toán</td><td class="n">48.375.000 · 48.375.400 · 48.375.000</td><td class="amb">Lệch 400 đ, trong ngưỡng làm tròn</td></tr>
+ <tr><td class="rule">MST và thuế suất VAT phải trùng</td><td>0312345678 · 8%</td><td class="n">khớp · khớp · khớp</td><td class="ok">Ba liên khớp</td></tr>
+ <tr><td class="rule">XML đọc trên máy chủ, không gửi AI</td><td>Hóa đơn điện tử Tổng cục Thuế</td><td class="n"><span class="chip">XML</span>đọc trực tiếp</td><td class="ok">Không rời máy chủ</td></tr>
+ </table>
+ <div class="foot"><span>Người lập · Duyệt cấp 1 · Duyệt cuối</span><span>Bộ đã duyệt cuối không sửa, không xóa được</span></div>
+</div>
+</body></html>

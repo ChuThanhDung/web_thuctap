@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}body{width:1440px;height:900px;overflow:hidden;font:14px/1.45 Inter,sans-serif;color:#0e1b33;background:#f2f6fc}
+.rail{position:fixed;left:0;top:0;bottom:0;width:300px;background:linear-gradient(180deg,#13213d,#1f4fa3);color:#fff;padding:28px}
+.brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:16px}.mark{width:32px;height:32px;border-radius:4px;background:#d9b26a}
+.steps{margin-top:48px;list-style:none;padding:0}.steps li{padding:12px 10px;border-radius:4px;color:#c9d6f0;display:flex;gap:12px}
+.steps li b{width:26px;height:26px;border:1px solid #c9d6f0;border-radius:50%;display:grid;place-items:center;font-size:12px}
+.steps li.on{background:rgba(255,255,255,.15);color:#fff;font-weight:600}
+.rail .cta{position:absolute;left:28px;right:28px;bottom:28px;background:#fff;color:#1f4fa3;text-align:center;padding:12px;border-radius:4px;font-weight:700}
+main{margin-left:300px;padding:40px 64px}
+.top{display:flex;justify-content:flex-end;gap:28px;color:#3a4a66}
+h1{font-size:46px;line-height:1.1;letter-spacing:-.02em;margin-top:40px;max-width:820px}
+.lead{font-size:16px;color:#3a4a66;margin-top:14px;max-width:700px}
+.desk{position:relative;height:430px;margin-top:36px}
+.copy{position:absolute;width:360px;height:400px;background:#fff;border:1px solid #dae2ee;border-radius:6px;padding:22px}
+.copy .tab{position:absolute;top:-14px;left:20px;background:#1f4fa3;color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:4px}
+.copy p{display:flex;justify-content:space-between;border-bottom:1px solid #dae2ee;padding:9px 0;font-variant-numeric:tabular-nums}
+.c1{left:0;top:30px}.c2{left:250px;top:14px}.c3{left:500px;top:0}
+.c2 .tab{background:#e8effa;color:#173d80}.c3 .tab{background:#e8effa;color:#173d80}
+.hl{background:#fdebec;outline:1px solid #f4c0c4;color:#a81626;font-weight:600}
+.note{position:absolute;left:900px;top:120px;width:300px;border:1px solid #f4c0c4;background:#fdebec;color:#a81626;padding:14px;border-radius:6px;font-weight:600}
+</style></head><body>
+<aside class="rail"><div class="brand"><div class="mark"></div>DocuSync AI</div>
+<ol class="steps"><li class="on"><b>1</b>Tải ba liên</li><li><b>2</b>Đọc chứng từ</li><li><b>3</b>So từng dòng hàng</li><li><b>4</b>Kế toán viên duyệt</li><li><b>5</b>Kế toán trưởng duyệt cuối</li><li><b>6</b>Khóa thành hồ sơ</li></ol>
+<a class="cta">Liên hệ tư vấn</a></aside>
+<main><div class="top"><span>Bảng giá</span><span>Bảo mật</span><span>Đăng nhập</span><span>Dùng thử 14 ngày</span></div>
+<h1>Một bộ chứng từ đi từ bàn kế toán viên đến hồ sơ lưu trữ, không dòng nào bị bỏ sót</h1>
+<p class="lead">Kéo PO, hóa đơn và phiếu nhập kho vào một bộ. Hệ thống so từng dòng, nói rõ chỗ lệch, rồi chuyển qua hai cấp duyệt.</p>
+<div class="desk">
+ <div class="copy c1"><span class="tab">PO</span><p>Giấy A4 80gsm<span>125.000</span></p><p>Mực HP 76A<span>20 hộp</span></p><p>Tổng<span>48.375.000</span></p></div>
+ <div class="copy c2"><span class="tab">HĐ</span><p>Giấy A4 80gsm<span class="hl">128.000</span></p><p>Mực HP 76A<span>20 hộp</span></p><p>Tổng<span>48.375.400</span></p></div>
+ <div class="copy c3"><span class="tab">GRN</span><p>Giấy A4 80gsm<span>125.000</span></p><p>Mực HP 76A<span class="hl">18 hộp</span></p><p>Tổng<span>—</span></p></div>
+ <div class="note">Đơn giá HĐ cao hơn PO 3.000 đ · GRN nhận thiếu 2 hộp mực<br><small style="font-weight:400">Dữ liệu minh họa</small></div>
+</div></main>
+</body></html>

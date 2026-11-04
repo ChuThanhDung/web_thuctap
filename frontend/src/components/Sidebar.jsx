@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import {
+  BookOpen,
   Building2,
   Files,
   ChevronsLeft,
@@ -35,6 +36,7 @@ const NAV_ICONS = {
   admin: Building2,
   billing: CreditCard,
   privacy: DatabaseZap,
+  guide: BookOpen,
 };
 
 // Thanh bên luôn mang màu xanh mẫu biểu (cả giao diện sáng) nên có bộ màu và ring focus riêng.

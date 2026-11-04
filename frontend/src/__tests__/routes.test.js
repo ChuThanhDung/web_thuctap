@@ -9,7 +9,12 @@ describe('routes', () => {
   });
 
   it('gives each role the same menu paths the app defines', () => {
-    expect(getNavItems('accountant').map((item) => item.to)).toEqual([ROUTES.overview, ROUTES.upload, ROUTES.batches]);
+    expect(getNavItems('accountant').map((item) => item.to)).toEqual([
+      ROUTES.overview,
+      ROUTES.upload,
+      ROUTES.batches,
+      ROUTES.guide,
+    ]);
     expect(getNavItems('chief_accountant').map((item) => item.to)).toEqual([
       ROUTES.overview,
       ROUTES.batches,
@@ -17,6 +22,7 @@ describe('routes', () => {
       ROUTES.settings,
       ROUTES.billing,
       ROUTES.privacy,
+      ROUTES.guide,
     ]);
     // Admin nền tảng chỉ có trang quản trị công ty, không có menu nghiệp vụ.
     expect(getNavItems('platform_admin').map((item) => item.to)).toEqual([ROUTES.admin]);

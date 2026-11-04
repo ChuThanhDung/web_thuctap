@@ -478,3 +478,8 @@ export async function downloadCompanyExport(token) {
   const match = disposition.match(/filename="?([^";]+)"?/);
   return { blob: await response.blob(), filename: match ? match[1] : 'docusync-du-lieu.zip' };
 }
+
+/** Bảng gói công khai cho trang Bảng giá và trang giới thiệu. */
+export async function getPublicPlans() {
+  return parseResponse(await fetch(`${API_BASE_URL}/billing/plans`), { triggerUnauthorized: false });
+}

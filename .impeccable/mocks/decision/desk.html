@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}body{width:1440px;height:900px;overflow:hidden;font:14px/1.45 Inter,sans-serif;color:#0e1b33;background:#f2f6fc}
+nav{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:20px 64px;z-index:2;color:#fff}
+.brand{display:flex;gap:10px;align-items:center;font-weight:700}.mark{width:32px;height:32px;border-radius:4px;background:#d9b26a}
+nav a{margin-left:26px}nav .cta{background:#fff;color:#1f4fa3;padding:8px 14px;border-radius:4px;font-weight:600}
+.before{position:absolute;left:0;top:0;bottom:0;width:640px;background:linear-gradient(135deg,#13213d,#1f4fa3);color:#fff;padding:120px 64px}
+h1{font-size:46px;line-height:1.1;letter-spacing:-.02em}
+.lead{color:#c9d6f0;font-size:16px;margin-top:16px}
+.btns{margin-top:28px;display:flex;gap:12px}.b1{background:#fff;color:#1f4fa3;padding:12px 18px;border-radius:4px;font-weight:700}.b2{border:1px solid #c9d6f0;padding:12px 18px;border-radius:4px}
+.pile{position:absolute;left:70px;bottom:40px}.pile div{position:absolute;width:220px;height:150px;background:#f2f6fc;border-radius:3px;opacity:.9}
+.pile div:nth-child(1){transform:rotate(-9deg)}.pile div:nth-child(2){left:60px;top:-30px;transform:rotate(6deg)}.pile div:nth-child(3){left:150px;top:10px;transform:rotate(-3deg)}
+.after{position:absolute;left:640px;right:0;top:0;bottom:0;padding:110px 56px}
+.card{background:#fff;border:1px solid #dae2ee;border-radius:6px}
+.card h3{padding:14px 20px;font-size:16px;border-bottom:1px solid #dae2ee}
+table{width:100%;border-collapse:collapse}th{font-size:12px;color:#3a4a66;text-align:left;padding:9px 16px;border-bottom:2px solid #1f4fa3}
+td{padding:9px 16px;border-bottom:1px solid #dae2ee;font-variant-numeric:tabular-nums}td.n{text-align:right}
+.chip{display:inline-block;width:40px;text-align:center;background:#e8effa;color:#173d80;font-size:11px;font-weight:700;border-radius:4px}
+.x{background:#fdebec;outline:1px solid #f4c0c4;color:#a81626;font-weight:600;position:relative;left:8px}
+.r{color:#a81626;font-weight:600}.g{color:#0a6b48;font-weight:600}
+.label{font-size:12px;color:#50607c;margin-top:10px}
+</style></head><body>
+<nav><div class="brand"><div class="mark"></div>DocuSync AI</div><div><a>Cách đối soát</a><a>Bảng giá</a><a>Đăng nhập</a><a class="cta">Liên hệ tư vấn</a></div></nav>
+<section class="before"><h1>Ba tờ giấy nói ba điều khác nhau. Chúng tôi chỉ ra chỗ nào.</h1>
+<p class="lead">Đối chiếu đơn đặt hàng, hóa đơn và phiếu nhập kho theo từng dòng hàng, có lý do cho từng chỗ lệch.</p>
+<div class="btns"><a class="b1">Liên hệ tư vấn</a><a class="b2">Dùng thử 14 ngày</a></div>
+<div class="pile"><div></div><div></div><div></div></div></section>
+<section class="after"><div class="card"><h3>Chi tiết hàng hóa · BATCH_04_11_2026_01</h3>
+<table><tr><th>Mặt hàng</th><th></th><th style="text-align:right">SL</th><th style="text-align:right">Đơn giá</th><th>Kết quả</th></tr>
+<tr><td rowspan="3">Giấy A4 Double A 80gsm</td><td><span class="chip">PO</span></td><td class="n">50</td><td class="n">125.000</td><td rowspan="3" class="r">Đơn giá HĐ cao hơn PO 3.000 đ</td></tr>
+<tr><td><span class="chip">HĐ</span></td><td class="n">50</td><td class="n"><span class="x">128.000</span></td></tr>
+<tr><td><span class="chip">GRN</span></td><td class="n">50</td><td class="n">125.000</td></tr>
+<tr><td rowspan="3">Mực in HP 76A</td><td><span class="chip">PO</span></td><td class="n">20</td><td class="n">2.150.000</td><td rowspan="3" class="r">GRN nhận thiếu 2 hộp</td></tr>
+<tr><td><span class="chip">HĐ</span></td><td class="n">20</td><td class="n">2.150.000</td></tr>
+<tr><td><span class="chip">GRN</span></td><td class="n"><span class="x">18</span></td><td class="n">2.150.000</td></tr>
+<tr><td rowspan="3">Bìa còng 7cm</td><td><span class="chip">PO</span></td><td class="n">30</td><td class="n">42.000</td><td rowspan="3" class="g">Ba liên khớp</td></tr>
+<tr><td><span class="chip">HĐ</span></td><td class="n">30</td><td class="n">42.000</td></tr>
+<tr><td><span class="chip">GRN</span></td><td class="n">30</td><td class="n">42.000</td></tr></table></div>
+<p class="label">Dữ liệu minh họa, đúng cách bảng đối chiếu hiển thị trong ứng dụng.</p></section>
+</body></html>

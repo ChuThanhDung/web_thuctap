@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-27T00:00:00+07:00",
+  "generatedAt": "2026-11-04T00:00:00+07:00",
   "title": "Design System: DocuSync AI",
   "extensions": {
     "colorMeta": {
@@ -550,8 +550,8 @@
       "Don't colour or label any copy as \"correct\" or \"wrong\"; the interface does not know which copy was misread.",
       "Don't use side stripes (a thick coloured border on one side) for selection, severity or callouts.",
       "Don't build overviews from a grid of same-size KPI cards; use the summary line.",
-      "Don't use pill-shaped badges or chips; round shapes are for avatars, dots, tracks and charts.",
-      "Don't add resting drop shadows, gradients or glows to cards or buttons.",
+      "Don't use pill-shaped badges or chips; round shapes are for avatars, dots, tracks, charts, step numbers and the seal.",
+      "Don't add resting drop shadows, gradients or glows to cards or buttons. Gradients live only on navy rails (the app sidebar and the landing journey rail), the login ground and the copy-tint top wash on the shell and public pages.",
       "Don't introduce a second typeface, uppercase letter-spaced labels or eyebrow lines above headings in app chrome.",
       "Don't open a modal for record detail on wide screens.",
       "Don't hard-code palette colours (Tailwind gray, blue, red scales) in components; use the semantic tokens so dark mode follows."

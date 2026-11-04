@@ -5,6 +5,9 @@ import Sidebar from './components/Sidebar.jsx';
 import DeletionBanner from './components/DeletionBanner.jsx';
 import TermsUpdateDialog from './components/TermsUpdateDialog.jsx';
 import TrialBanner from './components/TrialBanner.jsx';
+import GuidePage from './pages/GuidePage.jsx';
+import Landing from './pages/Landing.jsx';
+import Pricing from './pages/Pricing.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import PrivacySettings from './pages/PrivacySettings.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
@@ -163,10 +166,13 @@ export default function App() {
   if (location.pathname === ROUTES.terms) return <LegalPage document="terms" backTo={legalBack} />;
   if (location.pathname === ROUTES.privacyPolicy) return <LegalPage document="privacy" backTo={legalBack} />;
   if (location.pathname === ROUTES.dpa) return <LegalPage document="dpa" backTo={legalBack} />;
+  if (location.pathname === ROUTES.guide) return <GuidePage backTo={legalBack} />;
+  if (location.pathname === ROUTES.pricing) return <Pricing />;
 
   if (!auth) {
     return (
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path={ROUTES.login} element={<Login onLogin={handleLogin} />} />
         <Route path={ROUTES.signup} element={<Signup onLogin={handleLogin} />} />
         <Route path={ROUTES.acceptInvite} element={<AcceptInvite onLogin={handleLogin} />} />
@@ -246,9 +252,9 @@ export default function App() {
               path={ROUTES.overview}
               element={
                 role === 'chief_accountant' ? (
-                  <ChiefOverview token={auth.access_token} />
+                  <ChiefOverview token={auth.access_token} user={auth.user} />
                 ) : (
-                  <AccountantOverview token={auth.access_token} role={role} />
+                  <AccountantOverview token={auth.access_token} role={role} user={auth.user} />
                 )
               }
             />

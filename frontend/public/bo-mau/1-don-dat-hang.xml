@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DonDatHang>
+  <SoDon>PO-2026-0159</SoDon>
+  <NgayLap>2026-06-08</NgayLap>
+  <BenMua>
+    <Ten>CÔNG TY CỔ PHẦN BÊN MUA MẪU (DỮ LIỆU THỬ)</Ten>
+    <MST>0000000002</MST>
+    <DiaChi>Địa chỉ mẫu, Hà Nội</DiaChi>
+    <NguoiDaiDien>Trần Quốc Bảo</NguoiDaiDien>
+    <DienThoai>024 3768 5521</DienThoai>
+  </BenMua>
+  <BenBan>
+    <Ten>CÔNG TY TNHH BÊN BÁN MẪU (DỮ LIỆU THỬ)</Ten>
+    <MST>0000000001</MST>
+    <DiaChi>Địa chỉ mẫu, TP. Hồ Chí Minh</DiaChi>
+  </BenBan>
+  <ChiTietDonHang>
+    <DongHang>
+      <STT>1</STT>
+      <MaHang>DP-AK26</MaHang>
+      <TenHang>Áo khoác đồng phục tài xế xanh lá</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>800</SoLuong>
+      <DonGia>145000</DonGia>
+      <ThanhTien>116000000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>2</STT>
+      <MaHang>DP-AT26</MaHang>
+      <TenHang>Áo thun đồng phục cổ tròn</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>1000</SoLuong>
+      <DonGia>78000</DonGia>
+      <ThanhTien>78000000</ThanhTien>
+    </DongHang>
+    <DongHang>
+      <STT>3</STT>
+      <MaHang>DP-MU26</MaHang>
+      <TenHang>Mũ lưỡi trai thêu logo</TenHang>
+      <DonViTinh>Chiếc</DonViTinh>
+      <SoLuong>600</SoLuong>
+      <DonGia>42000</DonGia>
+      <ThanhTien>25200000</ThanhTien>
+    </DongHang>
+  </ChiTietDonHang>
+  <TongTienHang>219200000</TongTienHang>
+  <ThueSuatGTGT>8%</ThueSuatGTGT>
+  <TienThueGTGT>17536000</TienThueGTGT>
+  <TongTienThanhToan>236736000</TongTienThanhToan>
+  <BangChu>Hai trăm ba mươi sáu triệu bảy trăm ba mươi sáu nghìn đồng chẵn.</BangChu>
+  <DiaDiemGiaoHang>Kho mẫu, Hà Nội</DiaDiemGiaoHang>
+  <PhuongThucThanhToan>Chuyển khoản</PhuongThucThanhToan>
+</DonDatHang>

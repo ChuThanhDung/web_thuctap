@@ -1,0 +1,41 @@
+{
+  "title": "Bố cục trang giới thiệu DocuSync AI",
+  "question": "Ba bố cục cho trang giới thiệu, cùng hệ thiết kế hiện có (giấy trắng, mực navy, xanh mẫu biểu, ba liên PO · HĐ · GRN). Chọn một, hoặc yêu cầu bộ khác.",
+  "options": [
+    {
+      "id": "rules",
+      "kind": "assigned",
+      "kicker": "THE ROLL",
+      "label": "Bộ quy tắc đối soát",
+      "thesis": "Trang mở bằng chính bảng quy tắc: mỗi dòng là một quy tắc kèm ví dụ ba liên lệch và lý do, như một tờ chứng từ in sẵn.",
+      "palette": ["#ffffff", "#0e1b33", "#1f4fa3", "#a81626", "#d9b26a"],
+      "materials": ["giấy kẻ dòng", "vạch xanh 2px dưới tiêu đề bảng", "ô lệch đẩy lệch 8px như bản than"],
+      "viewport": "Một tờ giấy trắng chiếm gần trọn màn hình: tiêu đề và hai nút ở đầu tờ, năm dòng quy tắc có ví dụ PO · HĐ · GRN, chân tờ là dải chữ ký Người lập · Duyệt cấp 1 · Duyệt cuối.",
+      "risk": "Nhiều chữ trong màn hình đầu; cần giữ bảng thưa và tiêu đề đủ lớn để không giống trang tài liệu.",
+      "html": ".impeccable/mocks/decision/rules.html"
+    },
+    {
+      "id": "ledger",
+      "kind": "dealt",
+      "label": "Hành trình một bộ chứng từ",
+      "thesis": "Cột trái là sáu bước của một bộ (tải, đọc, so, duyệt cấp 1, duyệt cuối, khóa); cuộn trang là đi qua từng bước, màn hình đầu là ba liên chồng lên nhau lệch chỗ.",
+      "palette": ["#13213d", "#1f4fa3", "#ffffff", "#f2f6fc", "#a81626"],
+      "materials": ["thanh bên gradient navy như trong ứng dụng", "ba liên giấy chồng lệch", "ghi chú lệch tô đỏ"],
+      "viewport": "Thanh bên trái với sáu bước và nút Liên hệ tư vấn ở chân; bên phải tiêu đề lớn và ba tờ PO, HĐ, GRN chồng lệch, hai ô lệch tô đỏ kèm lý do.",
+      "risk": "Thanh bên giống chính ứng dụng nên khách có thể tưởng đã vào phần mềm.",
+      "html": ".impeccable/mocks/decision/ledger.html"
+    },
+    {
+      "id": "desk",
+      "kind": "dealt",
+      "label": "Trước và sau",
+      "thesis": "Nửa trái là chồng giấy lộn xộn trên nền navy với lời hứa; nửa phải là bảng đối chiếu ba liên đúng như trong ứng dụng.",
+      "palette": ["#13213d", "#1f4fa3", "#ffffff", "#e8effa", "#0a6b48"],
+      "materials": ["nền gradient navy của trang đăng nhập", "bảng ba liên thật của ứng dụng", "chip PO · HĐ · GRN"],
+      "viewport": "Trái: tiêu đề 'Ba tờ giấy nói ba điều khác nhau', hai nút, chồng giấy mờ. Phải: bảng chi tiết hàng hóa ba dòng mỗi mặt hàng, ô lệch đỏ, cột kết quả bằng chữ.",
+      "risk": "Gần với bố cục chia đôi quen thuộc; sức nặng nằm ở bảng thật bên phải.",
+      "html": ".impeccable/mocks/decision/desk.html"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] }
+}
