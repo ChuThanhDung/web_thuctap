@@ -17,8 +17,14 @@ services:
       - ./storage:/app/storage
       - ./dataset/samples/invoices:/app/invoice
 
-  frontend:
+  web:
     build:
       args:
         # Bật trang mẫu giao diện /styleguide ở môi trường dev.
         VITE_STYLEGUIDE: "true"
+    environment:
+      # Dev chỉ chạy HTTP, không xin chứng chỉ.
+      SITE_ADDRESS: ":80"
+    # Dev mở web ở http://localhost:3000 như trước, không chiếm cổng 80/443 của máy.
+    ports: !override
+      - "${FRONTEND_PORT:-3000}:80"

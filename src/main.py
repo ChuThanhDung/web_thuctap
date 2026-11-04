@@ -26,6 +26,25 @@ settings = get_settings()
 configure_logging(settings.log_level, settings.log_format)
 
 
+def init_sentry() -> bool:
+    """Bật Sentry khi có SENTRY_DSN. Không gửi dữ liệu cá nhân (email, IP, body request)."""
+    if not settings.sentry_dsn:
+        return False
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.app_env,
+        release=settings.sentry_release or None,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        send_default_pii=False,
+    )
+    return True
+
+
+init_sentry()
+
+
 def secure_default_password_accounts() -> None:
     from sqlalchemy.orm import Session
 

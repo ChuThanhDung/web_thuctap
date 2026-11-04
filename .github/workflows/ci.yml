@@ -118,4 +118,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml config -q
           docker compose config -q
-          docker compose -f docker-compose.yml --profile https config -q
+
+      - name: Validate Caddyfile
+        run: |
+          docker run --rm -e SITE_ADDRESS=example.com -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile

@@ -18,7 +18,7 @@ Tài khoản demo được cấp riêng cho từng người đánh giá; liên h
 | Database | PostgreSQL 16, quản lý schema bằng Alembic |
 | Storage | Local, Cloudflare R2 hoặc S3 |
 | Testing | pytest, pytest-asyncio, HTTPX, pytest-cov; Vitest cho frontend |
-| Deployment | Docker, Docker Compose, Nginx, Caddy (HTTPS tùy chọn), GitHub Actions CI |
+| Deployment | Docker, Docker Compose, Caddy (file tĩnh + HTTPS), GitHub Actions CI/CD, GHCR, GCP e2-micro |
 
 ## Cấu trúc thư mục
 
@@ -37,7 +37,7 @@ Tài khoản demo được cấp riêng cho từng người đánh giá; liên h
 ├── storage/upload/         # File upload khi dùng local storage
 ├── eval/                   # Báo cáo đánh giá và script đo (run_eval.py, measure_api_latency.py)
 ├── scripts/                # Backup/restore DB, reset mật khẩu, kiểm tra SMTP
-├── deploy/                 # Caddyfile cho HTTPS
+├── deploy/                 # Caddyfile, script máy ảo GCP (deploy, backup, khôi phục, giám sát)
 ├── docs/                   # Kiến trúc, triển khai, quy tắc dự án (rules/)
 ├── docker-compose.yml          # Cấu hình production-safe
 └── docker-compose.override.yml # Tiện ích dev, tự nạp khi chạy `docker compose up`
@@ -210,7 +210,8 @@ Danh sách đầy đủ và giá trị mẫu nằm trong [`.env.example`](.env.e
 | `DOCS_ENABLED_IN_PRODUCTION` | Không | `true` để bật Swagger ở production (mặc định tắt) |
 | `ENABLE_AGENT_CHAT_API` | Không | Bật endpoint agent mẫu `/api/v1/chat` (mặc định tắt) |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Không | Bóc tách PDF và ảnh bằng Gemini |
-| `DOMAIN` | HTTPS | Domain cho profile `https` (Caddy) |
+| `DOMAIN` | HTTPS | Domain để Caddy tự xin HTTPS; trống thì chỉ HTTP |
+| `SENTRY_DSN` | Không | Bật Sentry cho backend (frontend: `VITE_SENTRY_DSN` lúc build) |
 | `OPENAI_API_KEY` | Tùy chế độ | API key dùng cho LLM và document extraction |
 | `MODEL_NAME` | Không | Model cho agent/chat; giá trị mẫu trong `.env.example` là `gpt-5.6-sol` |
 | `OPENAI_DOCUMENT_MODEL` | Không | Model dùng để phân tích chứng từ |

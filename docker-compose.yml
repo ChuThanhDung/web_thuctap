@@ -1,7 +1,12 @@
 # Cấu hình production-safe: không mount mã nguồn, không mở cổng backend/DB ra ngoài, không nạp dữ liệu demo.
-# Production:  docker compose -f docker-compose.yml up -d --build        (chỉ định -f để bỏ qua override)
-# Có HTTPS:    docker compose -f docker-compose.yml --profile https up -d --build  (cần DOMAIN trong .env)
-# Dev:         docker compose up -d --build                                (tự nạp docker-compose.override.yml)
+# Làm gọn để chạy vừa máy ảo GCP e2-micro (1 GB RAM + 2 GB swap): 1 worker uvicorn, Postgres cấu hình nhỏ,
+# Caddy vừa phục vụ file tĩnh của frontend vừa proxy /api, /health và WebSocket (không còn container nginx).
+#
+# Production (máy ảo): image build sẵn trên GitHub Actions, máy ảo chỉ pull (deploy/gcp/update.sh):
+#   docker compose -f docker-compose.yml pull && docker compose -f docker-compose.yml up -d --no-build
+#   Đặt DOMAIN trong .env để Caddy tự xin HTTPS; để trống thì chạy HTTP ở cổng 80.
+# Build tại chỗ:  docker compose -f docker-compose.yml up -d --build   (chỉ định -f để bỏ qua override)
+# Dev:            docker compose up -d --build                          (tự nạp docker-compose.override.yml)
 services:
   postgres:
     image: postgres:16-alpine
@@ -12,7 +17,25 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-docusyncai}
       TZ: Asia/Ho_Chi_Minh
       PGTZ: Asia/Ho_Chi_Minh
-    command: ["postgres", "-c", "timezone=Asia/Ho_Chi_Minh"]
+    # Tham số cho máy 1 GB RAM. Dữ liệu nhỏ (vài nghìn bộ chứng từ) nên bộ đệm nhỏ vẫn đủ nhanh.
+    command:
+      - postgres
+      - -c
+      - timezone=Asia/Ho_Chi_Minh
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=256MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=40
+      - -c
+      - max_parallel_workers_per_gather=0
+      - -c
+      - max_worker_processes=4
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,6 +45,7 @@ services:
       retries: 5
 
   backend:
+    image: ${IMAGE_REGISTRY:-docusyncai}/docusyncai-backend:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -35,6 +59,14 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       DATABASE_URL: ${DOCKER_DATABASE_URL:?Đặt DOCKER_DATABASE_URL trong .env}
       AVATAR_STORAGE_DIR: /app/storage/avatars
+      # Một tiến trình uvicorn là đủ cho vài chục người dùng; mỗi worker thêm tốn khoảng 150 MB RAM.
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
+      # Backend chỉ nhận kết nối từ Caddy trong mạng Docker, nên tin header X-Forwarded-For để lấy đúng IP người dùng
+      # (giới hạn đăng nhập sai theo IP, nhật ký).
+      FORWARDED_ALLOW_IPS: "*"
+      # Giảm phân mảnh bộ nhớ của glibc khi AI chạy trong thread pool.
+      MALLOC_ARENA_MAX: "2"
+      SENTRY_RELEASE: ${IMAGE_TAG:-local}
     volumes:
       - storage_data:/app/storage
       - invoice_data:/app/invoice
@@ -47,24 +79,36 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
 
-  frontend:
+  # Caddy + file tĩnh của frontend (build trong frontend/Dockerfile). HTTPS tự động khi đặt DOMAIN.
+  web:
+    image: ${IMAGE_REGISTRY:-docusyncai}/docusyncai-web:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
         VITE_STYLEGUIDE: ${VITE_STYLEGUIDE:-false}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_RELEASE: ${IMAGE_TAG:-local}
     restart: unless-stopped
+    environment:
+      # Địa chỉ site của Caddy: tên miền thì có HTTPS, ":80" thì chỉ HTTP.
+      SITE_ADDRESS: ${DOMAIN:-:80}
     ports:
-      # Khi dùng profile https, đặt FRONTEND_BIND=127.0.0.1 để chỉ Caddy truy cập được.
-      - "${FRONTEND_BIND:-0.0.0.0}:${FRONTEND_PORT:-3000}:80"
+      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${HTTP_BIND:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      # Hỏi API quản trị nội bộ của Caddy (chỉ nghe trong container), không phụ thuộc HTTPS hay tên miền.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -72,26 +116,10 @@ services:
       backend:
         condition: service_healthy
 
-  # HTTPS tự động (Let's Encrypt). Chỉ chạy khi bật profile `https`.
-  caddy:
-    image: caddy:2-alpine
-    profiles: ["https"]
-    restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-
 volumes:
   postgres_data:
   storage_data:
   invoice_data:
+  # Giữ tên cũ để máy ảo đang chạy không phải xin lại chứng chỉ HTTPS.
   caddy_data:
   caddy_config:
