@@ -7,7 +7,7 @@ import { cn, focusRing } from '../../ui/cn.js';
  */
 export default function SummaryLine({ items, label }) {
   return (
-    <dl aria-label={label} className="grid grid-cols-2 border-y border-line sm:flex sm:flex-wrap">
+    <dl aria-label={label} className="grid grid-cols-2 border-y border-line sm:auto-cols-fr sm:grid-flow-col sm:grid-cols-none">
       {items.map((item, index) => {
         const body = (
           <>
@@ -19,7 +19,8 @@ export default function SummaryLine({ items, label }) {
           </>
         );
         const cellClass = cn(
-          'block min-w-0 px-4 py-4 text-left sm:px-6',
+          // Nút bấm mặc định căn giữa nội dung theo chiều dọc: ép mọi ô căn lên trên để các nhãn thẳng hàng.
+          'flex min-w-0 flex-col items-start justify-start px-4 py-4 text-left sm:px-6',
           index > 0 && 'sm:border-l sm:border-line',
           item.lead && 'col-span-2 sm:col-span-1 sm:pl-0',
         );
