@@ -271,8 +271,11 @@ def create_invitation(
     return invitation, token
 
 
-def send_invitation(invitation: UserInvitation, token: str, inviter: User, frontend_base_url: str) -> str:
-    """Gửi email lời mời; trả về link nhận lời mời (kế toán trưởng có thể tự gửi link nếu email không tới)."""
+def send_invitation(
+    invitation: UserInvitation, token: str, inviter: User, frontend_base_url: str
+) -> tuple[str, bool]:
+    """Gửi email lời mời; trả về (link nhận lời mời, email có gửi đi được không). Không gửi được thì kế toán trưởng
+    tự gửi link, và giao diện phải nói thật là chưa gửi."""
     accept_url = f"{frontend_base_url}/nhan-loi-moi?token={token}"
     organization = inviter.organization
     role_name = "Kế toán trưởng" if invitation.role_code == "chief_accountant" else "Kế toán viên"
@@ -285,9 +288,10 @@ def send_invitation(invitation: UserInvitation, token: str, inviter: User, front
         accept_url,
         get_settings().invitation_ttl_days,
     )
-    if not _deliver(sent, "link mời", invitation.email, accept_url):
+    delivered = _deliver(sent, "link mời", invitation.email, accept_url)
+    if not delivered:
         logger.warning("Không gửi được email mời tới %s; kế toán trưởng có thể gửi link thủ công.", invitation.email)
-    return accept_url
+    return accept_url, sent
 
 
 def revoke_invitation(db: Session, invitation_id: uuid.UUID) -> UserInvitation:

@@ -20,6 +20,7 @@ export default function InvitationsPanel({ token }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [createdLink, setCreatedLink] = useState('');
+  const [emailSent, setEmailSent] = useState(true);
 
   const load = useCallback(() => {
     getInvitations(token)
@@ -43,6 +44,7 @@ export default function InvitationsPanel({ token }) {
     try {
       const invitation = await createInvitation(token, form);
       setCreatedLink(invitation.accept_url);
+      setEmailSent(invitation.email_sent !== false);
       load();
     } catch (err) {
       setError(err.message);
@@ -108,7 +110,7 @@ export default function InvitationsPanel({ token }) {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={createdLink ? 'Đã gửi lời mời' : 'Mời người dùng'}
+        title={createdLink ? (emailSent ? 'Đã gửi lời mời' : 'Đã tạo lời mời') : 'Mời người dùng'}
         description={createdLink ? undefined : 'Gửi email mời vào công ty của bạn.'}
         footer={
           createdLink ? (
@@ -129,10 +131,17 @@ export default function InvitationsPanel({ token }) {
       >
         {createdLink ? (
           <div className="space-y-3 text-sm">
-            <p className="text-fg-muted">
-              Email mời đã gửi tới <strong className="text-fg">{form.email}</strong>. Nếu người nhận không thấy email, gửi họ
-              link này:
-            </p>
+            {emailSent ? (
+              <p className="text-fg-muted">
+                Email mời đã gửi tới <strong className="text-fg">{form.email}</strong>. Nếu sau vài phút người nhận vẫn không
+                thấy (kể cả mục Spam/Quảng cáo), gửi họ link này:
+              </p>
+            ) : (
+              <p role="alert" className="text-tone-danger-fg">
+                Máy chủ chưa gửi được email tới <strong>{form.email}</strong>. Lời mời vẫn có hiệu lực: chép link dưới đây
+                và gửi cho người nhận qua Zalo hoặc email của bạn.
+              </p>
+            )}
             <div className="flex items-center gap-2">
               <Input readOnly value={createdLink} onFocus={(event) => event.target.select()} aria-label="Link mời" />
               <Button iconOnly aria-label="Chép link mời" onClick={() => copyLink(createdLink)}>
