@@ -127,7 +127,7 @@ export function ResultDonut({ verdicts, matchRate }) {
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-semibold tabular-nums text-fg">{matchRate === null ? '—' : `${verdicts.matched + verdicts.minor}/${verdicts.matched + verdicts.minor + verdicts.mismatch}`}</span>
-          <span className="text-xs text-fg-muted">{vi.overview.result.matchedShort}</span>
+          <span className="mt-0.5 max-w-[5.5rem] text-center text-[11px] leading-tight text-fg-muted">{vi.overview.result.matchedShort}</span>
         </div>
       </div>
       <ul className="w-full space-y-2 text-sm">
