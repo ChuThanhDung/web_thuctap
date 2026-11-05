@@ -123,15 +123,16 @@
   box-sizing: border-box;
 }
 
+/* clip (không phải hidden): chặn tràn ngang mà không biến html/body thành khung cuộn, để position: sticky còn chạy. */
 html {
   min-width: 320px;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
