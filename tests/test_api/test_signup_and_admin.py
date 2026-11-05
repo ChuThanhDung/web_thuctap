@@ -402,3 +402,22 @@ def test_trial_never_downgrades_a_paid_plan():
     assert effective_plan(organization) == "pro"
     organization.trial_ends_at = datetime.now(UTC) - timedelta(seconds=1)
     assert effective_plan(organization) == "free"
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_can_accept_new_terms(client, admin_headers):
+    headers = admin_headers
+    assert (await client.post("/api/v1/auth/terms/accept", headers=headers)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_can_set_up_mfa_when_enforced(client, platform_admin, monkeypatch):
+    from src.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "mfa_enforced", True)
+    headers = await login(client, platform_admin, PASSWORD)
+    me = (await client.get("/api/v1/auth/me", headers=headers)).json()
+    assert me["mfa_setup_required"] is True
+    assert (await client.post("/api/v1/auth/terms/accept", headers=headers)).status_code == 200
+    setup = await client.post("/api/v1/auth/mfa/setup", headers=headers)
+    assert setup.status_code == 200, setup.text

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, FileCode2, FileImage, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { getLegalInfo, getPublicPlans } from '../api.js';
@@ -6,16 +6,6 @@ import { formatVND } from '../lib/format.js';
 import { ROUTES } from '../routes.js';
 import BrandMark from '../components/BrandMark.jsx';
 import { cn } from '../ui/index.js';
-
-// Sáu trạm một bộ chứng từ đi qua; mỗi trạm là một đoạn của trang, cột trái sáng theo đoạn đang đọc.
-const STATIONS = [
-  { id: 'tai-ba-lien', label: 'Tải ba liên' },
-  { id: 'doc-chung-tu', label: 'Đọc chứng từ' },
-  { id: 'so-tung-dong', label: 'So từng dòng hàng' },
-  { id: 'duyet-cap-1', label: 'Kế toán viên duyệt' },
-  { id: 'duyet-cuoi', label: 'Kế toán trưởng duyệt cuối' },
-  { id: 'khoa-ho-so', label: 'Khóa thành hồ sơ' },
-];
 
 // Dữ liệu minh họa (không phải khách hàng thật), đúng cách ứng dụng hiển thị.
 const ITEMS = [
@@ -70,7 +60,8 @@ function StackedCopies({ settled }) {
         <div
           key={key}
           className={cn(
-            'relative rounded-card border border-line bg-surface p-4 shadow-card transition-transform duration-700 ease-out motion-reduce:transition-none',
+            'relative rounded-card border border-line bg-surface p-4 shadow-card transition-transform duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none',
+            ['delay-0', 'delay-100', 'delay-200'][index],
             PLACE[index],
             !settled && LOOSE[index],
           )}
@@ -83,7 +74,7 @@ function StackedCopies({ settled }) {
             {ITEMS.map((item) => {
               const [qty, price] = item[key];
               const odd = item.odd[key];
-              const nudge = cn(ODD_MARK, 'inline-block transition-transform delay-500 duration-500 ease-out motion-reduce:transition-none', settled && 'translate-x-2');
+              const nudge = cn(ODD_MARK, 'inline-block transition-transform delay-[1000ms] duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none', settled && 'translate-x-2');
               return (
                 <div key={item.name} className="flex items-baseline justify-between gap-3 border-b border-line py-2 last:border-0">
                   <dt className="min-w-0 truncate text-fg-muted">{item.name}</dt>
@@ -102,11 +93,45 @@ function StackedCopies({ settled }) {
   );
 }
 
+/** Hiện dần khi phần tử vào khung nhìn. Không có IntersectionObserver hoặc người dùng giảm chuyển động: hiện ngay. */
+function useReveal() {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!element || reduce || typeof IntersectionObserver === 'undefined') {
+      setShown(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShown(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px' },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, shown];
+}
+
+const REVEAL = 'transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
+
 function Station({ id, index, title, children, className, as: Heading = 'h2' }) {
+  const [ref, shown] = useReveal();
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className={cn('scroll-mt-6 border-t border-line py-16 first:border-t-0 lg:py-20', className)}>
-      <Heading id={`${id}-title`} className="flex max-w-4xl items-start gap-4 text-balance text-[clamp(1.5rem,3vw,2rem)] font-bold leading-tight tracking-[-0.015em] text-fg">
-        {/* Số trạm khớp vòng số ở cột hành trình bên trái. */}
+    <section
+      ref={ref}
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className={cn('scroll-mt-20 border-t border-line py-16 first:border-t-0 lg:py-24', REVEAL, shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0', className)}
+    >
+      <Heading id={`${id}-title`} className="flex max-w-4xl items-start gap-4 text-balance text-[clamp(1.5rem,2.6vw,2.5rem)] font-bold leading-tight tracking-[-0.015em] text-fg">
+        {/* Số trạm: thứ tự bộ chứng từ đi qua, từ tải lên tới lưu trữ. */}
         <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-base text-primary tabular-nums" aria-hidden="true">
           {index}
         </span>
@@ -135,7 +160,6 @@ function PrimaryAction({ href, tone = 'solid', className, children = 'Liên hệ
 export default function Landing() {
   const contactEmail = useContactEmail();
   const contact = contactHref(contactEmail);
-  const [active, setActive] = useState(STATIONS[0].id);
   const [settled, setSettled] = useState(false);
   const [plans, setPlans] = useState([]);
 
@@ -152,80 +176,31 @@ export default function Landing() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  // Cột hành trình sáng theo trạm đang đọc.
-  useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return undefined;
-    const spy = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting);
-        if (visible.length) setActive(visible[0].target.id);
-      },
-      { rootMargin: '-35% 0px -60% 0px' },
-    );
-    STATIONS.forEach(({ id }) => {
-      const element = document.getElementById(id);
-      if (element) spy.observe(element);
-    });
-    return () => spy.disconnect();
-  }, []);
-
   return (
     <div className="min-h-dvh bg-canvas text-fg">
-      {/* Cột hành trình: trên màn rộng cố định bên trái; màn hẹp thành thanh trên cùng. */}
-      <aside className="sticky top-0 z-20 bg-[linear-gradient(180deg,rgb(var(--c-sidebar))_0%,rgb(var(--c-sidebar-end))_100%)] text-sidebar-fg lg:fixed lg:inset-y-0 lg:left-0 lg:w-[300px]">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 lg:block lg:px-7 lg:py-7">
-          <Link to="/" className="flex items-center gap-2.5 font-bold">
+      {/* Thanh trên cùng dính khi cuộn: tên sản phẩm, các trang, nút liên hệ. Không có mục lục: người đọc tự cuộn. */}
+      <header className="sticky top-0 z-30 border-b border-line/70 bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
+        <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-8 xl:px-12">
+          <Link to="/" className="flex items-center gap-2.5 font-bold text-fg">
             <BrandMark />
             DocuSync AI
           </Link>
-          <PrimaryAction href={contact} tone="inverse" className="min-h-10 !px-3 text-sm lg:hidden">
-            Liên hệ
-          </PrimaryAction>
+          <nav aria-label="Trang" className="flex items-center gap-x-4 text-sm sm:gap-x-6">
+            <Link to={ROUTES.pricing} className="hidden text-fg-muted underline-offset-4 hover:text-fg hover:underline sm:inline">Bảng giá</Link>
+            <Link to={ROUTES.guide} className="hidden text-fg-muted underline-offset-4 hover:text-fg hover:underline sm:inline">Hướng dẫn</Link>
+            <Link to={ROUTES.login} className="text-fg-muted underline-offset-4 hover:text-fg hover:underline">Đăng nhập</Link>
+            <PrimaryAction href={contact} className="min-h-10 !px-4 text-sm">
+              Liên hệ
+            </PrimaryAction>
+          </nav>
         </div>
-        <nav aria-label="Hành trình một bộ chứng từ" className="hidden px-4 lg:block">
-          <ol className="mt-6 space-y-1">
-            {STATIONS.map((station, index) => {
-              const on = active === station.id;
-              return (
-                <li key={station.id}>
-                  <a
-                    href={`#${station.id}`}
-                    aria-current={on ? 'step' : undefined}
-                    className={cn(
-                      'flex min-h-11 items-center gap-3 rounded-control px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-accent',
-                      on ? 'bg-sidebar-fg/15 font-semibold text-sidebar-fg ring-1 ring-inset ring-sidebar-fg/25' : 'text-sidebar-muted hover:bg-sidebar-fg/10 hover:text-sidebar-fg',
-                    )}
-                  >
-                    <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums', on ? 'border-sidebar-accent bg-sidebar-accent text-sidebar' : 'border-sidebar-muted')}>
-                      {index + 1}
-                    </span>
-                    {station.label}
-                  </a>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-        <div className="absolute inset-x-7 bottom-7 hidden space-y-3 lg:block">
-          <PrimaryAction href={contact} tone="inverse" className="w-full" />
-          {contactEmail && <p className="truncate text-center text-xs text-sidebar-muted">{contactEmail}</p>}
-        </div>
-      </aside>
+      </header>
 
-      <div className="lg:ml-[300px]">
-        <header className="flex items-center justify-end gap-x-4 px-4 pt-4 text-sm sm:gap-x-6 sm:px-10 sm:pt-5 lg:px-16">
-          <Link to={ROUTES.pricing} className="text-fg-muted underline-offset-4 hover:text-fg hover:underline">Bảng giá</Link>
-          <Link to={ROUTES.guide} className="text-fg-muted underline-offset-4 hover:text-fg hover:underline">Hướng dẫn</Link>
-          <Link to={ROUTES.login} className="text-fg-muted underline-offset-4 hover:text-fg hover:underline">Đăng nhập</Link>
-          <Link to={ROUTES.signup} className="whitespace-nowrap font-semibold text-primary underline-offset-4 hover:underline sm:rounded-control sm:border sm:border-line-input sm:bg-surface sm:px-3 sm:py-1.5 sm:text-fg sm:no-underline sm:hover:bg-surface-muted">
-            Dùng thử<span className="hidden sm:inline"> 14 ngày</span>
-          </Link>
-        </header>
-
-        <main className="px-4 sm:px-10 lg:px-16">
-          <Station id="tai-ba-lien" index={1} as="h1" title="Một bộ chứng từ đi từ bàn kế toán viên tới hồ sơ lưu trữ, không dòng hàng nào bị bỏ sót" className="pt-8 lg:pt-10">
-            <div className="grid gap-x-12 gap-y-6 xl:grid-cols-[minmax(0,40rem)_1fr] xl:items-end">
-              <p className="max-w-2xl text-pretty text-base leading-7 text-fg-muted">
+      <div>
+        <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-8 xl:px-12">
+          <Station id="tai-ba-lien" index={1} as="h1" title="Một bộ chứng từ đi từ bàn kế toán viên tới hồ sơ lưu trữ, không dòng hàng nào bị bỏ sót" className="flex min-h-[calc(100dvh-4rem)] flex-col justify-center pt-10 lg:pt-12">
+            <div className="grid gap-x-12 gap-y-6 xl:grid-cols-[minmax(0,44rem)_1fr] xl:items-end">
+              <p className="max-w-2xl text-pretty text-base leading-7 text-fg-muted sm:text-lg sm:leading-8">
                 Kéo đơn đặt hàng, hóa đơn và phiếu nhập kho vào một bộ. DocuSync so ba liên theo từng dòng hàng, nói rõ chỗ lệch bằng
                 chữ, rồi chuyển bộ qua hai cấp duyệt. Bộ đã duyệt cuối được khóa, không ai sửa hay xóa được.
               </p>
@@ -466,7 +441,7 @@ export default function Landing() {
           </section>
         </main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-6 text-sm text-fg-subtle sm:px-10 lg:px-16">
+        <footer className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-6 text-sm text-fg-subtle sm:px-8 xl:px-12">
           <span>© {new Date().getFullYear()} DocuSync AI</span>
           <nav aria-label="Liên kết cuối trang" className="flex flex-wrap gap-x-5 gap-y-1">
             <Link to={ROUTES.terms} className="hover:text-fg-muted hover:underline">Điều khoản sử dụng</Link>

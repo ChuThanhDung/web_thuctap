@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.config import get_settings
-from src.database import get_db, set_organization_context
+from src.database import get_db, set_organization_context, use_system_context
 from src.models.organization import Organization
 from src.models.role import Role
 from src.models.schemas import (
@@ -63,13 +63,24 @@ PLATFORM_ADMIN_PATHS = (
     "/api/v1/auth/me",
     "/api/v1/auth/password",
     "/api/v1/auth/avatars",
+    "/api/v1/auth/terms",
+    "/api/v1/auth/mfa",
     # Chuông thông báo trên thanh bên (RLS trả về rỗng vì admin không thuộc công ty).
     "/api/v1/notifications",
 )
 
 
 # Kế toán trưởng/admin chưa bật 2FA (khi bắt buộc) chỉ gọi được các API để cài đặt 2FA.
-MFA_SETUP_PATHS = ("/api/v1/auth/me", "/api/v1/auth/mfa")
+ADMIN_SELF_SERVICE_PATHS = (
+    "/api/v1/auth/me",
+    "/api/v1/auth/password",
+    "/api/v1/auth/avatars",
+    "/api/v1/auth/terms",
+    "/api/v1/auth/mfa",
+)
+
+# Đồng ý điều khoản phải làm được trước khi bật 2FA: giao diện hỏi điều khoản trước, rồi mới tới màn bật 2FA.
+MFA_SETUP_PATHS = ("/api/v1/auth/me", "/api/v1/auth/mfa", "/api/v1/auth/terms")
 
 
 def to_organization_summary(organization: Organization | None) -> OrganizationSummary | None:
@@ -150,6 +161,11 @@ def get_current_user(
             detail="Tài khoản quản trị nền tảng không dùng được chức năng nghiệp vụ của công ty.",
         )
 
+    if user.role.code == PLATFORM_ADMIN and request.url.path.startswith(ADMIN_SELF_SERVICE_PATHS):
+        # Admin không thuộc công ty nào nên RLS không cho ghi vào chính dòng users của mình (đồng ý điều khoản,
+        # bật 2FA, đổi mật khẩu). Các đường dẫn này chỉ đụng tới tài khoản của chính người gọi.
+        use_system_context(db)
+        return user
     # Từ đây phiên DB chỉ thấy và chỉ ghi được dữ liệu công ty của người dùng (Row-Level Security).
     set_organization_context(db, user.organization_id)
     return user
