@@ -118,6 +118,8 @@ async def test_chief_must_set_up_mfa_before_using_the_app(client, enforce_mfa):
     headers = bearer(step["access_token"])
     assert (await client.get("/api/v1/uploads/batches", headers=headers)).status_code == 403
     assert (await client.get("/api/v1/auth/me", headers=headers)).status_code == 200
+    # Điều khoản mới phải đồng ý được trước khi bật 2FA (giao diện hỏi điều khoản trước), nếu không sẽ kẹt.
+    assert (await client.post("/api/v1/auth/terms/accept", headers=headers)).status_code == 200
 
     await enable_mfa(client, headers)
     assert (await client.get("/api/v1/uploads/batches", headers=headers)).status_code == 200

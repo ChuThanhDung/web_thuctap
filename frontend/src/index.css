@@ -364,3 +364,10 @@ textarea {
   }
 }
 
+
+/* Cuộn mượt khi bấm link trong trang (trừ khi người dùng giảm chuyển động). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
