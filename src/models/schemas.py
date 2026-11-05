@@ -261,6 +261,8 @@ class InvitationOut(BaseModel):
     created_at: datetime | None = None
     # Chỉ có ngay khi vừa tạo: link để kế toán trưởng tự gửi nếu email không tới.
     accept_url: str | None = None
+    # Chỉ có ngay khi vừa tạo: email mời có gửi đi được không (máy chủ email lỗi thì False).
+    email_sent: bool | None = None
 
 
 class InvitationLookupResponse(BaseModel):

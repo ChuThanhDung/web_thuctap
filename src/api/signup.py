@@ -49,7 +49,9 @@ def to_http_error(exc: SignupError) -> HTTPException:
     return HTTPException(status_code=exc.status_code, detail=str(exc), headers=headers)
 
 
-def to_invitation_out(invitation: UserInvitation, accept_url: str | None = None) -> InvitationOut:
+def to_invitation_out(
+    invitation: UserInvitation, accept_url: str | None = None, email_sent: bool | None = None
+) -> InvitationOut:
     return InvitationOut(
         id=str(invitation.id),
         email=invitation.email,
@@ -58,6 +60,7 @@ def to_invitation_out(invitation: UserInvitation, accept_url: str | None = None)
         expires_at=invitation.expires_at,
         created_at=invitation.created_at,
         accept_url=accept_url,
+        email_sent=email_sent,
     )
 
 
@@ -159,7 +162,7 @@ async def invite_user(
     except SignupError as exc:
         raise to_http_error(exc) from exc
 
-    accept_url = send_invitation(invitation, token, current_user, get_frontend_base_url(request))
+    accept_url, email_sent = send_invitation(invitation, token, current_user, get_frontend_base_url(request))
     ip_address, user_agent = client_info(request)
     write_audit_log(
         db=db,
@@ -167,11 +170,11 @@ async def invite_user(
         user=current_user,
         target_type="INVITATION",
         target_id=str(invitation.id),
-        details={"invited_email": invitation.email, "role": invitation.role_code},
+        details={"invited_email": invitation.email, "role": invitation.role_code, "email_sent": email_sent},
         ip_address=ip_address,
         user_agent=user_agent,
     )
-    return to_invitation_out(invitation, accept_url)
+    return to_invitation_out(invitation, accept_url, email_sent)
 
 
 @router.delete("/invitations/{invitation_id}", response_model=InvitationOut)

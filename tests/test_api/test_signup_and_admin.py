@@ -237,6 +237,7 @@ async def test_invited_accountant_joins_the_inviting_company_only(client, outbox
     )
     assert response.status_code == 201, response.text
     accept_url = response.json()["accept_url"]
+    assert response.json()["email_sent"] is True
     assert accept_url == next(url for to, url in outbox["invite"] if to == email)
     token = accept_url.split("token=")[1]
 
@@ -421,3 +422,17 @@ async def test_platform_admin_can_set_up_mfa_when_enforced(client, platform_admi
     assert (await client.post("/api/v1/auth/terms/accept", headers=headers)).status_code == 200
     setup = await client.post("/api/v1/auth/mfa/setup", headers=headers)
     assert setup.status_code == 200, setup.text
+
+
+@pytest.mark.asyncio
+async def test_invitation_says_honestly_when_the_email_did_not_go_out(client, outbox, monkeypatch):
+    chief, _org_id = await new_company(client, outbox)
+    monkeypatch.setattr("src.services.signup.send_invitation_email", lambda *args, **kwargs: False)
+    response = await client.post(
+        "/api/v1/auth/invitations",
+        headers=chief,
+        json={"email": unique_email("noemail"), "full_name": "Trần Thu", "role_code": "accountant"},
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["email_sent"] is False
+    assert "token=" in response.json()["accept_url"]
